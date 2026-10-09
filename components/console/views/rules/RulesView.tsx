@@ -253,7 +253,7 @@ export function RulesView() {
           <span className="inline-flex gap-1">
             <button
               type="button"
-              className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-[#f2f4ee] hover:text-primary"
+              className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-wash hover:text-primary"
               aria-label="查看详情"
               onClick={() => openDetail(row)}
             >
@@ -262,7 +262,7 @@ export function RulesView() {
             {canWrite && (
               <button
                 type="button"
-                className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-danger hover:bg-[#f2f4ee] hover:text-danger"
+                className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-danger hover:bg-wash hover:text-danger"
                 aria-label="删除规则"
                 onClick={() => setDeleteTarget(row)}
               >

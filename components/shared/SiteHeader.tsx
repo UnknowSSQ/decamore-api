@@ -60,7 +60,7 @@ export function SiteHeader() {
           ref={outsideRef}
           id="site-nav-links"
           className={cn(
-            'flex items-center gap-[34px] text-[13px] text-[#555d56]',
+            'flex items-center gap-[34px] text-[13px] text-ink-2',
             // 面板锚定 .site-nav（relative）而不是 sticky header：下滑后 header 会加 padding-top，
             // 挂在 header 上定位就会和导航条错开；inset-x-0 因此天然与胶囊等宽
             'max-[760px]:absolute max-[760px]:inset-x-0 max-[760px]:top-[calc(100%+8px)] max-[760px]:z-50 max-[760px]:hidden max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-0 max-[760px]:rounded-2xl max-[760px]:border max-[760px]:border-line max-[760px]:bg-surface max-[760px]:p-2 max-[760px]:shadow-pop',
@@ -73,7 +73,7 @@ export function SiteHeader() {
           ))}
           <Link
             href={NAV_CTA.href}
-            className="rounded-full border border-[#d9ddd6] px-[18px] py-[11px] text-[13px] text-ink transition-colors hover:border-[#c4cec2] hover:bg-[#eeefe9] max-[760px]:mt-1 max-[760px]:text-center"
+            className="rounded-full border border-hair px-[18px] py-[11px] text-[13px] text-ink transition-colors hover:border-hair hover:bg-wash max-[760px]:mt-1 max-[760px]:text-center"
           >
             {NAV_CTA.label} <span aria-hidden>↗</span>
           </Link>

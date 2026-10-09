@@ -11,7 +11,7 @@ export const buttonVariants = cva(
         light: 'bg-surface text-primary hover:-translate-y-0.5 shadow-lift',
         outline: 'border border-line bg-transparent text-ink hover:border-primary hover:text-primary',
         ghost: 'bg-transparent text-muted hover:text-primary hover:bg-sage/60',
-        danger: 'bg-danger text-[#fff7f2] hover:brightness-95',
+        danger: 'bg-danger text-surface hover:brightness-95',
         console: 'bg-bg-soft text-ink border border-line hover:border-primary/45 hover:bg-surface',
       },
       size: {

@@ -101,7 +101,7 @@ export default async function ApiDocPage({ params }: PageProps) {
               </h1>
 
               {doc.lede && (
-                <p className="doc-lede mt-4 max-w-[640px] text-[15px] leading-[1.75] text-[#4d554e]">{doc.lede}</p>
+                <p className="doc-lede mt-4 max-w-[640px] text-[15px] leading-[1.75] text-ink-2">{doc.lede}</p>
               )}
 
               <div className="route-bar mt-5 flex items-center gap-[13px] rounded-[15px] border border-line bg-surface px-4 py-3 shadow-soft max-[760px]:flex-wrap">
@@ -112,12 +112,12 @@ export default async function ApiDocPage({ params }: PageProps) {
                 </span>
                 <CopyButton
                   text={url}
-                  className="copy-mini ml-auto flex items-center gap-1 rounded-full border border-line px-3 py-[5px] text-[11px] text-muted transition-colors hover:border-primary hover:bg-[#f2f4ee] hover:text-primary"
+                  className="copy-mini ml-auto flex items-center gap-1 rounded-full border border-line px-3 py-[5px] text-[11px] text-muted transition-colors hover:border-primary hover:bg-wash hover:text-primary"
                 />
               </div>
 
               {doc.facts.length > 0 && (
-                <ul className="facts mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-[#555d56]">
+                <ul className="facts mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-ink-2">
                   {doc.facts.map((fact) => (
                     <li key={fact} className="flex items-center gap-2">
                       <span className="h-[5px] w-[5px] rounded-full bg-[#b6c4b3]" aria-hidden />
@@ -189,7 +189,7 @@ export default async function ApiDocPage({ params }: PageProps) {
 
               <Link
                 href={`/plaza#${doc.slug}`}
-                className="try-link mt-4 flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-full border border-line bg-surface px-4 text-[12.5px] font-semibold text-primary transition-[transform,border-color,background] hover:-translate-y-0.5 hover:border-[#c4cec2] hover:bg-[#f2f4ee]"
+                className="try-link mt-4 flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-full border border-line bg-surface px-4 text-[12.5px] font-semibold text-primary transition-[transform,border-color,background] hover:-translate-y-0.5 hover:border-hair hover:bg-wash"
               >
                 在接口广场试用 <span aria-hidden>↗</span>
               </Link>

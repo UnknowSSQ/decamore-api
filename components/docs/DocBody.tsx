@@ -24,7 +24,7 @@ function renderContent(item: SectionContent, index: number) {
   switch (item.kind) {
     case 'paragraph':
       return (
-        <p key={index} className="text-[14px] leading-[1.85] text-[#4d554e]">
+        <p key={index} className="text-[14px] leading-[1.85] text-ink-2">
           {renderFragments(item.fragments)}
         </p>
       );
@@ -57,7 +57,7 @@ export function DocBody({ sections }: DocBodyProps) {
             {section.title}
             <a
               href={`#${section.id}`}
-              className="h-link text-[#9aa49b] opacity-0 transition-opacity group-hover:opacity-100"
+              className="h-link text-ink-4 opacity-0 transition-opacity group-hover:opacity-100"
               aria-label={`锚点到 ${section.title}`}
             >
               #

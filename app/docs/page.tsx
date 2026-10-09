@@ -101,7 +101,7 @@ export default function DocsIndexPage() {
                           </span>
                         </span>
 
-                        <code className="font-mono text-[11.5px] text-[#5d6b5f]">{doc.path}</code>
+                        <code className="font-mono text-[11.5px] text-ink-3">{doc.path}</code>
 
                         <p className="mb-0 line-clamp-2 text-[12.5px] leading-[1.7] text-muted">{doc.lede}</p>
                       </Link>

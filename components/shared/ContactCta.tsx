@@ -77,7 +77,7 @@ export function ContactCta({ title, description, subject, children, className, t
         }
       >
         <div className="flex flex-col gap-3">
-          <p className="mb-0 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9aa49b]">
+          <p className="mb-0 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-4">
             <Icon name="mail" size={13} className="text-primary" />
             邮箱地址
           </p>

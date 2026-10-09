@@ -20,7 +20,7 @@ export function HeroSection() {
             >
               即刻探索 <span aria-hidden className="text-[17px]">↗</span>
             </a>
-            <a href="#quick-start" className="text-[13px] text-[#505a52] transition-colors hover:text-primary">
+            <a href="#quick-start" className="text-[13px] text-ink-2 transition-colors hover:text-primary">
               阅读文档 <span aria-hidden>→</span>
             </a>
           </div>
@@ -29,7 +29,7 @@ export function HeroSection() {
 
       <Reveal delay={0.12}>
         <div
-          className="relative min-h-[410px] overflow-hidden rounded-[28px] bg-[#e9ede5]"
+          className="relative min-h-[410px] overflow-hidden rounded-[28px] bg-wash-2"
           role="img"
           aria-label="由柔和绿色圆形与接口卡片组成的抽象插画"
         >
@@ -64,21 +64,21 @@ export function HeroSection() {
           </div>
 
           <div className="absolute left-[34px] top-[57px] z-10 w-[220px] rounded-[15px] border border-[rgba(255,255,255,0.8)] bg-[rgba(255,254,250,0.84)] p-5 shadow-soft backdrop-blur-xl">
-            <div className="mb-3 text-[10px] tracking-[0.1em] text-[#6d756e]">REST / JSON API</div>
+            <div className="mb-3 text-[10px] tracking-[0.1em] text-muted">REST / JSON API</div>
             <div className="mb-4 text-[14px] font-semibold">标准 JSON 格式输出</div>
             <div className="grid gap-[7px]" aria-hidden>
-              <span className="block h-[5px] rounded-[8px] bg-[#e4e8e1]" />
-              <span className="block h-[5px] w-[72%] rounded-[8px] bg-[#e4e8e1]" />
-              <span className="block h-[5px] w-[48%] rounded-[8px] bg-[#e4e8e1]" />
+              <span className="block h-[5px] rounded-[8px] bg-wash-2" />
+              <span className="block h-[5px] w-[72%] rounded-[8px] bg-wash-2" />
+              <span className="block h-[5px] w-[48%] rounded-[8px] bg-wash-2" />
             </div>
           </div>
 
           <div className="absolute bottom-[36px] right-[28px] z-10 w-[190px] rounded-[15px] border border-[rgba(255,255,255,0.8)] bg-[rgba(255,254,250,0.84)] p-5 shadow-soft backdrop-blur-xl">
-            <div className="mb-3 text-[10px] tracking-[0.1em] text-[#6d756e]">FREE / NO SIGNIN</div>
+            <div className="mb-3 text-[10px] tracking-[0.1em] text-muted">FREE / NO SIGNIN</div>
             <div className="mb-4 text-[14px] font-semibold">免登录、免签名</div>
             <div className="grid gap-[7px]" aria-hidden>
-              <span className="block h-[5px] rounded-[8px] bg-[#e4e8e1]" />
-              <span className="block h-[5px] rounded-[8px] bg-[#e4e8e1]" />
+              <span className="block h-[5px] rounded-[8px] bg-wash-2" />
+              <span className="block h-[5px] rounded-[8px] bg-wash-2" />
             </div>
           </div>
 
@@ -91,7 +91,7 @@ export function HeroSection() {
             aria-hidden
           />
 
-          <span className="absolute bottom-[18px] right-[30px] text-[10px] tracking-[0.12em] text-[#5d6b5f]">
+          <span className="absolute bottom-[18px] right-[30px] text-[10px] tracking-[0.12em] text-ink-3">
             BUILD WITH CONFIDENCE
           </span>
         </div>

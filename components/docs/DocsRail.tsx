@@ -31,7 +31,7 @@ function TocLinks({
         const isActive = activeId === item.id;
         const tone = isActive
           ? 'border-primary bg-[rgba(54,91,73,0.07)] font-semibold text-primary'
-          : 'border-line text-[#555d56] hover:text-primary';
+          : 'border-line text-ink-2 hover:text-primary';
         return (
           <Link
             key={item.id}
@@ -68,7 +68,7 @@ export function DocsRail({ tocItems, siblingApis }: DocsRailProps) {
     >
       {/* 同一份 anchor 不能出现两次，窄屏下 rail 的目录组必须隐藏 */}
       <div className="rail-group rail-group--toc max-[900px]:hidden">
-        <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa49b]">
+        <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-4">
           本文档
         </p>
         <nav className="rail-list flex flex-col gap-0">
@@ -77,7 +77,7 @@ export function DocsRail({ tocItems, siblingApis }: DocsRailProps) {
       </div>
 
       <div className="rail-group mt-6 max-[900px]:mt-0">
-        <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa49b]">
+        <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-4">
           同组接口
         </p>
         <nav className="flex flex-col gap-0">
@@ -85,16 +85,16 @@ export function DocsRail({ tocItems, siblingApis }: DocsRailProps) {
             <Link
               key={api.href}
               href={api.href}
-              className="block border-l-2 border-line py-[7px] pl-3 pr-2 text-[13px] leading-[1.5] text-[#555d56] transition-colors hover:text-primary"
+              className="block border-l-2 border-line py-[7px] pl-3 pr-2 text-[13px] leading-[1.5] text-ink-2 transition-colors hover:text-primary"
             >
               {api.label}
-              <small className="mt-[3px] block text-[11px] leading-tight text-[#a3aba3]">
+              <small className="mt-[3px] block text-[11px] leading-tight text-ink-4">
                 {api.path}
               </small>
             </Link>
           ))}
         </nav>
-        <p className="mt-[14px] text-[11px] leading-[1.7] text-[#a3aba3]">
+        <p className="mt-[14px] text-[11px] leading-[1.7] text-ink-4">
           文档以单接口为单位组织。
           <br />
           全部接口目录见{' '}

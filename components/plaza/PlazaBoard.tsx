@@ -124,7 +124,7 @@ export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoar
             <button
               type="button"
               className={`rounded-full border px-4 py-2 text-[12px] transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary ${
-                !category ? 'bg-primary text-surface border-primary' : 'border-line bg-transparent text-[#5b635c]'
+                !category ? 'bg-primary text-surface border-primary' : 'border-line bg-transparent text-ink-3'
               }`}
               onClick={() => setCategory(null)}
               aria-pressed={!category}
@@ -137,7 +137,7 @@ export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoar
                 key={cat}
                 type="button"
                 className={`rounded-full border px-4 py-2 text-[12px] transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary ${
-                  category === cat ? 'bg-primary text-surface border-primary' : 'border-line bg-transparent text-[#5b635c]'
+                  category === cat ? 'bg-primary text-surface border-primary' : 'border-line bg-transparent text-ink-3'
                 }`}
                 onClick={() => setCategory(category === cat ? null : cat)}
                 aria-pressed={category === cat}

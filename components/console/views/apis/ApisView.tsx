@@ -278,7 +278,7 @@ export function ApisView() {
           <span className="inline-flex gap-1">
             <button
               type="button"
-              className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-[#f2f4ee] hover:text-primary"
+              className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-wash hover:text-primary"
               aria-label={`${row.name} 的接口文档`}
               onClick={() => window.open(docApiHref(row.id), '_blank', 'noopener')}
             >
@@ -286,7 +286,7 @@ export function ApisView() {
             </button>
             <button
               type="button"
-              className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-[#f2f4ee] hover:text-primary"
+              className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-wash hover:text-primary"
               aria-label="查看详情"
               onClick={() => openDetail(row)}
             >
@@ -294,7 +294,7 @@ export function ApisView() {
             </button>
             <button
               type="button"
-              className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-[#f2f4ee] hover:text-primary"
+              className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-wash hover:text-primary"
               aria-label="查看调用日志"
               onClick={() => {
                 window.location.href = `/admin/logs?path=${encodeURIComponent(row.path)}`;

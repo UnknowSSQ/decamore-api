@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { cn } from '@/utils/cn';
 
 const TONE_CLASS: Record<'info' | 'warn' | 'danger', string> = {
-  info: 'border-l-primary bg-sage text-[#3d4a40] [&_strong]:text-primary-dark',
-  warn: 'border-l-[#c2703f] bg-danger-soft text-[#6a4a35] [&_strong]:text-[#a1552b]',
+  info: 'border-l-primary bg-sage text-ink-2 [&_strong]:text-primary-dark',
+  warn: 'border-l-[#c2703f] bg-danger-soft text-[#6a4a35] [&_strong]:text-ink-warn',
   danger: 'border-l-danger bg-danger-soft text-[#6d3a24] [&_strong]:text-danger',
 };
 

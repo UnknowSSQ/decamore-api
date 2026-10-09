@@ -43,7 +43,7 @@ export function QuickStartSection() {
             </p>
             <ul className="mb-[30px] grid gap-3.5 p-0">
               {FEATURES.map((feature) => (
-                <li key={feature} className="flex items-start gap-3 text-[13px] leading-[1.7] text-[#4a534c]">
+                <li key={feature} className="flex items-start gap-3 text-[13px] leading-[1.7] text-ink-2">
                   <svg
                     className="mt-0.5 shrink-0 text-primary"
                     width="16"
@@ -62,7 +62,7 @@ export function QuickStartSection() {
                 </li>
               ))}
             </ul>
-            <a href={docApiHref('hitokoto')} className="text-[13px] text-[#505a52] transition-colors hover:text-primary">
+            <a href={docApiHref('hitokoto')} className="text-[13px] text-ink-2 transition-colors hover:text-primary">
               点击查看文档 <span aria-hidden>→</span>
             </a>
           </div>

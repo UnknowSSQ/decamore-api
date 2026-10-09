@@ -90,7 +90,7 @@ export function Tabs({ items, value, onChange, variant = 'console', idPrefix, cl
               variant === 'terminal' &&
                 cn(
                   'rounded-md border-0 px-3 py-1.5 font-sans text-[11.5px]',
-                  selected ? 'bg-white/10 text-[#eef5ee]' : 'bg-transparent text-[#8d9c92] hover:text-[#d2ded4]',
+                  selected ? 'bg-white/10 text-wash-2' : 'bg-transparent text-[#8d9c92] hover:text-hair',
                 ),
             )}
           >

@@ -6,9 +6,9 @@ import { cn } from '@/utils/cn';
 import type { InlineFragment, RequiredState, TableNode } from './types';
 
 const TD =
-  'px-0 py-[14px] pr-[14px] border-b border-dashed border-line text-[#4d554e] leading-[1.8] align-top';
+  'px-0 py-[14px] pr-[14px] border-b border-dashed border-line text-ink-2 leading-[1.8] align-top';
 const NAME = cn('whitespace-nowrap text-[12px] font-semibold text-ink');
-const MONO = 'font-mono text-[11.5px] text-[#57615a]';
+const MONO = 'font-mono text-[11.5px] text-ink-3';
 
 /** 传整个 TableNode 而不是 variant + rows，switch 收窄后每种行都只剩自己的字段，不需要任何 cast */
 export function DocTable({ node }: { node: TableNode }) {
@@ -85,7 +85,7 @@ export function DocTable({ node }: { node: TableNode }) {
           {node.rows.map((row, i) => (
             <tr key={i} className="group transition-colors hover:bg-[rgba(54,91,73,0.035)]">
               <td className={TD}>
-                <span className="inline-block rounded-[6px] bg-[#f1f2ec] px-2 py-[2px] font-mono text-[11px] font-semibold text-[#6b726b]">
+                <span className="inline-block rounded-[6px] bg-wash px-2 py-[2px] font-mono text-[11px] font-semibold text-muted">
                   {row.http}
                 </span>
               </td>
@@ -147,7 +147,7 @@ function Shell({ headers, children }: { headers: string[]; children: ReactNode }
             {headers.map((header) => (
               <th
                 key={header}
-                className="whitespace-nowrap border-b border-line px-0 pb-[11px] pr-[14px] text-left text-[10px] font-semibold uppercase tracking-[0.13em] text-[#9aa49b]"
+                className="whitespace-nowrap border-b border-line px-0 pb-[11px] pr-[14px] text-left text-[10px] font-semibold uppercase tracking-[0.13em] text-ink-4"
               >
                 {header}
               </th>
@@ -170,8 +170,8 @@ function frags(fragments: InlineFragment[]) {
 function FieldName({ name, isChild }: { name: string; isChild?: boolean }) {
   return (
     <td className={TD}>
-      <span className={cn(NAME, isChild && 'relative pl-[19px] font-medium text-[#57615a]')}>
-        {isChild && <span className="absolute bottom-[18px] left-0 top-[18px] w-px bg-[#d9ddd6]" aria-hidden />}
+      <span className={cn(NAME, isChild && 'relative pl-[19px] font-medium text-ink-3')}>
+        {isChild && <span className="absolute bottom-[18px] left-0 top-[18px] w-px bg-hair" aria-hidden />}
         <span className="font-mono">{name}</span>
       </span>
     </td>
@@ -180,9 +180,9 @@ function FieldName({ name, isChild }: { name: string; isChild?: boolean }) {
 
 function RequiredBadge({ state }: { state: RequiredState }) {
   const map = {
-    yes: { label: '必填', className: 'bg-warn-soft text-[#a1552b]' },
-    no: { label: '可选', className: 'bg-[#eceee7] text-[#6b726b]' },
-    na: { label: '—', className: 'bg-[#f1f2ec] text-[#9aa49b]' },
+    yes: { label: '必填', className: 'bg-warn-soft text-ink-warn' },
+    no: { label: '可选', className: 'bg-wash text-muted' },
+    na: { label: '—', className: 'bg-wash text-ink-4' },
   };
   const item = map[state];
   return (

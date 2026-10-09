@@ -73,7 +73,7 @@ export default function LoginPage() {
         </Suspense>
       </main>
 
-      <footer className="relative z-10 flex flex-wrap items-center justify-center gap-[18px] text-[11px] text-[#98a098]">
+      <footer className="relative z-10 flex flex-wrap items-center justify-center gap-[18px] text-[11px] text-ink-4">
         <p>© 2026 Decamore API</p>
         <nav className="flex gap-[18px]">
           <Link href={ROUTES.home} className="transition-colors hover:text-primary">

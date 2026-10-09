@@ -74,7 +74,7 @@ export default function PlazaPage() {
                 }}
               >
                 <div>
-                  <p className="kicker kicker--line mb-3.5 text-[11px] text-[#d5e1d3]">
+                  <p className="kicker kicker--line mb-3.5 text-[11px] text-hair">
                     Missing something?
                   </p>
                   <h2 className="mb-0 max-w-[570px] text-[clamp(28px,3.2vw,38px)] font-medium leading-[1.25] tracking-[-0.045em]">
@@ -90,7 +90,7 @@ export default function PlazaPage() {
                   subject="Decamore API 接口需求"
                   className={cn(
                     buttonVariants({ variant: 'light', size: 'md' }),
-                    'h-12 gap-3 px-[21px] text-[13px] text-primary-dark hover:bg-[#edf1e9]',
+                    'h-12 gap-3 px-[21px] text-[13px] text-primary-dark hover:bg-wash-2',
                   )}
                   trailing={<span aria-hidden className="text-[17px] leading-none">↗</span>}
                 >
