@@ -1,6 +1,8 @@
 'use client';
 import type { CSSProperties } from 'react';
 import { Reveal } from '@/components/shared/Reveal';
+import { Skeleton } from '@/components/ui/Panel';
+import { useReveal } from '@/hooks/useUi';
 import { cn } from '@/utils/cn';
 import type { ApiCatalogItem, CardSpan, DemoKind } from '@/types';
 import { getDemoComponent } from './demos';
@@ -24,6 +26,8 @@ interface PlazaCardProps {
 export function PlazaCard({ item, seed, onRefresh, index, keyword, span, flashing = false }: PlazaCardProps) {
   const DemoComponent = getDemoComponent(item.demo);
   const mediaDemo = item.demo !== null && MEDIA_DEMOS.includes(item.demo);
+  // 卡片快进视口才挂载 demo：十张卡同时发请求，会把依赖上游的等待全部摊到首屏上
+  const { ref: demoRef, visible: demoArmed } = useReveal<HTMLDivElement>({ threshold: 0, rootMargin: '160px' });
 
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -81,12 +85,13 @@ export function PlazaCard({ item, seed, onRefresh, index, keyword, span, flashin
         )}
 
         <div
+          ref={demoRef}
           className={cn(
             'flex flex-1 items-center justify-center py-4',
             mediaDemo && 'mt-2.5 min-h-0 flex-col items-stretch justify-start p-0',
           )}
         >
-          <DemoComponent seed={seed} />
+          {demoArmed ? <DemoComponent seed={seed} /> : <Skeleton className="h-full min-h-[132px] w-full" />}
         </div>
 
         {!mediaDemo && (

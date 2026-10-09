@@ -3,6 +3,7 @@
  *  只渲染 thumb（约 15KB 的 webp），原图直链留给调用方，卡片不下载几百 KB 的 jpg */
 import { useEffect, useState } from 'react';
 
+import { LazyImage } from '@/components/shared/LazyImage';
 import { fetchWallpaper } from '@/lib/api';
 import type { WallpaperItem } from '@/types';
 import type { DemoProps } from './types';
@@ -32,11 +33,7 @@ export function WallpaperDemo({ seed }: DemoProps) {
 
   return (
     <div className="plaza-demo-photo">
-      {shot && (
-        // url 可能在站内也可能是必应图床，换 next/image 就得再配 remotePatterns，原生 img 更实在
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className="plaza-demo-photo-img" src={shot.thumb} alt="" decoding="async" />
-      )}
+      {shot && <LazyImage className="plaza-demo-photo-img" src={shot.thumb} alt="" />}
       <span className="plaza-demo-photo-caption">
         {!shot && failed
           ? '壁纸取不到，点击卡片重试'

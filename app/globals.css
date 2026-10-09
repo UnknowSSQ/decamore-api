@@ -556,6 +556,20 @@
       transform: none;
     }
   }
+  /* 图片解码完成再淡入；占位期间保留元素尺寸，避免换图时卡片高度跳动 */
+  .lazy-img {
+    opacity: 0;
+    transition: opacity 0.45s var(--ease);
+  }
+  .lazy-img[data-loaded] {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lazy-img {
+      opacity: 1;
+      transition: none;
+    }
+  }
 }
 
 @layer components {

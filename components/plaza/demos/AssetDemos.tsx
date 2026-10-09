@@ -3,6 +3,7 @@
  *  列表服务端缓存 10 分钟，但每次点击都重新抽资源，画面确实会变 */
 import { useEffect, useState } from 'react';
 
+import { LazyImage } from '@/components/shared/LazyImage';
 import { fetchAvatars, fetchEmoji, fetchImages } from '@/lib/api';
 import type { AvatarType, EmojiType, ImageType, StaticAssetItem, StaticAssetList } from '@/types';
 import type { DemoProps } from './types';
@@ -57,9 +58,7 @@ function AssetDeck<TType extends string>({ seed, order, label, fetcher, layout }
       <div className="plaza-demo-tiles">
         {picks.map((item) => (
           <span key={item.id} className="plaza-demo-tile">
-            {/* 站内静态资源，原生 img 足够；换 next/image 还得为将来的 CDN 再配一次域名 */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="plaza-demo-tile-img" src={item.thumbUrl ?? item.url} alt="" decoding="async" loading="lazy" />
+            <LazyImage className="plaza-demo-tile-img" src={item.thumbUrl ?? item.url} alt="" />
           </span>
         ))}
         <span className="plaza-demo-tiles-badge">{caption}</span>
@@ -69,11 +68,7 @@ function AssetDeck<TType extends string>({ seed, order, label, fetcher, layout }
 
   return (
     <div className={`plaza-demo-photo${layout === 'fit' ? ' plaza-demo-photo--fit' : ''}`}>
-      {picks[0] && (
-        // 站内静态资源，原生 img 足够；换 next/image 还得为将来的 CDN 再配一次域名
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className="plaza-demo-photo-img" src={picks[0].thumbUrl ?? picks[0].url} alt="" decoding="async" />
-      )}
+      {picks[0] && <LazyImage className="plaza-demo-photo-img" src={picks[0].thumbUrl ?? picks[0].url} alt="" />}
       <span className="plaza-demo-photo-caption">{caption}</span>
     </div>
   );
