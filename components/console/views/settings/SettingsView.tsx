@@ -319,7 +319,7 @@ export function SettingsView() {
         <Panel>
           <PanelTitle title="时间与显示" />
           <div className="mt-4 flex flex-col gap-4">
-            <SettingRow title="时区" description="全站时间显示基准。">
+            <SettingRow title="时区" description="控制台时钟、日志与仪表盘时间的基准时区。">
               <Select
                 options={TIMEZONE_OPTIONS}
                 value={form.timezone}
@@ -329,7 +329,7 @@ export function SettingsView() {
               />
             </SettingRow>
 
-            <SettingRow title="日期格式" description="前台页面日期展示样式。">
+            <SettingRow title="日期格式" description="日志与列表里日期部分的渲染样式。">
               <Select
                 options={DATE_FORMAT_OPTIONS}
                 value={form.dateFormat}
@@ -339,7 +339,7 @@ export function SettingsView() {
               />
             </SettingRow>
 
-            <SettingRow title="每页条数" description="列表页默认展示条数。">
+            <SettingRow title="每页条数" description="接口 / 规则 / 日志列表的默认每页条数。">
               <Select
                 options={ITEMS_PER_PAGE_OPTIONS}
                 value={String(form.itemsPerPage)}

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui';
 import { useCan } from '@/hooks/usePermission';
 import { useListQuery } from '@/hooks/useListQuery';
+import { useSiteFormat } from '@/hooks/useSiteFormat';
 import { useToast } from '@/hooks/useToast';
 import { deleteRule, fetchRules, updateRule } from '@/lib/api';
 import { formatCompactCn, formatNumber } from '@/utils/format';
@@ -53,6 +54,7 @@ const ACTION_META: Record<string, { label: string; tone: 'ok' | 'warn' | 'danger
 };
 
 export function RulesView() {
+  const { itemsPerPage } = useSiteFormat();
   const canWrite = useCan('rule:write');
   const toast = useToast();
 
@@ -72,7 +74,7 @@ export function RulesView() {
     fetcher: fetchRules,
     initialFilters: { status: '' },
     initialSort: { key: 'hitsToday', order: 'desc' },
-    initialPageSize: 20,
+    initialPageSize: itemsPerPage,
     // 空串是「不限」，必须转成 undefined，否则会被当成 enabled=false
     build: ({ keyword, filters, sort, page, pageSize }) => ({
       keyword: keyword || undefined,

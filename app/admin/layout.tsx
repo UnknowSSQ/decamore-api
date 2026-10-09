@@ -5,7 +5,9 @@
 import type { Metadata } from 'next';
 
 import { ConsoleShell } from '@/components/console/ConsoleShell';
+import { SiteDisplayProvider } from '@/hooks/useSiteFormat';
 import { guardPage } from '@/lib/server/guards';
+import { getSiteSettings } from '@/lib/server/mock/settings';
 
 export const metadata: Metadata = {
   title: { absolute: '控制台 · Decamore API' },
@@ -13,6 +15,18 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await guardPage();
+  const settings = getSiteSettings();
 
-  return <ConsoleShell user={user}>{children}</ConsoleShell>;
+  return (
+    <SiteDisplayProvider
+      display={{
+        timeZone: settings.timezone,
+        dateFormat: settings.dateFormat,
+        maintenanceMode: settings.maintenanceMode,
+        itemsPerPage: settings.itemsPerPage,
+      }}
+    >
+      <ConsoleShell user={user}>{children}</ConsoleShell>
+    </SiteDisplayProvider>
+  );
 }

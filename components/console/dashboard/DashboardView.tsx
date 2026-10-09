@@ -9,9 +9,10 @@ import { BarList } from '@/components/console/charts/BarList';
 import { DonutChart } from '@/components/console/charts/DonutChart';
 import { KpiCard } from './KpiCard';
 import { usePolling, useRequest } from '@/hooks/useRequest';
+import { useSiteFormat } from '@/hooks/useSiteFormat';
 import { useToast } from '@/hooks/useToast';
 import { exportReport, fetchDashboard } from '@/lib/api';
-import { formatCompactCn, formatLongDate, formatNumber } from '@/utils/format';
+import { formatCompactCn, formatNumber } from '@/utils/format';
 import { CONSOLE_REGION, CONSOLE_VERSION } from '@/constants/app';
 import { useNow } from '@/hooks/useUi';
 import type { RangeValue } from '@/lib/zod/common';
@@ -118,6 +119,7 @@ const CATEGORY_TRAFFIC = [
 ];
 
 export function DashboardView({ autoRefreshSec = 30 }: { autoRefreshSec?: number }) {
+  const { fmtLongDate } = useSiteFormat();
   const [range, setRange] = useState<RangeValue>('24h');
   const toast = useToast();
   const { now, ready } = useNow();
@@ -154,7 +156,7 @@ export function DashboardView({ autoRefreshSec = 30 }: { autoRefreshSec?: number
           <h1 className="text-[19px] font-semibold text-ink">仪表盘</h1>
           <p className="flex items-center gap-2 text-[12.5px] text-muted">
             <span className="pulse-dot" aria-hidden />
-            {ready ? formatLongDate(now) : '加载中'}
+            {ready ? fmtLongDate(now) : '加载中'}
             <span>·</span>
             <span>{autoRefreshSec >= 1 ? `数据每 ${autoRefreshSec} 秒自动刷新` : '自动刷新已关闭'}</span>
           </p>
@@ -347,7 +349,7 @@ export function DashboardView({ autoRefreshSec = 30 }: { autoRefreshSec?: number
           </div>
 
           <p className="text-center text-[11px] text-muted">
-            数据更新于 {ready ? formatLongDate(now) : '--'} · {CONSOLE_VERSION} · region {CONSOLE_REGION}
+            数据更新于 {ready ? fmtLongDate(now) : '--'} · {CONSOLE_VERSION} · region {CONSOLE_REGION}
           </p>
         </>
       )}

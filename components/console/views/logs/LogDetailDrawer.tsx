@@ -1,10 +1,12 @@
 'use client';
 import { Badge, MethodBadge } from '@/components/ui';
 import { Drawer } from '@/components/ui/Overlay';
-import { formatDateTime, formatDuration } from '@/utils/format';
+import { useSiteFormat } from '@/hooks/useSiteFormat';
+import { formatDuration } from '@/utils/format';
 import type { CallLog } from '@/types';
 
 export function LogDetailDrawer({ log, onClose }: { log: CallLog | null; onClose: () => void }) {
+  const { fmtDateTime } = useSiteFormat();
   if (!log) return null;
 
   // 4xx（含 429）只标黄，红留给 5xx
@@ -16,7 +18,7 @@ export function LogDetailDrawer({ log, onClose }: { log: CallLog | null; onClose
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-[11px] text-muted">时间</div>
-            <div className="mt-1 font-mono text-[12.5px] text-ink">{formatDateTime(log.time)}</div>
+            <div className="mt-1 font-mono text-[12.5px] text-ink">{fmtDateTime(log.time)}</div>
           </div>
           <div>
             <div className="text-[11px] text-muted">接口</div>

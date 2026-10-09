@@ -16,6 +16,7 @@ import {
 } from '@/components/ui';
 import { useCan } from '@/hooks/usePermission';
 import { useListQuery } from '@/hooks/useListQuery';
+import { useSiteFormat } from '@/hooks/useSiteFormat';
 import { useToast } from '@/hooks/useToast';
 import { deleteManagedApi, fetchManagedApis, updateManagedApi } from '@/lib/api';
 import type { ApiListQuery } from '@/lib/zod/admin.schema';
@@ -44,6 +45,7 @@ function latBarWidth(ms: number): number {
 }
 
 export function ApisView() {
+  const { itemsPerPage } = useSiteFormat();
   const canWrite = useCan('api:write');
   const toast = useToast();
 
@@ -70,6 +72,7 @@ export function ApisView() {
     fetcher: fetchManagedApis,
     initialFilters: { category: '全部', status: '' },
     initialSort: { key: 'calls24h', order: 'desc' },
+    initialPageSize: itemsPerPage,
     build: ({ keyword, filters, sort, page, pageSize }) => ({
       keyword: keyword || undefined,
       category: filters.category !== '全部' ? filters.category : undefined,

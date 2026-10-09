@@ -6,8 +6,9 @@ import { Badge, MethodBadge, Button, Icon, Input, Panel, PageHeader, Skeleton, T
 import { DataTable, Pagination } from '@/components/ui/DataTable';
 import { Switch } from '@/components/ui/Input';
 import { useListQuery } from '@/hooks/useListQuery';
+import { useSiteFormat } from '@/hooks/useSiteFormat';
 import { fetchLogs } from '@/lib/api';
-import { formatNumber, formatDateTime, formatDuration } from '@/utils/format';
+import { formatNumber, formatDuration } from '@/utils/format';
 import type { CallLog, Paged, TableColumn } from '@/types';
 import { StatusBars } from './StatusBars';
 import { LogDetailDrawer } from './LogDetailDrawer';
@@ -40,6 +41,7 @@ export function LogsView() {
 
 function LogsViewInner() {
   const searchParams = useSearchParams();
+  const { fmtDateTime, itemsPerPage } = useSiteFormat();
   
   // ?path= 由接口管理的「查看调用日志」带进来，只作初值，之后不再同步回 URL
   const [liveMode, setLiveMode] = useState(false);
@@ -65,7 +67,7 @@ function LogsViewInner() {
     initialKeyword: searchParams.get('path') ?? '',
     initialFilters: { statusFamily: searchParams.get('status') ?? 'all', method: 'all' },
     initialSort: { key: 'time', order: 'desc' },
-    initialPageSize: 12,
+    initialPageSize: itemsPerPage,
     debounceMs: 300,
     build: ({ keyword, filters, sort, page, pageSize }) => {
       const params: LogQuery = {
@@ -109,7 +111,7 @@ function LogsViewInner() {
       sortable: true,
       widthClass: 'w-40',
       render: (log) => (
-        <span className="font-mono text-[11.5px] text-muted">{formatDateTime(log.time)}</span>
+        <span className="font-mono text-[11.5px] text-muted">{fmtDateTime(log.time)}</span>
       ),
     },
     {

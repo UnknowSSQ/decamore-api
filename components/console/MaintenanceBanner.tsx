@@ -1,36 +1,29 @@
 'use client';
 /** 只 patch maintenanceMode 一个键，其余站点设置原样保留 */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Icon } from '@/components/ui/Icon';
+import { useSiteDisplay } from '@/hooks/useSiteFormat';
 import { useToast } from '@/hooks/useToast';
-import { fetchSiteSettings, patchSiteSettings } from '@/lib/api';
+import { patchSiteSettings } from '@/lib/api';
 
+/** 开关状态来自 app/admin/layout.tsx 的服务端读取，组件自己不再拉一次设置 */
 export function MaintenanceBanner() {
-  const [isOn, setIsOn] = useState(false);
+  const { maintenanceMode } = useSiteDisplay();
+  const [dismissed, setDismissed] = useState(false);
   const toast = useToast();
-
-  useEffect(() => {
-    fetchSiteSettings()
-      .then((res) => {
-        setIsOn(res.maintenanceMode);
-      })
-      .catch(() => {
-        // 失败时不显示，不阻塞页面
-      });
-  }, []);
 
   const handleClose = async () => {
     try {
       await patchSiteSettings({ maintenanceMode: false });
-      setIsOn(false);
+      setDismissed(true);
       toast.success('维护模式已关闭，前台恢复服务');
     } catch {
       toast.error('关闭维护模式失败');
     }
   };
 
-  if (!isOn) return null;
+  if (!maintenanceMode || dismissed) return null;
 
   return (
     <div className="flex items-center gap-3 border-b border-warn/30 bg-warn-soft px-6 py-3 text-[12.5px] text-warn">
