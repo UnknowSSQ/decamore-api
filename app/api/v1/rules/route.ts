@@ -1,8 +1,9 @@
-/** 规则来自 mock 表：POST 只回显新建结果，列表接口读不到它 */
+/** 规则表就是运行时守卫读的同一份 store，后台改动当场生效 */
 import { defineRoute, ok, created, paged } from '@/lib/server';
 import { ruleListQuerySchema, createRuleSchema } from '@/lib/zod/admin.schema';
-import { findAllRules } from '@/lib/server/mock/rules';
+import { createRule, findAllRules } from '@/lib/server/mock/rules';
 import { PERMISSIONS } from '@/constants/auth';
+import type { AccessRule } from '@/types';
 
 export const GET = defineRoute(
   {
@@ -12,7 +13,7 @@ export const GET = defineRoute(
     route: '/api/v1/rules',
   },
   (_req, { query }) => {
-    const { page, pageSize, keyword, enabled, action } = query!;
+    const { page, pageSize, keyword, enabled, action, sort, order } = query!;
 
     let items = findAllRules();
 
@@ -24,6 +25,14 @@ export const GET = defineRoute(
     if (enabled !== undefined) items = items.filter((i) => i.enabled === enabled);
 
     if (action) items = items.filter((i) => i.action === action);
+
+    const comparators: Record<typeof sort, (a: AccessRule, b: AccessRule) => number> = {
+      hitsToday: (a, b) => a.hitsToday - b.hitsToday,
+      limit: (a, b) => a.limit - b.limit,
+      updatedAt: (a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt),
+    };
+    const compare = comparators[sort];
+    items.sort((a, b) => (order === 'asc' ? compare(a, b) : -compare(a, b)));
 
     const total = items.length;
     const start = (page - 1) * pageSize;
@@ -40,16 +49,5 @@ export const POST = defineRoute(
     body: createRuleSchema,
     route: '/api/v1/rules',
   },
-  async (_req, { body }) => {
-    const data = body!;
-
-    const newRule = {
-      id: `rule_${Date.now()}`,
-      ...data,
-      hitsToday: 0,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return created(newRule, { message: '规则已创建' });
-  },
+  (_req, { body }) => created(createRule(body!), { message: '规则已创建' }),
 );

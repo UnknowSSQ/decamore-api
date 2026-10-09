@@ -1,6 +1,6 @@
 import type { NotificationItem } from '@/types';
 
-export const MOCK_NOTIFICATIONS: NotificationItem[] = [
+const seedNotifications = (): NotificationItem[] => [
   {
     id: 'notif_001',
     title: '限流拦截上升',
@@ -27,12 +27,38 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
+/** 挂 globalThis：列表在 /notifications 这条 chunk 读、已读在 /notifications/[id]/read 那条写，模块级数组两边不是同一份 */
+const globalStore = globalThis as typeof globalThis & {
+  __decamoreNotifications?: NotificationItem[];
+};
+
+const NOTIFICATIONS: NotificationItem[] = (globalStore.__decamoreNotifications ??= seedNotifications());
+
+/** 交出副本，读侧的筛选与分页不会顺手改到单例 */
 export function findAllNotifications(): NotificationItem[] {
-  return MOCK_NOTIFICATIONS;
+  return NOTIFICATIONS.map((item) => ({ ...item }));
 }
 
-/** 直接改内存数组里的 read，重启即丢 */
-export function markNotificationRead(id: string): void {
-  const notif = MOCK_NOTIFICATIONS.find((n) => n.id === id);
-  if (notif) notif.read = true;
+export function findNotification(id: string): NotificationItem | undefined {
+  const notif = NOTIFICATIONS.find((n) => n.id === id);
+  return notif ? { ...notif } : undefined;
+}
+
+export function markNotificationRead(id: string): number {
+  const notif = NOTIFICATIONS.find((n) => n.id === id);
+  if (!notif || notif.read) return 0;
+  notif.read = true;
+  return 1;
+}
+
+/** 返回本次真正翻成已读的条数，界面据此说话，不写死数字 */
+export function markAllNotificationsRead(): number {
+  let changed = 0;
+  for (const notif of NOTIFICATIONS) {
+    if (!notif.read) {
+      notif.read = true;
+      changed += 1;
+    }
+  }
+  return changed;
 }

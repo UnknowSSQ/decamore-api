@@ -15,10 +15,20 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_ALLOWED_IMAGE_HOST: z.string().min(1).optional(),
 });
 
+/** .env.example 里的那行示例值，原样带进部署就等于没有密钥 */
+const SAMPLE_JWT_SECRET = 'dev-only-secret-change-me-please-32bytes-min';
+
 /** 切勿在客户端组件中引用 */
 const privateEnvSchema = z.object({
   /** HS256 的密钥长度下限 */
-  JWT_SECRET: z.string().min(32, { message: 'JWT_SECRET 至少 32 个字符，请用 `openssl rand -base64 48` 生成' }),
+  JWT_SECRET: z
+    .string()
+    .min(32, { message: 'JWT_SECRET 至少 32 个字符，请用 `openssl rand -base64 48` 生成' })
+    /** 示例值进了生产等于没有密钥：长度校验拦不住它，只能按字面拒绝 */
+    .refine(
+      (value) => process.env.NODE_ENV !== 'production' || value !== SAMPLE_JWT_SECRET,
+      { message: '生产环境不得沿用 .env.example 里的示例 JWT_SECRET' },
+    ),
   JWT_ACCESS_TTL_SEC: z.coerce.number().int().min(60).max(3600).default(900),
   JWT_REFRESH_TTL_SEC: z.coerce.number().int().min(3600).max(2_592_000).default(604_800),
   /** 只在跨子域共享时设置，需带前导点（如 .decamore.dev） */
@@ -28,7 +38,6 @@ const privateEnvSchema = z.object({
     .enum(['true', 'false'])
     .optional()
     .transform((v) => (v === undefined ? undefined : v === 'true')),
-  DATABASE_URL: z.string().min(1).optional(),
   API_STATS_PERSIST: z
     .enum(['true', 'false'])
     .default('false')
@@ -60,7 +69,22 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     );
   }
 
+  if (privateParsed.data.JWT_SECRET === SAMPLE_JWT_SECRET && publicParsed.data.NODE_ENV !== 'production') {
+    warnOnce(
+      'JWT_SECRET 仍是 .env.example 里的示例值，本地调试可以，但部署前必须换成随机串（openssl rand -base64 48）。',
+    );
+  }
+
   return { ...publicParsed.data, ...privateParsed.data };
+}
+
+let sampleSecretWarned = false;
+
+/** 每次请求都会读 env，提醒只发一次 */
+function warnOnce(message: string): void {
+  if (sampleSecretWarned) return;
+  sampleSecretWarned = true;
+  console.warn(`[env] ${message}`);
 }
 
 /** 单例，首次调用即校验；故意不 try/catch，缺关键变量时要阻断启动 */

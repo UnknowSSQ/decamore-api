@@ -1,9 +1,6 @@
-import { defineRoute, publicOk } from '@/lib/server';
+import { defineRoute, preflight, publicOk } from '@/lib/server';
 import { listAssets } from '@/lib/server/static-assets';
-import { imageQuerySchema } from '@/lib/zod/admin.schema';
-import type { ImageType } from '@/types';
-
-const IMAGE_TYPES: readonly ImageType[] = ['beauty', 'pretty'];
+import { IMAGE_TYPES, imageQuerySchema } from '@/lib/zod/public.schema';
 
 export const GET = defineRoute(
   {
@@ -11,5 +8,8 @@ export const GET = defineRoute(
     query: imageQuerySchema,
     route: '/api/v1/images',
   },
-  async (_req, { query }) => publicOk(await listAssets('images', query?.type as ImageType, IMAGE_TYPES)),
+  async (_req, { query }) => publicOk(await listAssets('images', query.type, IMAGE_TYPES)),
 );
+
+/** 跨域预检：来源在后台 CORS 配置里才带 Allow-Origin */
+export const OPTIONS = preflight();

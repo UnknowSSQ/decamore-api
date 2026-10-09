@@ -40,13 +40,15 @@ export function validateSoft<S extends z.ZodTypeAny>(
   return { ok: false, issues: toFieldIssues(result.error) };
 }
 
-/** 字段 → 首条错误文案，可直接绑到输入框下方 */
+/** 字段 → 首条错误文案，表单上一个字段只有一个错误位 */
+export function toFirstIssueMap(issues: FieldIssue[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const issue of issues) map[issue.field] ??= issue.message;
+  return map;
+}
+
 export function issueMapOf(schema: z.ZodTypeAny, data: unknown): Record<string, string> {
   const result = schema.safeParse(data);
   if (result.success) return {};
-  const map: Record<string, string> = {};
-  for (const issue of toFieldIssues(result.error)) {
-    if (!map[issue.field]) map[issue.field] = issue.message;
-  }
-  return map;
+  return toFirstIssueMap(toFieldIssues(result.error));
 }

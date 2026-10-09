@@ -9,6 +9,7 @@
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "node --import ./tests/register.mjs --import tsx --test \"tests/*.test.ts\"",
     "env:check": "tsx scripts/check-env.ts"
   },
   "dependencies": {

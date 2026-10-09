@@ -58,10 +58,7 @@ try {
 }
 
 const notes: string[] = [];
-if (env.JWT_SECRET === 'dev-only-secret-change-me-please-32bytes-min' && env.NODE_ENV === 'production') {
-  notes.push('生产环境仍在使用 .env.example 里的占位 JWT_SECRET，必须更换');
-}
-if (!env.DATABASE_URL) notes.push('DATABASE_URL 未配置（骨架阶段允许，统计不会落库）');
+// 占位 JWT_SECRET 在 loadEnv 里就拦下了，走不到这里
 if (!env.API_STATS_PERSIST) notes.push('API_STATS_PERSIST=false：调用统计只进内存环形缓冲 + 日志');
 
 console.log('\n✓ 环境变量校验通过');

@@ -1,9 +1,10 @@
 /** 接口车单单一数据源：广场卡片、/docs 文档页、后台接口管理读同一份记录 */
 import 'server-only';
 
-import { API_CATALOG, IMPLEMENTED_API_IDS } from '@/constants/api-catalog';
+import { API_CATALOG } from '@/constants/api-catalog';
 import type { ApiCatalogItem, HttpMethod, ManagedApi } from '@/types';
 import type { CreateApiInput } from '@/lib/zod/admin.schema';
+import { routeCallStats } from './stats';
 
 interface CatalogRecord extends ApiCatalogItem {
   authRequired: boolean;
@@ -21,18 +22,23 @@ const globalStore = globalThis as typeof globalThis & {
 };
 
 /** 静态目录内容变更时递增这一版本触发重新播种，进程内的编辑结果会被覆盖 */
-const SEED_VERSION = '2026-10-08.hotsearch-desc';
+const SEED_VERSION = '2026-10-09.real-route-metrics';
 
 /** id 指纹能活过 dev 热重载：新增接口时变化并重播种，后台只改名称/描述则不会冲掉编辑结果 */
 const seedSignature = `${SEED_VERSION}|${API_CATALOG.map((item) => item.id).join('|')}`;
 
+/**
+ * 10 个公开接口一律免鉴权、都受频控，种子值必须与 /docs 与 README 的口径一致；
+ * 之前按 index 取模生成 authRequired/status 会让后台显示「需鉴权」「已降级」，而线上根本不是那样。
+ */
 function seedRecords(): CatalogRecord[] {
-  return API_CATALOG.map((item, index) => ({
+  const seededAt = nowIso();
+  return API_CATALOG.map((item) => ({
     ...item,
-    authRequired: index % 3 === 0,
-    rateLimited: index % 2 === 0,
-    status: index % 7 === 0 ? 'degraded' : 'online',
-    updatedAt: new Date(Date.now() - index * 3_600_000).toISOString(),
+    authRequired: false,
+    rateLimited: true,
+    status: 'online',
+    updatedAt: seededAt,
   }));
 }
 
@@ -43,16 +49,21 @@ if (globalStore.__decamoreCatalogSeed !== seedSignature) {
 
 const records: CatalogRecord[] = globalStore.__decamoreCatalog!;
 
-/** 列表指标按序号派生，不是真实统计 */
-function metrics(index: number) {
+/**
+ * 指标取自 lib/server/stats 的调用环形缓冲：数字是本进程窗口内的真实计数，
+ * 没有记录就是 0（0 表示「没观测到」，不再用下标编出一个看起来像流量的数）。
+ */
+function metrics(path: string) {
+  const stat = routeCallStats()[path];
+  if (!stat) return { calls24h: 0, avgLatencyMs: 0, errorRate: 0 };
   return {
-    calls24h: 1200 + index * 180,
-    avgLatencyMs: 45 + (index % 5) * 12,
-    errorRate: 0.5 + (index % 3) * 0.3,
+    calls24h: stat.count,
+    avgLatencyMs: stat.avgDurationMs,
+    errorRate: stat.count === 0 ? 0 : Math.round((stat.errorCount / stat.count) * 10_000) / 100,
   };
 }
 
-function toManaged(record: CatalogRecord, index: number): ManagedApi {
+function toManaged(record: CatalogRecord): ManagedApi {
   return {
     id: record.id,
     path: record.path,
@@ -64,7 +75,7 @@ function toManaged(record: CatalogRecord, index: number): ManagedApi {
     authRequired: record.authRequired,
     rateLimited: record.rateLimited,
     updatedAt: record.updatedAt,
-    ...metrics(index),
+    ...metrics(record.path),
   };
 }
 
@@ -93,12 +104,12 @@ export function findCatalogItem(id: string): ApiCatalogItem | undefined {
 }
 
 export function listManagedApis(): ManagedApi[] {
-  return records.map((record, index) => toManaged(record, index));
+  return records.map((record) => toManaged(record));
 }
 
 export function findManagedApi(id: string): ManagedApi | undefined {
   const index = records.findIndex((record) => record.id === id);
-  return index < 0 ? undefined : toManaged(records[index]!, index);
+  return index < 0 ? undefined : toManaged(records[index]!);
 }
 
 export interface CatalogPatch {
@@ -128,7 +139,7 @@ export function patchCatalogItem(id: string, patch: CatalogPatch): ManagedApi | 
   if (patch.status !== undefined) record.status = patch.status;
   record.updatedAt = nowIso();
 
-  return toManaged(record, index);
+  return toManaged(record);
 }
 
 /** 取路径末段作 id，它同时是 /docs/<slug> 的 slug；重名时追加序号 */
@@ -155,11 +166,11 @@ export function createCatalogItem(input: CreateApiInput): ManagedApi {
     demo: null,
     authRequired: input.authRequired,
     rateLimited: input.rateLimited,
-    status: 'online',
+    status: input.status,
     updatedAt: nowIso(),
   };
   records.push(record);
-  return toManaged(record, records.length - 1);
+  return toManaged(record);
 }
 
 export function deleteCatalogItem(id: string): boolean {
@@ -167,9 +178,4 @@ export function deleteCatalogItem(id: string): boolean {
   if (index < 0) return false;
   records.splice(index, 1);
   return true;
-}
-
-/** 对照 constants 里的静态清单，新增 route 不会自动生效 */
-export function isApiImplemented(id: string): boolean {
-  return IMPLEMENTED_API_IDS.includes(id);
 }

@@ -55,15 +55,6 @@ export function elapsedMs(): number {
   return Math.round((performance.now() - ctx.startedAt) * 100) / 100;
 }
 
-/** 由鉴权处回填，之后的日志与统计才带得上用户 */
-export function attachUser(userId: string, role: string): void {
-  const ctx = store.getStore();
-  if (ctx) {
-    ctx.userId = userId;
-    ctx.role = role;
-  }
-}
-
 /** x-forwarded-for 取首段（多级代理），回退 x-real-ip；这些头可被伪造，风控不能只信它 */
 export function resolveClientIp(headers: Headers): string {
   const forwarded = headers.get('x-forwarded-for');

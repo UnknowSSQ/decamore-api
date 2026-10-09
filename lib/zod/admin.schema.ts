@@ -55,6 +55,8 @@ export const createApiSchema = z
     name: z.string().trim().min(1, '请输入接口名称').max(40),
     method: httpMethodSchema,
     category: apiCategorySchema,
+    /** 后台列表的上线/维护开关就写这个字段，缺了它 PATCH 会被 strict() 判成非法入参 */
+    status: z.enum(['online', 'degraded', 'offline']).default('online'),
     description: z.string().trim().max(200).default(''),
     authRequired: boolish.default(false),
     rateLimited: boolish.default(true),
@@ -73,6 +75,9 @@ export const updateApiSchema = createApiSchema
 export const ruleListQuerySchema = pagedQuerySchema.extend({
   enabled: boolish.optional(),
   action: z.enum(['429', 'reject', 'captcha', 'log']).optional(),
+  /** 排序交给服务端，前端只排当前页会让人误以为在按全量排 */
+  sort: z.enum(['hitsToday', 'limit', 'updatedAt']).default('hitsToday'),
+  order: z.enum(['asc', 'desc']).default('desc'),
 });
 
 /** create 复用、update 取它的 partial */
@@ -84,10 +89,10 @@ const ruleBaseSchema = z
     periodSec: z.coerce.number().int().min(1).max(86_400).default(60),
     action: z.enum(['429', 'reject', 'captcha', 'log']).default('429'),
     enabled: boolish.default(true),
-    /** 白名单调用方的 key ID 列表 */
-    exemptKeys: z.array(idSchema).max(50).default([]),
   })
   .strict();
+
+export type RuleListQuery = z.infer<typeof ruleListQuerySchema>;
 
 export const createRuleSchema = ruleBaseSchema.superRefine(
   // limit / periodSec 折算出的速率过高端视为配置无效
@@ -230,75 +235,4 @@ export type SiteSettingsPatchInput = z.infer<typeof siteSettingsPatchSchema>;
 
 export const notificationQuerySchema = paginationSchema.extend({
   unreadOnly: boolish.default(false),
-});
-
-export const plazaQuerySchema = z.object({
-  keyword: keywordSchema,
-  category: apiCategorySchema.optional(),
-  method: httpMethodSchema.optional(),
-});
-
-export const wallpaperTypeSchema = z.enum(['pc', 'mobile', 'bing'], {
-  errorMap: () => ({ message: 'type 只能是 pc、mobile 或 bing' }),
-});
-
-export const wallpaperQuerySchema = z.object({
-  /** ?type= 空值等价于不传，服务端三类等概率随机 */
-  type: z.preprocess((value) => (value === '' ? undefined : value), wallpaperTypeSchema.optional()),
-});
-export type WallpaperQueryInput = z.infer<typeof wallpaperQuerySchema>;
-
-export const hotsearchPlatformSchema = z.enum(['weibo', 'douyin', 'baidu', 'zhihu'], {
-  errorMap: () => ({ message: 'platform 只能是 weibo、douyin、baidu 或 zhihu' }),
-});
-
-export const hotsearchQuerySchema = z.object({
-  /** ?platform= 空值等价于不传，服务端按微博返回 */
-  platform: z.preprocess((value) => (value === '' ? undefined : value), hotsearchPlatformSchema.optional()),
-});
-export type HotSearchQueryInput = z.infer<typeof hotsearchQuerySchema>;
-
-export const hotmusicPlatformSchema = z.enum(['qq', 'netease', 'kugou'], {
-  errorMap: () => ({ message: 'platform 只能是 qq、netease 或 kugou' }),
-});
-
-export const hotmusicQuerySchema = z.object({
-  /** ?platform= 空值等价于不传，服务端按 QQ 音乐返回 */
-  platform: z.preprocess((value) => (value === '' ? undefined : value), hotmusicPlatformSchema.optional()),
-});
-export type HotMusicQueryInput = z.infer<typeof hotmusicQuerySchema>;
-
-export const hotplayTypeSchema = z.enum(['tv', 'movie', 'variety'], {
-  errorMap: () => ({ message: 'type 只能是 tv、movie 或 variety' }),
-});
-
-export const hotplayQuerySchema = z.object({
-  /** ?type= 空值等价于不传，服务端返回电视剧榜 */
-  type: z.preprocess((value) => (value === '' ? undefined : value), hotplayTypeSchema.optional()),
-});
-export type HotPlayQueryInput = z.infer<typeof hotplayQuerySchema>;
-
-export const emojiTypeSchema = z.enum(['menhera'], {
-  errorMap: () => ({ message: 'type 只能是 menhera（表情包目前只有这一类）' }),
-});
-
-export const avatarTypeSchema = z.enum(['boy', 'girl', 'anime'], {
-  errorMap: () => ({ message: 'type 只能是 boy、girl 或 anime' }),
-});
-
-export const imageTypeSchema = z.enum(['beauty', 'pretty'], {
-  errorMap: () => ({ message: 'type 只能是 beauty 或 pretty' }),
-});
-
-/** 空值与不传等价，各自落到下面的默认 type */
-export const emojiQuerySchema = z.object({
-  type: z.preprocess((value) => (value === '' ? undefined : value), emojiTypeSchema.optional().default('menhera')),
-});
-
-export const avatarQuerySchema = z.object({
-  type: z.preprocess((value) => (value === '' ? undefined : value), avatarTypeSchema.optional().default('boy')),
-});
-
-export const imageQuerySchema = z.object({
-  type: z.preprocess((value) => (value === '' ? undefined : value), imageTypeSchema.optional().default('beauty')),
 });

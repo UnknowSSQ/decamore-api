@@ -1,5 +1,5 @@
 import { defineRoute, ok } from '@/lib/server';
-import { plazaQuerySchema } from '@/lib/zod/admin.schema';
+import { plazaQuerySchema } from '@/lib/zod/public.schema';
 import { listCatalogItems } from '@/lib/server/catalog';
 import { rankCatalog } from '@/utils/search';
 

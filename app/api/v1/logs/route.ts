@@ -1,5 +1,6 @@
 import { defineRoute, ok, paged } from '@/lib/server';
-import { logListQuerySchema } from '@/lib/zod/admin.schema';
+import { logListQuerySchema, type LogListQuery } from '@/lib/zod/admin.schema';
+import type { CallLog } from '@/types';
 import { findAllLogs } from '@/lib/server/mock/logs';
 import { PERMISSIONS } from '@/constants/auth';
 
@@ -64,18 +65,14 @@ export const GET = defineRoute(
       items = items.filter((i) => new Date(i.time).getTime() <= toMs);
     }
 
-    // 记录字段是 latencyMs，sort=latency 取不到值，等价于保持原序
-    items.sort((a, b) => {
-      const va = a[sort as keyof typeof a];
-      const vb = b[sort as keyof typeof b];
-      if (typeof va === 'number' && typeof vb === 'number') {
-        return order === 'asc' ? va - vb : vb - va;
-      }
-      if (typeof va === 'string' && typeof vb === 'string') {
-        return order === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-      }
-      return 0;
-    });
+    // sort 取值与 CallLog 字段名不同（latency → latencyMs、time 是字符串时间戳），只能显式映射
+    const comparators: Record<LogListQuery['sort'], (a: CallLog, b: CallLog) => number> = {
+      time: (a, b) => Date.parse(a.time) - Date.parse(b.time),
+      latency: (a, b) => a.latencyMs - b.latencyMs,
+      status: (a, b) => a.status - b.status,
+    };
+    const compare = comparators[sort];
+    items.sort((a, b) => (order === 'asc' ? compare(a, b) : -compare(a, b)));
 
     const total = items.length;
     const start = (page - 1) * pageSize;

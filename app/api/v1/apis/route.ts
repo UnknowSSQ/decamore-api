@@ -2,6 +2,7 @@ import { defineRoute, ok, created, paged } from '@/lib/server';
 import { apiListQuerySchema, createApiSchema } from '@/lib/zod/admin.schema';
 import { createCatalogItem, listManagedApis } from '@/lib/server/catalog';
 import { PERMISSIONS } from '@/constants/auth';
+import type { ManagedApi } from '@/types';
 
 export const GET = defineRoute(
   {
@@ -28,15 +29,15 @@ export const GET = defineRoute(
 
     if (status) items = items.filter((i) => i.status === status);
 
-    // 仅 sort=errorRate 与记录字段同名，其余取到 undefined，保持车单原序
-    items.sort((a, b) => {
-      const va = a[sort as keyof typeof a];
-      const vb = b[sort as keyof typeof b];
-      if (typeof va === 'number' && typeof vb === 'number') {
-        return order === 'asc' ? va - vb : vb - va;
-      }
-      return 0;
-    });
+    // sort 是查询侧的别名（calls/latency/...），与 ManagedApi 的字段名不同，只能显式建映射
+    const comparators: Record<typeof sort, (a: ManagedApi, b: ManagedApi) => number> = {
+      calls: (a, b) => a.calls24h - b.calls24h,
+      latency: (a, b) => a.avgLatencyMs - b.avgLatencyMs,
+      errorRate: (a, b) => a.errorRate - b.errorRate,
+      updated: (a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt),
+    };
+    const compare = comparators[sort];
+    items.sort((a, b) => (order === 'asc' ? compare(a, b) : -compare(a, b)));
 
     const total = items.length;
     const start = (page - 1) * pageSize;

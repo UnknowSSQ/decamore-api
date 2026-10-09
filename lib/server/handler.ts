@@ -10,8 +10,16 @@ import { getServerEnv } from '@/env';
 import { hasAllPermissions, hasAnyPermission } from '@/lib/auth/permissions';
 import { resolveSession, type ResolvedSession } from '@/lib/auth/session';
 import { ERROR_CODE, type ApiFailure, type ApiResponse } from '@/types';
-import { ApiError, ForbiddenError, RateLimitError, UnauthorizedError } from './errors';
+import { ApiError, ForbiddenError, UnauthorizedError } from './errors';
 import { logger } from './logger';
+import {
+  corsHeadersFor,
+  enforceAccessRules,
+  enforceDefaultLimit,
+  enforceIpLists,
+  maxBodyBytes,
+  type GuardInput,
+} from './protection';
 import { recordApiCall } from './stats';
 import { parseBody, parseParams, parseQuery, toFieldIssues } from './validate';
 import { createTraceId, resolveClientIp, runWithRequestContext, type RequestContext } from './trace';
@@ -61,30 +69,6 @@ export interface WithApiOptions<TExtra = Record<string, never>> {
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-/** 进程内存固定窗口，多实例部署时各实例的桶互不可见 */
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function enforceRateLimit(key: string, limit: number): void {
-  const now = Date.now();
-  const bucket = rateBuckets.get(key);
-
-  if (!bucket || bucket.resetAt <= now) {
-    rateBuckets.set(key, { count: 1, resetAt: now + 60_000 });
-    return;
-  }
-
-  bucket.count += 1;
-  if (bucket.count > limit) {
-    const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
-    throw new RateLimitError(retryAfter);
-  }
-
-  // 桶只增不减，超阈值时清掉已过期的
-  if (rateBuckets.size > 5000) {
-    for (const [k, v] of rateBuckets) if (v.resetAt <= now) rateBuckets.delete(k);
-  }
-}
-
 export function withApiHandler<TExtra = Record<string, never>>(
   handler: ApiHandler<TExtra>,
   options: WithApiOptions<TExtra> = {},
@@ -113,11 +97,24 @@ export function withApiHandler<TExtra = Record<string, never>>(
 
     // 整条链路挂在同一 AsyncLocalStorage 上，统计与日志随处可取 ctx
     return runWithRequestContext(ctx, async () => {
+      const isApi = path.startsWith('/api');
+      const cors = isApi ? corsHeadersFor(request.headers.get('origin')) : {};
+      const guard: GuardInput = {
+        ip: ctx.ip ?? '-',
+        method,
+        pathname: path,
+        routePattern: options.route ?? path,
+      };
+
       try {
-        enforceRateLimit(
-          `${ctx.ip}|${method}|${path}`,
-          options.rateLimitPerMin ?? getServerEnv().RATE_LIMIT_PER_MIN,
-        );
+        if (isApi) {
+          // 黑名单先决生死；白名单只豁免频控与规则，不豁免黑名单
+          const { exempt } = enforceIpLists(guard.ip);
+          if (!exempt) {
+            enforceAccessRules(guard);
+            enforceDefaultLimit(guard, options.rateLimitPerMin ?? getServerEnv().RATE_LIMIT_PER_MIN);
+          }
+        }
 
         // 先鉴权后校验，免得向未授权者暴露参数规则
         let session: ResolvedSession | null = null;
@@ -157,7 +154,7 @@ export function withApiHandler<TExtra = Record<string, never>>(
 
         const rawParams = (await routeContext?.params) ?? {};
         const query = options.query ? parseQuery(request.nextUrl, options.query) : undefined;
-        const body = options.body ? await parseBody(request, options.body) : undefined;
+        const body = options.body ? await parseBody(request, options.body, { maxBytes: maxBodyBytes() }) : undefined;
         const params = options.params
           ? await parseParams(Promise.resolve(rawParams), options.params)
           : rawParams;
@@ -183,12 +180,18 @@ export function withApiHandler<TExtra = Record<string, never>>(
         });
 
         response.headers.set('x-trace-id', traceId);
-        return response;
+        return withCors(response, cors);
       } catch (error: unknown) {
-        return handleFailure(error, traceId, options.headers);
+        return withCors(handleFailure(error, traceId, options.headers), cors);
       }
     });
   };
+}
+
+/** 只有配置命中来源时才有内容，空对象等于不加头 */
+function withCors(response: NextResponse, cors: Record<string, string>): NextResponse {
+  for (const [key, value] of Object.entries(cors)) response.headers.set(key, value);
+  return response;
 }
 
 /** 对象返回时状态码由 success 决定：true 走 200，false 用 statusCode */

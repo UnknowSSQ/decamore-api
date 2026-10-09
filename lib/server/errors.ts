@@ -64,9 +64,9 @@ export class ValidationError extends ApiError {
 }
 
 export class RateLimitError extends ApiError {
-  constructor(retryAfterSec: number) {
+  constructor(retryAfterSec: number, reason?: string) {
     super(429, ERROR_CODE.TOO_MANY_REQUESTS, '请求过于频繁', {
-      description: `请在 ${retryAfterSec} 秒后重试`,
+      description: `请在 ${retryAfterSec} 秒后重试${reason ? `（${reason}）` : ''}`,
       headers: { 'Retry-After': String(retryAfterSec) },
     });
     this.name = 'RateLimitError';

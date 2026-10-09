@@ -44,7 +44,10 @@ export interface ApiCallAggregate {
 
 /** 只留最近 RING_CAPACITY 条，进程重启即清空 */
 const RING_CAPACITY = 500;
-const ring: ApiCallRecord[] = [];
+
+/** 挂 globalThis：每个 route chunk 各带一份 ring 时，/api/v1/stats 只能看见自己记下的那点调用 */
+const globalStore = globalThis as typeof globalThis & { __decamoreCallRing?: ApiCallRecord[] };
+const ring: ApiCallRecord[] = (globalStore.__decamoreCallRing ??= []);
 
 /** 统计接口自身与健康检查不记账，避免自我放大 */
 const SKIP_PATTERNS: RegExp[] = [/^\/api\/v1\/stats/, /^\/api\/health/, /\/_next\//];
@@ -118,6 +121,25 @@ async function persist(record: ApiCallRecord): Promise<void> {
 /** 只读到内存里最近 RING_CAPACITY 条，非全量 */
 export function recentApiCalls(limit = 50): ApiCallRecord[] {
   return ring.slice(-Math.max(1, Math.min(limit, RING_CAPACITY)));
+}
+
+/** 按路由模板汇总窗口内的真实调用数；与 byRoute 不同，不做 top N 截断，供接口管理逐行取数 */
+export function routeCallStats(sinceMs = Date.now() - 24 * 3600 * 1000): Record<string, { count: number; avgDurationMs: number; errorCount: number }> {
+  const acc = new Map<string, { count: number; sum: number; errors: number }>();
+  for (const r of ring) {
+    if (r.accessedAtMs < sinceMs) continue;
+    const bucket = acc.get(r.route) ?? { count: 0, sum: 0, errors: 0 };
+    bucket.count += 1;
+    bucket.sum += r.durationMs;
+    if (!r.success) bucket.errors += 1;
+    acc.set(r.route, bucket);
+  }
+
+  const out: Record<string, { count: number; avgDurationMs: number; errorCount: number }> = {};
+  for (const [route, v] of acc) {
+    out[route] = { count: v.count, avgDurationMs: round(v.sum / v.count), errorCount: v.errors };
+  }
+  return out;
 }
 
 /** 基于内存环形缓冲聚合，进程重启后为空 */

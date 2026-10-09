@@ -5,10 +5,10 @@ export * from './handler';
 export * from './route';
 export * from './validate';
 export * from './guards';
+export * from './protection';
 export * from './stats';
 export * from './logger';
 export {
-  attachUser,
   createTraceId,
   elapsedMs,
   getRequestContext,

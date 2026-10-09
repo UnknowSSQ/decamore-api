@@ -1,6 +1,6 @@
-import { defineRoute, publicOk } from '@/lib/server';
+import { defineRoute, preflight, publicOk } from '@/lib/server';
 import { DEFAULT_HOT_PLAY_TYPE, getHotPlay } from '@/lib/server/hotplay';
-import { hotplayQuerySchema } from '@/lib/zod/admin.schema';
+import { hotplayQuerySchema } from '@/lib/zod/public.schema';
 
 export const GET = defineRoute(
   {
@@ -10,3 +10,6 @@ export const GET = defineRoute(
   },
   async (_req, { query }) => publicOk(await getHotPlay(query?.type ?? DEFAULT_HOT_PLAY_TYPE)),
 );
+
+/** 跨域预检：来源在后台 CORS 配置里才带 Allow-Origin */
+export const OPTIONS = preflight();

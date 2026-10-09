@@ -10,13 +10,12 @@ export const POST = defineRoute(
     body: ipListSchema,
     route: '/api/v1/security/ip-blacklist',
   },
-  async (_req, { body }) => {
-    const { list } = body!;
-    const settings = getSecuritySettings();
-    const merged = Array.from(new Set([...settings.ipBlacklist, ...list]));
-    patchSecuritySettings({ ipBlacklist: merged });
+  (_req, { body }) => {
+    // 覆盖式：界面提交的是编辑后的完整列表，增量合并会让「删掉一条」永远删不掉
+    const ipBlacklist = Array.from(new Set(body!.list));
+    patchSecuritySettings({ ipBlacklist });
 
-    return ok({ ipBlacklist: merged }, { message: '黑名单已更新' });
+    return ok({ ipBlacklist }, { message: '黑名单已更新' });
   },
 );
 

@@ -2,6 +2,7 @@
 import { type ZodTypeAny, type TypeOf } from 'zod';
 
 import { toFieldIssues } from '@/lib/zod/validate-shared';
+import { MAX_BODY_BYTES } from '@/lib/zod/common';
 import { ValidationError } from './errors';
 
 export { toFieldIssues, validateSoft, issueMapOf } from '@/lib/zod/validate-shared';
@@ -18,7 +19,7 @@ export async function parseBody<S extends ZodTypeAny>(
   schema: S,
   options?: { maxBytes?: number },
 ): Promise<TypeOf<S>> {
-  const maxBytes = options?.maxBytes ?? 64 * 1024;
+  const maxBytes = options?.maxBytes ?? MAX_BODY_BYTES;
   const declared = Number(request.headers.get('content-length') ?? '0');
   if (Number.isFinite(declared) && declared > maxBytes) {
     throw new ValidationError([{ field: '(body)', message: `请求体过大（上限 ${Math.round(maxBytes / 1024)}KB）`, code: 'too_big' }]);
@@ -26,6 +27,10 @@ export async function parseBody<S extends ZodTypeAny>(
 
   let raw: unknown = {};
   const text = await request.text();
+  // 分块传输可以不带头，声明值不可信，读完再按真实长度兜一次
+  if (new TextEncoder().encode(text).length > maxBytes) {
+    throw new ValidationError([{ field: '(body)', message: `请求体过大（上限 ${Math.round(maxBytes / 1024)}KB）`, code: 'too_big' }]);
+  }
   if (text.trim().length > 0) {
     try {
       raw = JSON.parse(text);
