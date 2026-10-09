@@ -39,27 +39,27 @@ async function scanType(category: AssetCategory, type: string): Promise<StaticAs
   const thumbDir = path.join(process.cwd(), 'public', 'assets', `${CATEGORY_DIR[category]}-thumb`, type);
   // 目录读不到时得到空列表，由调用侧统一转成 500
   const names = await readdir(dir).catch(() => [] as string[]);
+  // 派生图目录一次读完：逐文件 stat 的话 menhera 一个目录就是 234 次串行往返
+  const thumbs = new Set(await readdir(thumbDir).catch(() => [] as string[]));
 
-  const items: StaticAssetItem[] = [];
-  for (const name of names.sort()) {
-    const ext = path.extname(name).slice(1).toLowerCase();
-    if (!ALLOWED_EXT.has(ext)) continue;
-    const entry = await stat(path.join(dir, name)).catch(() => null);
-    if (!entry?.isFile()) continue;
-    const thumb = thumbFileOf(name);
-    const hasThumb = await stat(path.join(thumbDir, thumb))
-      .then((s) => s.isFile())
-      .catch(() => false);
-    items.push({
-      id: name.replace(/\.[a-z0-9]+$/i, ''),
-      file: name,
-      format: ext,
-      size: entry.size,
-      url: assetUrl(category, type, name),
-      ...(hasThumb ? { thumbUrl: thumbAssetUrl(category, type, thumb) } : {}),
-    });
-  }
-  return items;
+  const listed = await Promise.all(
+    names.sort().map(async (name): Promise<StaticAssetItem | null> => {
+      const ext = path.extname(name).slice(1).toLowerCase();
+      if (!ALLOWED_EXT.has(ext)) return null;
+      const entry = await stat(path.join(dir, name)).catch(() => null);
+      if (!entry?.isFile()) return null;
+      const thumb = thumbFileOf(name);
+      const item: StaticAssetItem = {
+        id: name.replace(/\.[a-z0-9]+$/i, ''),
+        file: name,
+        format: ext,
+        size: entry.size,
+        url: assetUrl(category, type, name),
+      };
+      return thumbs.has(thumb) ? { ...item, thumbUrl: thumbAssetUrl(category, type, thumb) } : item;
+    }),
+  );
+  return listed.filter((item): item is StaticAssetItem => item !== null);
 }
 
 interface CacheEntry {

@@ -7,6 +7,31 @@ const USER_AGENT =
 
 export const UPSTREAM_TIMEOUT_MS = 8_000;
 
+/**
+ * 连不上/超时后的短时熔断。没有它时上游宕机会让每次页面加载、每张榜卡都重新等满
+ * 8 秒——正缓存只在成功时写，失败路径什么都不留。
+ * 挂 globalThis：这些模块按 route 分包，模块级 Map 每个 chunk 各一份。
+ */
+const FAILURE_COOLDOWN_MS = 15_000;
+const FAILURE_KEYS_TO_KEEP = 200;
+
+const globalStore = globalThis as typeof globalThis & {
+  __decamoreUpstreamFailures?: Map<string, { at: number; message: string }>;
+};
+
+const failures = (globalStore.__decamoreUpstreamFailures ??= new Map());
+
+function rememberFailure(url: string, message: string): void {
+  if (failures.size >= FAILURE_KEYS_TO_KEEP) failures.clear();
+  failures.set(url, { at: Date.now(), message });
+}
+
+function cooledDown(url: string): { at: number; message: string } | null {
+  const hit = failures.get(url);
+  if (!hit) return null;
+  return Date.now() - hit.at < FAILURE_COOLDOWN_MS ? hit : null;
+}
+
 export type UnknownRecord = Record<string, unknown>;
 
 export const asRecord = (value: unknown): UnknownRecord | null =>
@@ -30,6 +55,13 @@ export const num = (value: unknown): number | null => {
 
 /** 非 200 / 非 JSON / 超时一律抛普通 Error，由调用方换成对外错误 */
 export async function getUpstreamJson(url: string, referer: string, extraHeaders?: Record<string, string>): Promise<UnknownRecord> {
+  const cooling = cooledDown(url);
+  if (cooling) {
+    throw new Error(
+      `上游在冷却中，约 ${Math.ceil((FAILURE_COOLDOWN_MS - (Date.now() - cooling.at)) / 1000)} 秒后重试（上次：${cooling.message}）`,
+    );
+  }
+
   let response: Response;
   try {
     response = await fetch(url, {
@@ -38,8 +70,12 @@ export async function getUpstreamJson(url: string, referer: string, extraHeaders
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (error) {
-    throw new Error(`上游请求失败：${error instanceof Error ? error.message : String(error)}`);
+    // 只给连不上与超时记冷却：HTTP 4xx/5xx 与坏 JSON 本来就秒回，冷却它们只会把可恢复的抖动放大成 15 秒不可用
+    const message = error instanceof Error ? error.message : String(error);
+    rememberFailure(url, message);
+    throw new Error(`上游请求失败：${message}`);
   }
+  failures.delete(url);
   if (!response.ok) throw new Error(`上游返回 HTTP ${response.status}`);
 
   const raw = await response.text();

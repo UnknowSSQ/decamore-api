@@ -110,7 +110,8 @@ function bingDate(startdate?: string): string | null {
 async function mirror(remote: string, target: string): Promise<boolean> {
   if (await exists(target)) return true;
   try {
-    const res = await fetch(remote, { redirect: 'follow', signal: AbortSignal.timeout(20_000) });
+    // 6 秒：镜像失败会回落到上游直链，不值得为落盘把整条请求顶到客户端 15 秒预算之外
+    const res = await fetch(remote, { redirect: 'follow', signal: AbortSignal.timeout(6_000) });
     if (!res.ok) return false;
     const bytes = Buffer.from(await res.arrayBuffer());
     if (bytes.byteLength < 1024) return false;
@@ -127,10 +128,15 @@ async function mirror(remote: string, target: string): Promise<boolean> {
 
 type LocalPool = Record<'pc' | 'mobile', WallpaperItem[]>;
 
-/** 每进程只扫一次，并发首请求共享同一次扫描 */
-let localPool: LocalPool | null = null;
-let localPending: Promise<LocalPool> | null = null;
+/** 挂 globalThis：每个 route chunk 各扫一遍目录的话，本地池与必应镜像都会被重复构建 */
+const globalStore = globalThis as typeof globalThis & {
+  __decamoreWallpaperPool?: LocalPool | null;
+  __decamoreWallpaperPoolPending?: Promise<LocalPool> | null;
+  __decamoreBingShot?: { item: WallpaperItem; at: number } | null;
+  __decamoreBingPending?: Promise<WallpaperItem> | null;
+};
 
+/** 每进程只扫一次；状态直接放在 globalStore 上，模块级变量每个 route chunk 各一份 */
 async function buildLocalType(type: 'pc' | 'mobile'): Promise<WallpaperItem[]> {
   const dir = LOCAL_DIR[type];
   const fullDir = path.join(ASSET_ROOT, 'wallpaper', dir);
@@ -163,27 +169,40 @@ async function buildLocalType(type: 'pc' | 'mobile'): Promise<WallpaperItem[]> {
 }
 
 function loadLocalPool(): Promise<LocalPool> {
-  localPending ??= (async () => {
+  const cached = globalStore.__decamoreWallpaperPool;
+  if (cached) return Promise.resolve(cached);
+
+  const pending = (globalStore.__decamoreWallpaperPoolPending ??= (async () => {
     const [pc, mobile] = await Promise.all([buildLocalType('pc'), buildLocalType('mobile')]);
     if (pc.length === 0 || mobile.length === 0) {
       throw new Error('壁纸目录为空，请检查 public/assets/wallpaper/{desktop,mobile}');
     }
-    localPool = { pc, mobile };
-    return localPool;
+    const pool: LocalPool = { pc, mobile };
+    globalStore.__decamoreWallpaperPool = pool;
+    return pool;
   })().finally(() => {
-    localPending = null;
-  });
-  return localPending;
+    globalStore.__decamoreWallpaperPoolPending = null;
+  }));
+  return pending;
 }
 
 async function localItems(type: 'pc' | 'mobile'): Promise<WallpaperItem[]> {
-  const pool = localPool ?? (await loadLocalPool());
+  const pool = globalStore.__decamoreWallpaperPool ?? (await loadLocalPool());
   return pool[type];
 }
 
 /** 当日结果缓存 1 小时；已有镜像不再回源 */
-let bingCache: { item: WallpaperItem; at: number } | null = null;
-let bingPending: Promise<WallpaperItem> | null = null;
+async function todayBing(): Promise<WallpaperItem> {
+  const cached = globalStore.__decamoreBingShot;
+  if (cached && Date.now() - cached.at < BING_TTL_MS) return cached.item;
+
+  const pending = (globalStore.__decamoreBingPending ??= loadBing().finally(() => {
+    globalStore.__decamoreBingPending = null;
+  }));
+  const item = await pending;
+  globalStore.__decamoreBingShot = { item, at: Date.now() };
+  return item;
+}
 
 async function loadBing(): Promise<WallpaperItem> {
   let feed: BingFeed | undefined;
@@ -218,17 +237,6 @@ async function loadBing(): Promise<WallpaperItem> {
     copyright: feed.copyright || null,
     date: bingDate(feed.startdate),
   };
-}
-
-async function todayBing(): Promise<WallpaperItem> {
-  if (bingCache && Date.now() - bingCache.at < BING_TTL_MS) return bingCache.item;
-
-  bingPending ??= loadBing().finally(() => {
-    bingPending = null;
-  });
-  const item = await bingPending;
-  bingCache = { item, at: Date.now() };
-  return item;
 }
 
 const ALL_TYPES: readonly WallpaperType[] = ['pc', 'mobile', 'bing'];
