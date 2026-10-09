@@ -43,15 +43,14 @@ export function SecurityView() {
     if (data) setLocalData(data);
   }, [data]);
 
-  const updateField = async <K extends keyof SecuritySettings>(key: K, value: SecuritySettings[K]) => {
+  /** 乐观提交的唯一入口：先落本地，失败退回提交前的快照 */
+  const commit = async (next: SecuritySettings, patch: Partial<SecuritySettings>) => {
     if (!localData || !canWrite) return;
-    
-    // 先落本地
-    const prev = localData;
-    setLocalData({ ...localData, [key]: value });
 
+    const prev = localData;
+    setLocalData(next);
     try {
-      await patchSecurity({ [key]: value } as Partial<SecuritySettings>);
+      await patchSecurity(patch);
       toast.success('已保存');
     } catch {
       setLocalData(prev);
@@ -59,26 +58,25 @@ export function SecurityView() {
     }
   };
 
-  // path 形如 'passwordPolicy.minLength'，PATCH 按整个 parent 提交
-  const updateNestedField = async (path: string, value: unknown) => {
-    if (!localData || !canWrite) return;
-    
+  const updateField = <K extends keyof SecuritySettings>(key: K, value: SecuritySettings[K]) => {
+    if (!localData) return;
+    return commit({ ...localData, [key]: value }, { [key]: value });
+  };
+
+  // path 形如 'passwordPolicy.minLength'，PATCH 按整个 parent 提交（后端是整组覆盖）
+  const updateNestedField = (path: string, value: unknown) => {
+    if (!localData) return;
+
     const [parent, child] = path.split('.');
     if (!parent || !child) return;
-
-    const prev = localData;
     const parentObj = localData[parent as keyof SecuritySettings] as Record<string, unknown> | undefined;
     if (!parentObj) return;
 
-    setLocalData({ ...localData, [parent]: { ...parentObj, [child]: value } });
-
-    try {
-      await patchSecurity({ [parent]: { ...parentObj, [child]: value } } as Partial<SecuritySettings>);
-      toast.success('已保存');
-    } catch {
-      setLocalData(prev);
-      toast.error('保存失败');
-    }
+    const nextParent = { ...parentObj, [child]: value };
+    return commit(
+      { ...localData, [parent]: nextParent },
+      { [parent]: nextParent } as Partial<SecuritySettings>,
+    );
   };
 
   if (loading) return <SecuritySkeleton />;
