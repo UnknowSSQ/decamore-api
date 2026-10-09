@@ -101,7 +101,7 @@ export function ConsoleShell({ user, children }: ConsoleShellProps) {
 
       {navOpen && (
         <div
-          className="fixed inset-0 z-[60] animate-fade-in bg-[#202621]/30 backdrop-blur-[2px] lg:hidden"
+          className="fixed inset-0 z-[60] animate-fade-in bg-ink/30 backdrop-blur-[2px] lg:hidden"
           onClick={closeNav}
           aria-hidden
         />

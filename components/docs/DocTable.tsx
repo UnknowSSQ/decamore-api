@@ -126,7 +126,7 @@ export function DocTable({ node }: { node: TableNode }) {
                 <span className={MONO}>{row.date}</span>
               </td>
               <td className={TD}>
-                <span className="inline-block rounded-[6px] bg-[#e9ede4] px-2 py-[2px] font-mono text-[11px] font-semibold text-[#365b49]">
+                <span className="inline-block rounded-[6px] bg-sage px-2 py-[2px] font-mono text-[11px] font-semibold text-primary">
                   {row.version}
                 </span>
               </td>
@@ -180,7 +180,7 @@ function FieldName({ name, isChild }: { name: string; isChild?: boolean }) {
 
 function RequiredBadge({ state }: { state: RequiredState }) {
   const map = {
-    yes: { label: '必填', className: 'bg-[#f6e3d6] text-[#a1552b]' },
+    yes: { label: '必填', className: 'bg-warn-soft text-[#a1552b]' },
     no: { label: '可选', className: 'bg-[#eceee7] text-[#6b726b]' },
     na: { label: '—', className: 'bg-[#f1f2ec] text-[#9aa49b]' },
   };

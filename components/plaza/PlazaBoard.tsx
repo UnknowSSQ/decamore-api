@@ -124,7 +124,7 @@ export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoar
             <button
               type="button"
               className={`rounded-full border px-4 py-2 text-[12px] transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary ${
-                !category ? 'bg-primary text-[#fffefa] border-primary' : 'border-line bg-transparent text-[#5b635c]'
+                !category ? 'bg-primary text-surface border-primary' : 'border-line bg-transparent text-[#5b635c]'
               }`}
               onClick={() => setCategory(null)}
               aria-pressed={!category}
@@ -137,7 +137,7 @@ export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoar
                 key={cat}
                 type="button"
                 className={`rounded-full border px-4 py-2 text-[12px] transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary ${
-                  category === cat ? 'bg-primary text-[#fffefa] border-primary' : 'border-line bg-transparent text-[#5b635c]'
+                  category === cat ? 'bg-primary text-surface border-primary' : 'border-line bg-transparent text-[#5b635c]'
                 }`}
                 onClick={() => setCategory(category === cat ? null : cat)}
                 aria-pressed={category === cat}
@@ -195,7 +195,7 @@ export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoar
               action={
                 <button
                   type="button"
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-5 text-[13px] font-medium text-[#fffefa] shadow-soft transition-all hover:-translate-y-0.5 hover:bg-primary-dark"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-5 text-[13px] font-medium text-surface shadow-soft transition-all hover:-translate-y-0.5 hover:bg-primary-dark"
                   onClick={clearFilters}
                 >
                   查看全部接口 <span aria-hidden>↗</span>

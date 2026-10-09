@@ -83,7 +83,7 @@ export function HeroSection() {
           </div>
 
           <span
-            className="absolute right-[82px] top-[70px] h-2 w-2 rounded-full bg-[#fffefa] shadow-[0_0_0_7px_rgba(255,254,250,0.2)]"
+            className="absolute right-[82px] top-[70px] h-2 w-2 rounded-full bg-surface shadow-[0_0_0_7px_rgba(255,254,250,0.2)]"
             aria-hidden
           />
           <span

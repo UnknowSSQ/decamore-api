@@ -173,7 +173,7 @@ export function Pagination({
             type="button"
             aria-current={p === page ? 'page' : undefined}
             onClick={() => onPageChange(p)}
-            className={cn(pageBtn, p === page ? 'border-primary bg-primary text-[#fffefa]' : 'border-line hover:border-primary')}
+            className={cn(pageBtn, p === page ? 'border-primary bg-primary text-surface' : 'border-line hover:border-primary')}
           >
             {p}
           </button>

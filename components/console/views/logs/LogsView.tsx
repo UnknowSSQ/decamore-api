@@ -262,7 +262,7 @@ function LogsViewInner() {
               onClick={() => setFilter('statusFamily', opt.value)}
               className={`rounded-full border px-3 py-1.5 text-[11.5px] transition-colors ${
                 statusFamily === opt.value
-                  ? 'border-primary bg-primary text-[#fffefa]'
+                  ? 'border-primary bg-primary text-surface'
                   : 'border-line bg-surface text-muted hover:border-primary hover:text-primary'
               }`}
             >

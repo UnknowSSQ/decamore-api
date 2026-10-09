@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { z, type ZodTypeAny } from 'zod';
 
 import { COOKIES, CSRF_HEADER, type Permission } from '@/constants/auth';
+import { csrfDecision } from '@/utils/csrf';
 import { getServerEnv } from '@/env';
 import { hasAllPermissions, hasAnyPermission } from '@/lib/auth/permissions';
 import { resolveSession, type ResolvedSession } from '@/lib/auth/session';
@@ -141,14 +142,15 @@ export function withApiHandler<TExtra = Record<string, never>>(
             throw new ForbiddenError('当前角色无权访问该资源');
           }
 
-          // 有 CSRF Cookie 才校验，纯 token 客户端跳过
-          const csrfRequired = options.csrf ?? WRITE_METHODS.has(method);
-          const storedCsrf = request.cookies.get(COOKIES.csrf)?.value;
-          if (csrfRequired && storedCsrf) {
-            const sent = request.headers.get(CSRF_HEADER);
-            if (!sent || sent !== storedCsrf) {
-              throw new ForbiddenError('请求校验失败', 'CSRF token 缺失或不匹配，请刷新页面后重试');
-            }
+          // cookie 会话下的写操作必须双提交；Bearer 头的会话由 csrfDecision 判为免校验
+          const csrf = csrfDecision({
+            required: options.csrf ?? WRITE_METHODS.has(method),
+            viaHeader: session.viaHeader,
+            header: request.headers.get(CSRF_HEADER),
+            cookie: request.cookies.get(COOKIES.csrf)?.value ?? null,
+          });
+          if (csrf.verdict === 'fail') {
+            throw new ForbiddenError('请求校验失败', csrf.reason ?? 'CSRF 校验未通过，请刷新页面后重试');
           }
         }
 

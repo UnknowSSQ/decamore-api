@@ -99,7 +99,7 @@ export function ConsoleTopbar({ user, navOpen, onOpenNav }: ConsoleTopbarProps) 
               aria-label="用户菜单"
               aria-expanded={userOpen}
             >
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-primary font-serif italic text-[13px] text-[#fffefa]">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-primary font-serif italic text-[13px] text-surface">
                 {user.avatarLetter}
               </span>
               <span className="hidden text-[12.5px] font-medium text-ink sm:inline">{user.name}</span>

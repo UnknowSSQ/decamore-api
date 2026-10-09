@@ -26,7 +26,7 @@ export function CtaSection() {
             title="联系 Decamore API"
             description="接入咨询、合作或问题反馈都可以直接发邮件。"
             subject="Decamore API 接入咨询"
-            className="h-12 gap-3 rounded-full bg-[#fffefa] px-5 text-[13px] font-medium text-primary-dark transition-all hover:-translate-y-0.5 hover:bg-[#edf1e9]"
+            className="h-12 gap-3 rounded-full bg-surface px-5 text-[13px] font-medium text-primary-dark transition-all hover:-translate-y-0.5 hover:bg-[#edf1e9]"
             trailing={<span aria-hidden className="text-[17px]">↗</span>}
           >
             联系我们

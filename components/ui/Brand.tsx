@@ -14,7 +14,7 @@ export function BrandMark({ size = 'md', className }: { size?: keyof typeof MARK
     <span
       aria-hidden
       className={cn(
-        'grid shrink-0 place-items-center bg-primary font-serif italic text-[#fffefa]',
+        'grid shrink-0 place-items-center bg-primary font-serif italic text-surface',
         MARK_SIZE[size].box,
         className,
       )}

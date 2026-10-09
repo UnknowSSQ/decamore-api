@@ -76,6 +76,8 @@ export interface ResolvedSession {
   user: AuthUser;
   claims: AccessTokenClaims;
   expiresAt: number;
+  /** 令牌来自 Authorization 头而非 Cookie：这类请求不是浏览器自动带凭据，CSRF 双提交不适用 */
+  viaHeader: boolean;
 }
 
 /** 返回 null 即未登录 / token 非法 / 已过期，调用方据此回 401 */
@@ -87,9 +89,11 @@ export async function resolveSession(): Promise<ResolvedSession | null> {
   if (!result.ok) return null;
 
   const claims = result.claims as AccessTokenClaims;
+  const authHeader = (await headers()).get(AUTH_HEADER);
   return {
     claims,
     expiresAt: claims.exp * 1000,
+    viaHeader: Boolean(authHeader?.startsWith(`${AUTH_SCHEME} `)),
     user: buildUser(claims),
   };
 }
