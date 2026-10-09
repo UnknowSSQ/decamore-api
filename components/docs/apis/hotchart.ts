@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/hotchart';
 const url = apiUrl(path);
@@ -398,15 +398,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const hotchartDoc: ApiDoc = {
-  slug: 'hotchart',
-  name: '热映榜',
-  en: 'Hot Chart',
-  category: '数据',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const hotchartDoc: AuthoredApiDoc = {
   eyebrow: 'Data API · v1',
   lede: '此刻院线的实时票房榜',
   facts: ['无参数，一份榜', '服务端缓存 1 小时'],

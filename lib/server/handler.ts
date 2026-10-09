@@ -10,7 +10,7 @@ import { csrfDecision } from '@/utils/csrf';
 import { getServerEnv } from '@/env';
 import { hasAllPermissions, hasAnyPermission } from '@/lib/auth/permissions';
 import { resolveSession, type ResolvedSession } from '@/lib/auth/session';
-import { ERROR_CODE, type ApiFailure, type ApiResponse } from '@/types';
+import { ERROR_CODE, type ApiResponse } from '@/types';
 import { ApiError, ForbiddenError, UnauthorizedError } from './errors';
 import { logger } from './logger';
 import {
@@ -22,6 +22,7 @@ import {
   type GuardInput,
 } from './protection';
 import { recordApiCall } from './stats';
+import { buildFailure } from './response';
 import { parseBody, parseParams, parseQuery, toFieldIssues } from './validate';
 import { createTraceId, resolveClientIp, runWithRequestContext, type RequestContext } from './trace';
 
@@ -220,15 +221,12 @@ function normalizeResponse(
 /** 三条分支都会补记调用统计，异常路径不丢点 */
 function handleFailure(error: unknown, traceId: string, headers?: Record<string, string>): NextResponse {
   if (error instanceof ApiError) {
-    const body: ApiFailure = {
-      statusCode: error.code,
-      success: false,
+    const body = buildFailure({
+      code: error.code,
       message: error.message,
-      ...(error.description ? { description: error.description } : {}),
-      ...(error.issues?.length ? { issues: error.issues } : {}),
-      data: null,
-      meta: { timestamp: Date.now(), traceId },
-    };
+      description: error.description,
+      issues: error.issues,
+    });
 
     logger[error.status >= 500 ? 'error' : 'warn']({
       event: 'api.error',
@@ -246,15 +244,12 @@ function handleFailure(error: unknown, traceId: string, headers?: Record<string,
 
   if (error instanceof z.ZodError) {
     const issues = toFieldIssues(error);
-    const body: ApiFailure = {
-      statusCode: ERROR_CODE.VALIDATION_FAILED,
-      success: false,
+    const body = buildFailure({
+      code: ERROR_CODE.VALIDATION_FAILED,
       message: '请求参数校验失败',
-      ...(issues[0] ? { description: `${issues[0].field}：${issues[0].message}` } : {}),
+      description: issues[0] ? `${issues[0].field}：${issues[0].message}` : undefined,
       issues,
-      data: null,
-      meta: { timestamp: Date.now(), traceId },
-    };
+    });
     recordApiCall({ status: 422, errorCode: ERROR_CODE.VALIDATION_FAILED });
     logger.warn({ event: 'api.validation', message: '参数校验失败', error });
     return NextResponse.json(body, { status: 422, headers: { 'x-trace-id': traceId, ...headers } });
@@ -264,15 +259,12 @@ function handleFailure(error: unknown, traceId: string, headers?: Record<string,
   recordApiCall({ status: 500, errorCode: ERROR_CODE.INTERNAL_ERROR });
 
   const isProd = getServerEnv().NODE_ENV === 'production';
-  const body: ApiFailure = {
-    statusCode: ERROR_CODE.INTERNAL_ERROR,
-    success: false,
+  const body = buildFailure({
+    code: ERROR_CODE.INTERNAL_ERROR,
     message: '服务器内部错误，请稍后重试',
     description: '我们已记录本次异常，可凭 traceId 联系管理员',
-    data: null,
-    meta: { timestamp: Date.now(), traceId },
     // 堆栈摘要只在非生产回传，生产不暴露内部实现
-    ...(isProd ? {} : { debug: { stack: (error as Error)?.stack?.split('\n').slice(0, 6).join('\n') } }),
-  };
+    debug: isProd ? undefined : { stack: (error as Error)?.stack?.split('\n').slice(0, 6).join('\n') },
+  });
   return NextResponse.json(body, { status: 500, headers: { 'x-trace-id': traceId, ...headers } });
 }

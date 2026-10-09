@@ -64,9 +64,6 @@ export interface ChangelogRow {
   description: InlineFragment[];
 }
 
-/** 变体决定列数与列义，表头见 DocTable 的 getHeaders */
-export type DocTableVariant = 'request' | 'params' | 'response' | 'headers' | 'errors' | 'limits' | 'changelog';
-
 export type TableNode =
   | { kind: 'table'; variant: 'request'; rows: RequestRow[] }
   | { kind: 'table'; variant: 'params'; rows: ParamRow[] }
@@ -134,3 +131,12 @@ export interface ApiDoc {
   requestPanes: CodePaneData[];
   responsePanes: CodePaneData[];
 }
+
+/**
+ * 作者实际书写的部分：只写正文。
+ * 身份字段由 registry 从车单注入，在文档模块里再写一份不会生效，只会在车单改名后留下陈旧副本。
+ */
+export type AuthoredApiDoc = Omit<
+  ApiDoc,
+  'slug' | 'name' | 'en' | 'category' | 'method' | 'path' | 'implemented' | 'documented'
+>;

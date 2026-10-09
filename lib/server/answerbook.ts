@@ -8,25 +8,29 @@ import type { AnswerBookEntry } from '@/types';
 
 const CORPUS_FILE = path.join(process.cwd(), 'public', 'assets', 'json', 'answerbook.json');
 
-let corpus: AnswerBookEntry[] | null = null;
-let pending: Promise<AnswerBookEntry[]> | null = null;
+/** 挂 globalThis：与 hitokoto 同理，语料按 chunk 复制会把同一份解析重复付 N 遍 */
+const globalStore = globalThis as typeof globalThis & {
+  __decamoreAnswerBookCorpus?: AnswerBookEntry[] | null;
+  __decamoreAnswerBookPending?: Promise<AnswerBookEntry[]> | null;
+};
 
 export function loadCorpus(): Promise<AnswerBookEntry[]> {
-  if (corpus) return Promise.resolve(corpus);
+  const cached = globalStore.__decamoreAnswerBookCorpus;
+  if (cached) return Promise.resolve(cached);
 
-  pending ??= readFile(CORPUS_FILE, 'utf8')
+  globalStore.__decamoreAnswerBookPending ??= readFile(CORPUS_FILE, 'utf8')
     .then((raw) => JSON.parse(raw) as AnswerBookEntry[])
     .then((lines) => {
       if (lines.length === 0) throw new Error('答案之书语料为空，请检查 public/assets/json/answerbook.json');
-      corpus = lines;
+      globalStore.__decamoreAnswerBookCorpus = lines;
       return lines;
     })
     .finally(() => {
       // 失败时清空，下一次请求可以重新尝试读盘
-      pending = null;
+      globalStore.__decamoreAnswerBookPending = null;
     });
 
-  return pending;
+  return globalStore.__decamoreAnswerBookPending;
 }
 
 export async function randomAnswer(): Promise<AnswerBookEntry> {

@@ -44,18 +44,6 @@ export function formatDate(input: string | number | Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** 3 分钟前 / 昨天 18:20 */
-export function formatRelativeTime(input: string | number | Date, now = Date.now()): string {
-  const t = new Date(input).getTime();
-  if (Number.isNaN(t)) return '--';
-  const diff = Math.floor((now - t) / 1000);
-  if (diff < 60) return '刚刚';
-  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
-  if (diff < 172800) return `昨天 ${new Date(t).toTimeString().slice(0, 5)}`;
-  return formatDate(t);
-}
-
 /** 18:20:31，24 小时制 */
 export function formatClock(date: Date, timeZone?: string): string {
   return new Intl.DateTimeFormat('zh-CN', {
@@ -76,30 +64,5 @@ export function formatLongDate(date: Date, timeZone?: string): string {
     weekday: 'long',
     timeZone,
   }).format(date);
-}
-
-/** HH:mm */
-export function formatZoneTime(date: Date, timeZone: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone,
-    }).format(date);
-  } catch {
-    // 非法时区不抛错，回退本地时间，保证 UI 不崩
-    return formatClock(date).slice(0, 5);
-  }
-}
-
-/** UTC+08:00 */
-export function formatZoneOffset(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    timeZoneName: 'longOffset',
-  }).formatToParts(date);
-  const name = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
-  return name.replace('GMT', 'UTC').replace('UTC', 'UTC');
 }
 

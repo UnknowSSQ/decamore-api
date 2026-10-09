@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/answerbook';
 const url = apiUrl(path);
@@ -369,15 +369,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const answerbookDoc: ApiDoc = {
-  slug: 'answerbook',
-  name: '答案之书',
-  en: 'Answer Book',
-  category: '内容',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const answerbookDoc: AuthoredApiDoc = {
   eyebrow: 'Content API · v1',
   lede: '拿不定主意的时候翻一页，随机得到一句中英对照的答案。',
   facts: ['语料 360 条 · 中英对照', '限频 120 次 / 分钟 / IP'],

@@ -61,20 +61,3 @@ export function MethodBadge({ method, className }: { method: string; className?:
     </span>
   );
 }
-
-/** 状态到配色/文案的唯一出处，调用方只传字符串 */
-export function StatusPill({ status, className }: { status: 'online' | 'degraded' | 'offline' | 'enabled' | 'disabled'; className?: string }) {
-  const map = {
-    online: { tone: 'ok' as BadgeTone, label: '在线' },
-    degraded: { tone: 'warn' as BadgeTone, label: '降级' },
-    offline: { tone: 'danger' as BadgeTone, label: '停用' },
-    enabled: { tone: 'ok' as BadgeTone, label: '启用' },
-    disabled: { tone: 'neutral' as BadgeTone, label: '停用' },
-  };
-  const item = map[status];
-  return (
-    <Badge tone={item.tone} dot className={className}>
-      {item.label}
-    </Badge>
-  );
-}

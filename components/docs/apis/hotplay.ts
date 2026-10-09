@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/hotplay';
 const url = apiUrl(path);
@@ -442,15 +442,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const hotplayDoc: ApiDoc = {
-  slug: 'hotplay',
-  name: '热播榜',
-  en: 'Hot Play',
-  category: '内容',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const hotplayDoc: AuthoredApiDoc = {
   eyebrow: 'Content API · v1',
   lede: '剧集、电影、综艺在大屏上怎么播',
   facts: ['三类榜单，缺省电视剧', '服务端缓存 10 分钟'],

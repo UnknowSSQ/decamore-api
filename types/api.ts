@@ -73,17 +73,3 @@ export interface Paged<T> {
   /** 服务端算好，前端不必再乘 pageSize */
   hasMore: boolean;
 }
-
-/** 与 lib/api/error.ts 的同名类型是两套，字段有出入，别交叉传 */
-export interface RequestErrorInit {
-  status: number;
-  code: ErrorCode | number;
-  message: string;
-  description?: string;
-  issues?: FieldIssue[];
-  traceId?: string;
-  /** 网络层失败（fetch reject）时为 true */
-  network?: boolean;
-  /** 触发该错误的请求 URL，日志与重试判断使用 */
-  url?: string;
-}

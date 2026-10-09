@@ -2,7 +2,7 @@
 /** 状态在 hooks/useToast，这里只渲染；aria-live=polite：播报但不打断用户输入 */
 import { cn } from '@/utils/cn';
 import type { ToastTone } from '@/types';
-import { ToastContext, useToast } from '@/hooks/useToast';
+import { ToastContext } from '@/hooks/useToast';
 import { useContext } from 'react';
 
 const TONE_STYLE: Record<ToastTone, { bar: string; icon: string; mark: string }> = {
@@ -68,6 +68,3 @@ export function ToastViewport() {
     </div>
   );
 }
-
-/** 再导出，hook 的实现在 hooks/useToast */
-export { useToast };

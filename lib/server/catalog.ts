@@ -52,9 +52,12 @@ const records: CatalogRecord[] = globalStore.__decamoreCatalog!;
 /**
  * 指标取自 lib/server/stats 的调用环形缓冲：数字是本进程窗口内的真实计数，
  * 没有记录就是 0（0 表示「没观测到」，不再用下标编出一个看起来像流量的数）。
+ * stats 由调用方算好传入：routeCallStats 每次都要全量遍历环形，逐条记录调一次就是 N 倍开销。
  */
-function metrics(path: string) {
-  const stat = routeCallStats()[path];
+type CallStats = ReturnType<typeof routeCallStats>;
+
+function metrics(path: string, stats: CallStats) {
+  const stat = stats[path];
   if (!stat) return { calls24h: 0, avgLatencyMs: 0, errorRate: 0 };
   return {
     calls24h: stat.count,
@@ -63,7 +66,7 @@ function metrics(path: string) {
   };
 }
 
-function toManaged(record: CatalogRecord): ManagedApi {
+function toManaged(record: CatalogRecord, stats: CallStats): ManagedApi {
   return {
     id: record.id,
     path: record.path,
@@ -75,7 +78,7 @@ function toManaged(record: CatalogRecord): ManagedApi {
     authRequired: record.authRequired,
     rateLimited: record.rateLimited,
     updatedAt: record.updatedAt,
-    ...metrics(record.path),
+    ...metrics(record.path, stats),
   };
 }
 
@@ -98,18 +101,14 @@ export function listCatalogItems(): ApiCatalogItem[] {
   return records.map(toCatalogItem);
 }
 
-export function findCatalogItem(id: string): ApiCatalogItem | undefined {
-  const record = records.find((item) => item.id === id);
-  return record ? toCatalogItem(record) : undefined;
-}
-
 export function listManagedApis(): ManagedApi[] {
-  return records.map((record) => toManaged(record));
+  const stats = routeCallStats();
+  return records.map((record) => toManaged(record, stats));
 }
 
 export function findManagedApi(id: string): ManagedApi | undefined {
   const index = records.findIndex((record) => record.id === id);
-  return index < 0 ? undefined : toManaged(records[index]!);
+  return index < 0 ? undefined : toManaged(records[index]!, routeCallStats());
 }
 
 export interface CatalogPatch {
@@ -139,7 +138,7 @@ export function patchCatalogItem(id: string, patch: CatalogPatch): ManagedApi | 
   if (patch.status !== undefined) record.status = patch.status;
   record.updatedAt = nowIso();
 
-  return toManaged(record);
+  return toManaged(record, routeCallStats());
 }
 
 /** 取路径末段作 id，它同时是 /docs/<slug> 的 slug；重名时追加序号 */
@@ -170,7 +169,7 @@ export function createCatalogItem(input: CreateApiInput): ManagedApi {
     updatedAt: nowIso(),
   };
   records.push(record);
-  return toManaged(record);
+  return toManaged(record, routeCallStats());
 }
 
 export function deleteCatalogItem(id: string): boolean {

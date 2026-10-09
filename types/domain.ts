@@ -1,5 +1,4 @@
 /** 对外接口的返回形状与控制台视图模型；字段名即接口契约，改动会影响 /docs 页面与 Live 卡片 */
-import type { Role, Permission } from '@/constants/auth';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -294,16 +293,6 @@ export interface SiteSettings {
   plazaCardLayout: CardSpan[];
 }
 
-export interface LoginHistoryItem {
-  id: string;
-  time: string;
-  account: string;
-  ip: string;
-  region: string;
-  device: string;
-  result: 'success' | 'failed';
-}
-
 export interface NotificationItem {
   id: string;
   title: string;
@@ -311,17 +300,4 @@ export interface NotificationItem {
   time: string;
   tone: 'default' | 'alert';
   read: boolean;
-}
-
-export interface UserRecord {
-  id: string;
-  account: string;
-  email: string;
-  /** 类型上就禁止带出到前端 */
-  passwordHash?: never;
-  role: Role;
-  permissions: Permission[];
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt: string | null;
 }

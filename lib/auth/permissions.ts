@@ -1,4 +1,4 @@
-/** 鉴权判断的唯一真值，零依赖：前端 <Authorized> / usePermission 与后端 withAuth 都调这里 */
+/** 鉴权判断的唯一真值，零依赖：前端 usePermission 与后端 withAuth 都调这里 */
 import { PERMISSIONS, ROLE_PERMISSIONS, type Permission, type Role } from '@/constants/auth';
 
 export function permissionsOf(role: Role | undefined): Permission[] {
@@ -16,10 +16,6 @@ export function hasAnyPermission(permissions: readonly Permission[], list: reado
 
 export function hasAllPermissions(permissions: readonly Permission[], list: readonly Permission[]): boolean {
   return list.every((p) => permissions.includes(p));
-}
-
-export function isKnownRole(role: unknown): role is Role {
-  return typeof role === 'string' && role in ROLE_PERMISSIONS;
 }
 
 /** 防开放重定向：只接受单个 "/" 开头的站内路径，其余一律回落 fallback */

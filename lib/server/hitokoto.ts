@@ -8,25 +8,29 @@ import type { HitokotoLine } from '@/types';
 
 const CORPUS_FILE = path.join(process.cwd(), 'public', 'assets', 'json', 'hitokoto.json');
 
-let corpus: HitokotoLine[] | null = null;
-let pending: Promise<HitokotoLine[]> | null = null;
+/** 挂 globalThis：636KB 语料解析一次要 1ms 上下，每个 route chunk 各存一份就是白付 N 遍 */
+const globalStore = globalThis as typeof globalThis & {
+  __decamoreHitokotoCorpus?: HitokotoLine[] | null;
+  __decamoreHitokotoPending?: Promise<HitokotoLine[]> | null;
+};
 
 export function loadCorpus(): Promise<HitokotoLine[]> {
-  if (corpus) return Promise.resolve(corpus);
+  const cached = globalStore.__decamoreHitokotoCorpus;
+  if (cached) return Promise.resolve(cached);
 
-  pending ??= readFile(CORPUS_FILE, 'utf8')
+  globalStore.__decamoreHitokotoPending ??= readFile(CORPUS_FILE, 'utf8')
     .then((raw) => JSON.parse(raw) as HitokotoLine[])
     .then((lines) => {
       if (lines.length === 0) throw new Error('一言语料为空，请检查 public/assets/json/hitokoto.json');
-      corpus = lines;
+      globalStore.__decamoreHitokotoCorpus = lines;
       return lines;
     })
     .finally(() => {
       // 失败时清空，下一次请求可以重新尝试读盘
-      pending = null;
+      globalStore.__decamoreHitokotoPending = null;
     });
 
-  return pending;
+  return globalStore.__decamoreHitokotoPending;
 }
 
 export async function randomHitokoto(): Promise<HitokotoLine> {

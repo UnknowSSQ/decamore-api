@@ -19,7 +19,7 @@ import { useListQuery } from '@/hooks/useListQuery';
 import { useToast } from '@/hooks/useToast';
 import { deleteManagedApi, fetchManagedApis, updateManagedApi } from '@/lib/api';
 import type { ApiListQuery } from '@/lib/zod/admin.schema';
-import { AUTHORED_DOC_SLUGS } from '@/components/docs/registry';
+import { AUTHORED_DOC_SLUGS } from '@/components/docs/authored-slugs';
 import { IMPLEMENTED_API_IDS } from '@/constants/api-catalog';
 import { docApiHref } from '@/constants/app';
 import { formatCompactCn, formatPercent } from '@/utils/format';
@@ -95,11 +95,11 @@ export function ApisView() {
       const prev = api.status;
       // 先落本地，Switch 不等 RTT
       setData((d) => {
-        if (!d) return d!;
+        if (!d) return d;
         return {
           ...d,
           items: d.items.map((item) =>
-            item.id === api.id ? { ...item, status: (next ? 'online' : 'degraded') as 'online' | 'degraded' | 'offline' } : item,
+            item.id === api.id ? { ...item, status: next ? 'online' : 'degraded' } : item,
           ),
         };
       });
@@ -110,7 +110,7 @@ export function ApisView() {
         toast.success(`「${api.name}」已${next ? '上线' : '转入维护'}`);
       } catch {
         setData((d) => {
-          if (!d) return d!;
+          if (!d) return d;
           return {
             ...d,
             items: d.items.map((item) =>

@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/hotmusic';
 const url = apiUrl(path);
@@ -437,15 +437,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const hotmusicDoc: ApiDoc = {
-  slug: 'hotmusic',
-  name: '热歌榜',
-  en: 'Hot Music',
-  category: '内容',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const hotmusicDoc: AuthoredApiDoc = {
   eyebrow: 'Content API · v1',
   lede: '三家在放什么歌，一次换一家',
   facts: ['三家平台，缺省 QQ 音乐', '服务端缓存 60 秒'],

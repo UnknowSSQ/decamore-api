@@ -23,7 +23,8 @@ export interface UseRequestResult<TArgs extends unknown[], TData> {
   run: (...args: TArgs) => Promise<TData | undefined>;
   refetch: () => Promise<TData | undefined>;
   reset: () => void;
-  setData: (updater: TData | ((prev: TData | undefined) => TData)) => void;
+  /** 状态本体是 TData | undefined（reset 会写回 undefined），所以更新函数也允许返回 undefined */
+  setData: (updater: TData | undefined | ((prev: TData | undefined) => TData | undefined)) => void;
 }
 
 export function useRequest<TArgs extends unknown[], TData>(

@@ -6,7 +6,7 @@ import { cookies, headers } from 'next/headers';
 import { AUTH_HEADER, AUTH_SCHEME, COOKIES, REMEMBER_SECONDS, TOKEN_TYPE, type Permission, type Role } from '@/constants/auth';
 import { getServerEnv } from '@/env';
 import type { AuthUser } from '@/types';
-import { issueToken, remainingTtl, verifyToken, type AccessTokenClaims } from './jwt';
+import { issueToken, verifyToken, type AccessTokenClaims } from './jwt';
 import { permissionsOf } from './permissions';
 
 function baseOptions(maxAgeSec: number, path: string) {
@@ -133,12 +133,4 @@ export async function issueSessionTokens(params: {
     }),
   ]);
   return { accessToken, refreshToken, expiresIn: env.JWT_ACCESS_TTL_SEC };
-}
-
-/** 读取 refresh token 剩余秒数（登出/续期日志用） */
-export async function refreshTokenTtl(): Promise<number | null> {
-  const token = await readTokenFromRequest('refresh');
-  if (!token) return null;
-  const result = await verifyToken(token, TOKEN_TYPE.refresh);
-  return result.ok ? remainingTtl(result.claims) : null;
 }

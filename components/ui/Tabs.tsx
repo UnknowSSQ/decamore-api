@@ -139,27 +139,3 @@ export function Segmented<T extends string>({
     </div>
   );
 }
-
-export function TabPanel({
-  idPrefix,
-  value,
-  active,
-  panelKeyOf,
-  children,
-  className,
-}: {
-  idPrefix: string;
-  value: string;
-  active: string;
-  panelKeyOf?: (value: string) => string;
-  children: ReactNode;
-  className?: string;
-}) {
-  const key = panelKeyOf?.(value) ?? value;
-  if (value !== active) return null;
-  return (
-    <div role="tabpanel" id={`${idPrefix}-panel-${key}`} aria-labelledby={`${idPrefix}-tab-${value}`} tabIndex={0} className={className}>
-      {children}
-    </div>
-  );
-}

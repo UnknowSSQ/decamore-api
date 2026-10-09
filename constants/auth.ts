@@ -34,7 +34,7 @@ export const ROLES = {
 } as const;
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
-/** 后端 requirePermission 与前端 <Authorized> 共用同一套字符串 */
+/** 后端 requirePermission 与前端 usePermission 共用同一套字符串 */
 export const PERMISSIONS = {
   apiRead: 'api:read',
   apiWrite: 'api:write',

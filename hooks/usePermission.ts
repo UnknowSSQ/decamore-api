@@ -1,6 +1,6 @@
 'use client';
 /** 只影响 UI 显隐：前端隐藏按钮 ≠ 授权，服务端 withApiHandler 照样会 403 */
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { hasAllPermissions, hasAnyPermission } from '@/lib/auth/permissions';
 import { PERMISSION_LABELS, type Permission, type Role } from '@/constants/auth';
@@ -49,9 +49,4 @@ export function useCan(permission: Permission | Permission[]): boolean {
   const { can } = usePermission();
   // 不套 useMemo：判断本身只是数组包含，缓存没有收益
   return can(permission);
-}
-
-export function usePermissionLabels(): string[] {
-  const { user } = useAuth();
-  return useMemo(() => (user?.permissions ?? []).map((p) => PERMISSION_LABELS[p] ?? p), [user]);
 }

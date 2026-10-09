@@ -11,8 +11,10 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Route Handler 复用这个头，保证一次请求只有一个 traceId
+  // 形状与 lib/server/trace.ts 的 createTraceId 一致：那边用 node:crypto，Edge 里带不过来，所以两边各自实现同一算法
   const requestId =
-    request.headers.get('x-request-id') ?? `${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
+    request.headers.get('x-request-id') ??
+    `${Date.now().toString(36)}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
   response.headers.set('x-request-id', requestId);
 
   response.headers.set('X-Content-Type-Options', 'nosniff');

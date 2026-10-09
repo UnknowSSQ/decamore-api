@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/hotsearch';
 const url = apiUrl(path);
@@ -430,15 +430,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const hotsearchDoc: ApiDoc = {
-  slug: 'hotsearch',
-  name: '热搜榜',
-  en: 'Hot Search',
-  category: '内容',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const hotsearchDoc: AuthoredApiDoc = {
   eyebrow: 'Content API · v1',
   lede: '热搜榜太多？一个就够用了',
   facts: ['四家平台，缺省微博', '服务端缓存 60 秒'],

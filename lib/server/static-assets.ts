@@ -96,8 +96,3 @@ export async function listAssets<TType extends string>(
   cache[key] = { at: Date.now(), items };
   return { type, total: items.length, cached: false, items };
 }
-
-/** 空列表由调用方的错误分支挡掉，这里不会拿到 undefined */
-export function pickRandom<T>(list: readonly T[]): T {
-  return list[Math.floor(Math.random() * list.length)] as T;
-}

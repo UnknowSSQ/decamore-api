@@ -2,12 +2,13 @@
  * /docs 与 /docs/[slug] 的唯一数据入口，输入是接口车单。
  * 名称 / 路径 / 分类 / 方法一律以车单为准，后台改名后文档标题与索引同步；
  * 未撰写文档的接口由车单推导骨架页，保证每个接口都有稳定 URL。
- * 新接口：写 apis/<slug>.ts → 加进 API_DOCS →（服务端实现后）补进 IMPLEMENTED_API_IDS。
+ * 新接口：写 apis/<slug>.ts → 以 ['<slug>', doc] 加进 API_DOCS → 同步 authored-slugs.ts →（服务端实现后）补进 IMPLEMENTED_API_IDS。
  */
 import { API_CATEGORIES, IMPLEMENTED_API_IDS } from '@/constants/api-catalog';
 import { docApiHref } from '@/constants/app';
 import type { ApiCatalogItem } from '@/types';
 
+import { AUTHORED_DOC_SLUGS } from './authored-slugs';
 import { frag, para, text } from './fragments';
 import { answerbookDoc } from './apis/answerbook';
 import { avatarDoc } from './apis/avatar';
@@ -19,23 +20,32 @@ import { hotplayDoc } from './apis/hotplay';
 import { hotsearchDoc } from './apis/hotsearch';
 import { imagesDoc } from './apis/images';
 import { wallpaperDoc } from './apis/wallpaper';
-import type { ApiDoc, CodePaneData, DocSection, MetaRow, SiblingApi, TocItem } from './types';
+import type { ApiDoc, AuthoredApiDoc, CodePaneData, DocSection, MetaRow, SiblingApi, TocItem } from './types';
 
-const API_DOCS: readonly ApiDoc[] = [
-  hitokotoDoc,
-  answerbookDoc,
-  wallpaperDoc,
-  hotsearchDoc,
-  hotmusicDoc,
-  hotplayDoc,
-  hotchartDoc,
-  emojiDoc,
-  avatarDoc,
-  imagesDoc,
-];
+/** 键 = 车单 id = /docs/<slug>；文档模块本身不再声明身份 */
+const API_DOCS = new Map<string, AuthoredApiDoc>([
+  ['hitokoto', hitokotoDoc],
+  ['answerbook', answerbookDoc],
+  ['wallpaper', wallpaperDoc],
+  ['hotsearch', hotsearchDoc],
+  ['hotmusic', hotmusicDoc],
+  ['hotplay', hotplayDoc],
+  ['hotchart', hotchartDoc],
+  ['emoji', emojiDoc],
+  ['avatar', avatarDoc],
+  ['images', imagesDoc],
+]);
 
-/** 供后台「接口管理」显示文档状态 */
-export const AUTHORED_DOC_SLUGS: readonly string[] = API_DOCS.map((doc) => doc.slug);
+/** authored-slugs.ts 是给客户端用的瘦身副本，两份清单不一致时后台徽标会骗人，所以 dev 下直接炸 */
+if (process.env.NODE_ENV !== 'production') {
+  const unlisted = [...API_DOCS.keys()].filter((slug) => !AUTHORED_DOC_SLUGS.includes(slug));
+  const stale = AUTHORED_DOC_SLUGS.filter((slug) => !API_DOCS.has(slug));
+  if (unlisted.length || stale.length) {
+    throw new Error(
+      `components/docs/authored-slugs.ts 与 API_DOCS 不一致：未登记 ${unlisted.join(', ') || '—'}；已失效 ${stale.join(', ') || '—'}`,
+    );
+  }
+}
 
 const TODO_CALLOUT = (what: string) => ({
   kind: 'callout' as const,
@@ -144,7 +154,7 @@ const SKELETON_PANES: CodePaneData[] = [
 ];
 
 function toDoc(item: ApiCatalogItem): ApiDoc {
-  const authored = API_DOCS.find((doc) => doc.slug === item.id);
+  const authored = API_DOCS.get(item.id);
   const implemented = IMPLEMENTED_API_IDS.includes(item.id);
 
   const identity = {

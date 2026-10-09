@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/avatar';
 const url = apiUrl(path);
@@ -383,15 +383,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const avatarDoc: ApiDoc = {
-  slug: 'avatar',
-  name: '头像',
-  en: 'Avatar',
-  category: '图片',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const avatarDoc: AuthoredApiDoc = {
   eyebrow: 'Image API · v1',
   lede: '注册页要挑个默认头像，三份现成的清单',
   facts: ['boy / girl / anime 三类，各 16 张', '目录清单缓存 10 分钟'],

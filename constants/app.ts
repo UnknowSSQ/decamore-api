@@ -29,19 +29,6 @@ export function docApiHref(slug: string): string {
   return `${ROUTES.docs}/${slug}`;
 }
 
-/** 登录后只允许跳到这里列出的路由，防开放重定向 */
-export const INTERNAL_REDIRECT_ALLOWLIST: readonly AppRoute[] = [
-  ROUTES.adminDashboard,
-  ROUTES.adminApis,
-  ROUTES.adminRules,
-  ROUTES.adminLogs,
-  ROUTES.adminSecurity,
-  ROUTES.adminSettings,
-  ROUTES.plaza,
-  ROUTES.docs,
-  ROUTES.home,
-];
-
 export const MAIN_NAV: readonly { label: string; href: string; external?: boolean }[] = [
   { label: '接口广场', href: ROUTES.plaza },
   { label: '文档', href: ROUTES.docs },

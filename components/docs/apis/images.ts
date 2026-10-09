@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/images';
 const url = apiUrl(path);
@@ -377,15 +377,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const imagesDoc: ApiDoc = {
-  slug: 'images',
-  name: '图片',
-  en: 'Images',
-  category: '图片',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const imagesDoc: AuthoredApiDoc = {
   eyebrow: 'Image API · v1',
   lede: '缺一张能用人像图的时候，来这两份清单里挑',
   facts: ['beauty / pretty 两组，各 16 张', '目录清单缓存 10 分钟'],

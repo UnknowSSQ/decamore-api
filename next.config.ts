@@ -1,9 +1,7 @@
 import type { NextConfig } from 'next';
 
 /**
- * Next.js 配置
- * - 项目使用 App Router + 严格 TypeScript
- * - 后端 API 骨架位于 app/api/**，由 lib/server 中间件统一处理鉴权/统计/异常
+ * App Router 页面与 app/api/** 都由 Next 自己服务；请求管线的鉴权/统计/异常在 lib/server/handler.ts 的 withApiHandler 里。
  */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -16,11 +14,21 @@ const nextConfig: NextConfig = {
     })(),
   },
 
-  // 构建期不因未接入数据库而失败：仅提示未使用 experimental 特性
-  experimental: {
-    // 需要更严格的 serverActions 安全校验时打开
-    // serverActions: { bodySizeLimit: '1mb' },
-  },
+  /**
+   * public/ 默认按 max-age=0 出网，23MB 素材每次浏览都要回源验证一遍。
+   * 素材文件名不随内容改动（bing 镜像只追加新文件），所以图片可以给 immutable；
+   * json 语料会原地更新，只给短缓存 + SWR。
+   */
+  headers: async () => [
+    {
+      source: '/assets/:dir(wallpaper|wallpaper-thumb|images|avatar|emoji)/:path*',
+      headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+    },
+    {
+      source: '/assets/json/:path*',
+      headers: [{ key: 'Cache-Control', value: 'public, max-age=300, stale-while-revalidate=600' }],
+    },
+  ],
 
   eslint: {
     // 生产构建继续执行 lint：保持质量门禁

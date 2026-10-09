@@ -23,10 +23,3 @@ export interface SortState {
   key: string;
   order: 'asc' | 'desc';
 }
-
-/** hooks 的 loading / data 状态机 */
-export type AsyncData<T> =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'success'; data: T }
-  | { status: 'error'; error: unknown };

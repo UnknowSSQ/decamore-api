@@ -1,4 +1,4 @@
-/** route 只经 ok / fail / paged 返回，前端 lib/api/request.ts 按同一形状解析 */
+/** route 只经 ok / created / paged / publicOk / noContent 返回；失败体一律由 withApiHandler 调 buildFailure 产出 */
 import { NextResponse } from 'next/server';
 
 import {
@@ -51,12 +51,14 @@ export function buildSuccess<T>(data: T, message = 'success'): ApiSuccess<T> {
   };
 }
 
+/** 失败信封的唯一构造点：HTTP 状态码由调用方决定，这里只产出响应体 */
 export function buildFailure(params: {
-  status: number;
   code: ErrorCode;
   message: string;
   description?: string;
   issues?: FieldIssue[];
+  /** 仅非生产回传的堆栈摘要 */
+  debug?: { stack?: string; cause?: string };
 }): ApiFailure {
   return {
     statusCode: params.code,
@@ -66,6 +68,7 @@ export function buildFailure(params: {
     ...(params.issues?.length ? { issues: params.issues } : {}),
     data: null,
     meta: buildMeta(),
+    ...(params.debug ? { debug: params.debug } : {}),
   };
 }
 
@@ -84,14 +87,6 @@ export function noContent(options?: BuildOptions): NextResponse {
     status: 204,
     headers: options?.headers,
   });
-}
-
-/** 业务代码抛 ApiError 即可，一般不用直接调这个 */
-export function fail(
-  params: { status: number; code: ErrorCode; message: string; description?: string; issues?: FieldIssue[] },
-  options?: BuildOptions,
-): NextResponse<ApiFailure> {
-  return json(buildFailure(params), params.status, options);
 }
 
 /** 公开接口走单层信封、无 success 位；控制台内部接口用 ok() */

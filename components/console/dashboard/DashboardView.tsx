@@ -12,6 +12,7 @@ import { usePolling, useRequest } from '@/hooks/useRequest';
 import { useToast } from '@/hooks/useToast';
 import { exportReport, fetchDashboard } from '@/lib/api';
 import { formatCompactCn, formatLongDate, formatNumber } from '@/utils/format';
+import { CONSOLE_REGION, CONSOLE_VERSION } from '@/constants/app';
 import { useNow } from '@/hooks/useUi';
 import type { RangeValue } from '@/lib/zod/common';
 
@@ -70,9 +71,9 @@ const STATUS_CODE_SEGMENTS = [
 
 /** 和下方「迷你统计」不同源：这份固定，迷你统计用 data.health */
 const HEALTH_COMPONENTS = [
-  { name: '边缘网关', location: 'cn-east · 4 节点', uptime: 99.98, status: 'ok' as const },
-  { name: '鉴权服务', location: 'cn-east · 2 节点', uptime: 99.95, status: 'ok' as const },
-  { name: '计量与配额', location: 'cn-east · 3 节点', uptime: 99.91, status: 'warn' as const },
+  { name: '边缘网关', location: `${CONSOLE_REGION} · 4 节点`, uptime: 99.98, status: 'ok' as const },
+  { name: '鉴权服务', location: `${CONSOLE_REGION} · 2 节点`, uptime: 99.95, status: 'ok' as const },
+  { name: '计量与配额', location: `${CONSOLE_REGION} · 3 节点`, uptime: 99.91, status: 'warn' as const },
   { name: '对象存储', location: '双活 · 2 区域', uptime: 100.0, status: 'ok' as const },
 ];
 
@@ -346,7 +347,7 @@ export function DashboardView({ autoRefreshSec = 30 }: { autoRefreshSec?: number
           </div>
 
           <p className="text-center text-[11px] text-muted">
-            数据更新于 {ready ? formatLongDate(now) : '--'} · 控制台 v2.6.0 · region cn-east
+            数据更新于 {ready ? formatLongDate(now) : '--'} · {CONSOLE_VERSION} · region {CONSOLE_REGION}
           </p>
         </>
       )}

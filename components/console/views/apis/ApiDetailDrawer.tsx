@@ -49,10 +49,7 @@ export function ApiDetailDrawer({ api, open, onClose, onRefresh }: ApiDetailDraw
     if (!api) return;
     setPending(true);
     try {
-      // PATCH 的 schema 不认 status，只能宽松 cast 透传
-      await updateManagedApi(api.id, {
-        ...( { status: next ? 'online' : 'degraded' } as Record<string, unknown> ),
-      } as Parameters<typeof updateManagedApi>[1]);
+      await updateManagedApi(api.id, { status: next ? 'online' : 'degraded' });
       toast.success(`「${api.name}」已${next ? '上线' : '转入维护'}`);
       onRefresh();
     } catch {

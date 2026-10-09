@@ -101,7 +101,7 @@ export function RulesView() {
       const prev = rule.enabled;
       // 先落本地，Switch 不等 RTT
       setData((d) => {
-        if (!d) return d!;
+        if (!d) return d;
         return {
           ...d,
           items: d.items.map((item) =>
@@ -115,7 +115,7 @@ export function RulesView() {
       } catch {
         // 失败就退回 prev
         setData((d) => {
-          if (!d) return d!;
+          if (!d) return d;
           return {
             ...d,
             items: d.items.map((item) =>

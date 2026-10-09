@@ -20,6 +20,8 @@ function sink(level: Level, payload: Record<string, unknown>): void {
   const line = JSON.stringify(payload);
   if (level === 'error') console.error(line);
   else if (level === 'warn') console.warn(line);
+  // 全项目唯一的 console.log 出口：其余地方要落日志都得走 logger
+  // eslint-disable-next-line no-console
   else console.log(line);
 }
 

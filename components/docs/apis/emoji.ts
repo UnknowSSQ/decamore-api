@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/emoji';
 const url = apiUrl(path);
@@ -366,15 +366,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const emojiDoc: ApiDoc = {
-  slug: 'emoji',
-  name: '表情包',
-  en: 'Emoji',
-  category: '图片',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const emojiDoc: AuthoredApiDoc = {
   eyebrow: 'Image API · v1',
   lede: '手里没表情包的时候，来这份清单里挑',
   facts: ['目前 menhera 一类，117 张', '目录清单缓存 10 分钟'],

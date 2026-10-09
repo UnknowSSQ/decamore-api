@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/hitokoto';
 const url = apiUrl(path);
@@ -326,15 +326,7 @@ const responsePanes: CodePaneData[] = [
   },
 ];
 
-export const hitokotoDoc: ApiDoc = {
-  slug: 'hitokoto',
-  name: '一言',
-  en: 'Hitokoto',
-  category: '内容',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const hitokotoDoc: AuthoredApiDoc = {
   eyebrow: 'Content API · v1',
   lede: '动漫也好、小说也好、网络也好，不论在哪里，我们总会看到有那么一两个句子能穿透你的心。',
   facts: ['限频 120 次 / 分钟 / IP'],

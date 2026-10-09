@@ -2,7 +2,7 @@
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
 import { headersSection } from '../commonSections';
-import type { ApiDoc, CodePaneData, DocSection } from '../types';
+import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/wallpaper';
 const url = apiUrl(path);
@@ -474,15 +474,7 @@ const responsePanes: CodePaneData[] = [
 ];
 
 /** 名称/路径/分类等身份字段由 registry 按车单覆盖 */
-export const wallpaperDoc: ApiDoc = {
-  slug: 'wallpaper',
-  name: '随机壁纸',
-  en: 'Wallpaper',
-  category: '图片',
-  method: 'GET',
-  path,
-  implemented: true,
-  documented: true,
+export const wallpaperDoc: AuthoredApiDoc = {
   eyebrow: 'Image API · v1',
   lede: '不用挑图：说一类（或直接不说），还你一张壁纸的直链、缩略图和它真实的尺寸。',
   facts: ['pc / mobile / bing 三类，不传就随机', '限频 120 次 / 分钟 / IP'],
