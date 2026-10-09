@@ -1,0 +1,945 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 设计令牌唯一来源。写成 RGB 三元组是为了让 Tailwind 的 <alpha-value> 能生成带透明度的颜色 */
+@layer base {
+  :root {
+    --c-bg: 247 246 242;
+    --c-bg-soft: 241 241 234;
+    --c-surface: 255 254 250;
+
+    --c-text: 32 38 33;
+    --c-muted: 115 122 115;
+
+    --c-primary: 54 91 73;
+    --c-primary-dark: 40 69 53;
+    --c-accent: 214 223 206;
+    --c-line: 231 230 223;
+
+    --c-danger: 179 81 47;
+    --c-danger-soft: 247 236 227;
+    --c-warn: 138 90 45;
+    --c-warn-soft: 246 227 214;
+    --c-ok: 47 122 79;
+
+    --tint-sage: 233 237 228;
+    --tint-sand: 239 233 223;
+    --tint-mist: 230 235 239;
+
+    --c-term-bg: 23 35 29;
+    --c-term-fg: 217 228 220;
+    --c-term-dim: 116 134 122;
+    --c-term-key: 155 196 226;
+    --c-term-val: 166 217 149;
+    --c-term-num: 230 200 135;
+    --c-term-url: 190 214 216;
+    --c-term-kw: 201 171 214;
+    --c-term-fn: 121 208 196;
+    --c-term-lit: 224 154 125;
+    --c-term-flag: 196 200 138;
+
+    /* 只用系统字体：避免外部字体请求造成首屏闪烁，离线与内网环境同样可用 */
+    --font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: Georgia, 'Songti SC', serif;
+    --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --header-h: 78px;
+    --scroll-offset: 92px;
+
+    /* 文档页吸顶坐标，改布局只动这里：
+       strip = header 高（padding-top + 胶囊 58px + 1px 边框）+ 6px 呼吸；
+       anchor = html 的 scroll-padding-top(92px) + ≤900px 目录条自身占位 */
+    --docs-stick: 108px;
+    --docs-strip: 85px;
+    --docs-anchor: 12px;
+  }
+
+  @media (max-width: 900px) {
+    :root {
+      --docs-anchor: 68px;
+    }
+  }
+
+  @media (max-width: 760px) {
+    :root {
+      --docs-strip: 77px;
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: var(--scroll-offset);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: rgb(var(--c-bg));
+    color: rgb(var(--c-text));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: #d5e2d4;
+    color: #22301f;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  figure,
+  blockquote {
+    margin-top: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* 统一焦点环，比默认 outline 更贴合品牌色 */
+  :focus-visible {
+    outline: 3px solid #91aa94;
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+
+  /* 移出视口而非 display:none：后者会让这条链接根本进不了 Tab 序列 */
+  .skip-link {
+    position: fixed;
+    top: -100px;
+    left: 18px;
+    z-index: 100;
+    padding: 10px 18px;
+    border-radius: 12px;
+    background: rgb(var(--c-primary));
+    color: rgb(var(--c-surface));
+    font-size: 13px;
+    box-shadow: 0 14px 34px rgb(37 50 41 / 0.22);
+    transition: top 0.22s var(--ease);
+  }
+  .skip-link:focus-visible {
+    top: 14px;
+  }
+
+  /* skip-link 落点是 <main tabindex="-1">，非交互元素不该出焦点环 */
+  main:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--c-text) / 0.14);
+    border: 3px solid rgb(var(--c-bg) / 0.6);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--c-text) / 0.26);
+  }
+
+  /* 减少动效偏好：全站兜底（含组件库内联动画） */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* 只放伪元素、复杂渐变等 Tailwind 表达不了的结构样式；能用 utility 的都写在组件里 */
+@layer components {
+  .wrap {
+    width: min(var(--max-w, 1160px), 100% - 48px);
+    margin-inline: auto;
+  }
+  @media (max-width: 760px) {
+    .wrap {
+      width: min(var(--max-w, 1160px), 100% - 36px);
+    }
+  }
+
+  /* 跨度变量必须挂在 grid item 自身，挂内层容器不生效；窄屏只有 1-2 列，大 span 会撑出隐式列，所以从 md 起才生效 */
+  @media (min-width: 768px) {
+    .card-span {
+      grid-column: span var(--card-cols, 1) / span var(--card-cols, 1);
+      grid-row: span var(--card-rows, 1) / span var(--card-rows, 1);
+    }
+  }
+
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: rgb(var(--c-primary));
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .kicker--line::before {
+    content: '';
+    width: 22px;
+    height: 1px;
+    background: currentColor;
+  }
+
+  .panel {
+    position: relative;
+    border: 1px solid rgb(var(--c-line));
+    border-radius: 28px;
+    background: rgb(var(--c-surface));
+    box-shadow: 0 6px 24px rgb(37 50 41 / 0.04);
+  }
+
+  .ring-deco {
+    position: absolute;
+    border: 1px solid rgb(var(--c-primary) / 0.07);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* 导航折叠态用 data-scrolled 属性驱动，不用 JS 拼类名，保证 SSR 首屏样式正确 */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    border-bottom: 1px solid rgb(var(--c-text) / 0.06);
+    background: rgb(var(--c-bg) / 0.86);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    transition:
+      background 0.4s var(--ease),
+      border-color 0.4s var(--ease),
+      padding-top 0.45s var(--ease);
+  }
+  /* 间隙放在 header 上而不是胶囊的 margin 上：margin 会被 sticky 的 top:0 钳掉 */
+  .site-header[data-scrolled='true'] {
+    padding-top: 20px;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom-color: transparent;
+  }
+  .site-nav {
+    position: relative; /* 移动端下拉面板以此为锚点 */
+    display: flex;
+    min-height: 78px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    border: 1px solid transparent;
+    transition:
+      min-height 0.45s var(--ease),
+      width 0.45s var(--ease),
+      padding 0.45s var(--ease),
+      border-radius 0.45s var(--ease),
+      background 0.45s var(--ease),
+      box-shadow 0.45s var(--ease),
+      border-color 0.45s var(--ease);
+  }
+  .site-header[data-scrolled='true'] .site-nav {
+    min-height: 58px;
+    width: min(900px, calc(100% - 40px));
+    padding: 0 14px;
+    border-color: rgb(var(--c-line));
+    border-radius: 999px;
+    background: rgb(var(--c-surface) / 0.9);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 16px 44px rgb(37 50 41 / 0.12);
+  }
+  @media (max-width: 760px) {
+    .site-header[data-scrolled='true'] {
+      padding-top: 12px;
+    }
+    .site-nav {
+      min-height: 70px;
+    }
+  }
+
+  .dot-live {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgb(var(--c-ok));
+    flex-shrink: 0;
+  }
+  .dot-live::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid rgb(var(--c-ok) / 0.45);
+    animation: dot-ping 2.2s var(--ease) infinite;
+  }
+  @keyframes dot-ping {
+    0% {
+      transform: scale(0.7);
+      opacity: 0.9;
+    }
+    80%,
+    100% {
+      transform: scale(1.7);
+      opacity: 0;
+    }
+  }
+
+  /* 用 box-shadow 扩散而不是缩放伪元素：这个点要嵌在行内文本里，缩放会撑高行高 */
+  .pulse-dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgb(var(--c-ok));
+    box-shadow: 0 0 0 0 rgb(var(--c-ok) / 0.35);
+    animation: dot-pulse 2.4s ease infinite;
+  }
+  @keyframes dot-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgb(var(--c-ok) / 0.35);
+    }
+    70% {
+      box-shadow: 0 0 0 7px rgb(var(--c-ok) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(var(--c-ok) / 0);
+    }
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .data-table thead th {
+    padding: 11px 16px;
+    text-align: left;
+    white-space: nowrap;
+    color: rgb(var(--c-muted));
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgb(var(--c-bg-soft) / 0.7);
+    border-bottom: 1px solid rgb(var(--c-line));
+  }
+  .data-table tbody td {
+    padding: 13px 16px;
+    border-bottom: 1px solid rgb(var(--c-line) / 0.7);
+    vertical-align: middle;
+  }
+  .data-table tbody tr {
+    transition: background 0.2s ease;
+  }
+  .data-table tbody tr:hover {
+    background: rgb(var(--c-bg-soft) / 0.55);
+  }
+  .data-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  /* 深色终端风格，文档示例与控制台抽屉共用；着色 token 由 lib/render/highlight.ts 产出 */
+  .code-window {
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    border-radius: 13px;
+    background: rgb(var(--c-term-bg));
+    color: rgb(var(--c-term-fg));
+    box-shadow: 0 14px 35px rgb(26 47 34 / 0.12);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  .code-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 16px;
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+    color: #98a79d;
+    font-size: 11px;
+  }
+  .code-dots {
+    display: inline-flex;
+    gap: 6px;
+  }
+  .code-dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #58665d;
+  }
+  .code-dots i:first-child {
+    background: #db8176;
+  }
+  .code-dots i:nth-child(2) {
+    background: #e4bf70;
+  }
+  .code-dots i:nth-child(3) {
+    background: #72b78c;
+  }
+  .code-titlebar .code-title {
+    margin-left: 6px;
+    color: #ccd8cc;
+  }
+  .code-tabs {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 9px 11px;
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  }
+  .code-tab-btn {
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #8d9c92;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    cursor: pointer;
+    transition:
+      background 0.22s ease,
+      color 0.22s ease;
+  }
+  .code-tab-btn:hover {
+    color: #d2ded4;
+  }
+  .code-tab-btn[aria-selected='true'] {
+    color: #eef5ee;
+    background: rgb(255 255 255 / 0.09);
+  }
+  .code-copy {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    border-radius: 6px;
+    color: #a6b4aa;
+    background: transparent;
+    font-size: 11px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition:
+      border-color 0.18s ease,
+      color 0.18s ease;
+  }
+  .code-copy:hover {
+    border-color: rgb(255 255 255 / 0.32);
+    color: #d7e0d3;
+  }
+  .code-body {
+    padding: 18px 20px 22px;
+    overflow-x: auto;
+  }
+  .code-line {
+    position: relative;
+    display: block;
+    padding-left: 36px;
+    white-space: pre;
+  }
+  .code-line[data-ln]::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    text-align: right;
+    content: attr(data-ln);
+    color: rgb(82 95 85);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* .tok-* 必须留在 @layer 之外：类名由 CodeWindow 用 `tok-${kind}` 动态拼出，源码里没有完整字面量，
+   进了 @layer 就会被 Tailwind 的 content 扫描 purge 掉，表现为代码完全没有颜色。新增类型同步 lib/render/highlight.ts */
+.tok-cmt {
+  color: rgb(var(--c-term-dim));
+  font-style: italic;
+}
+.tok-key,
+.tok-prop {
+  color: rgb(var(--c-term-key));
+}
+.tok-url {
+  color: rgb(var(--c-term-url));
+}
+.tok-val {
+  color: rgb(var(--c-term-val));
+}
+.tok-num,
+.tok-status {
+  color: rgb(var(--c-term-num));
+}
+.tok-kw {
+  color: rgb(var(--c-term-kw));
+  font-weight: 600;
+}
+.tok-fn,
+.tok-method {
+  color: rgb(var(--c-term-fn));
+  font-weight: 600;
+}
+.tok-lit {
+  color: rgb(var(--c-term-lit));
+}
+.tok-flag {
+  color: rgb(var(--c-term-flag));
+}
+.tok-punc {
+  color: #718279;
+}
+
+/* 表达成 utility 反而更啰嗦的几个补充 */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .grid-lines-fade {
+    mask-image: linear-gradient(180deg, #000 60%, transparent);
+  }
+  .reveal {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 0.65s var(--ease),
+      transform 0.65s var(--ease);
+    transition-delay: var(--reveal-delay, 0s);
+  }
+  .reveal[data-visible='true'] {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer components {
+  .plaza-hero {
+    position: relative;
+    padding-block: 72px 56px;
+    overflow: clip;
+    background: rgb(var(--c-bg));
+  }
+  .plaza-hero::after {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 120px;
+    content: '';
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(241, 241, 234, 0.55) 82%, rgb(var(--c-bg-soft)));
+  }
+  .plaza-hero-inner {
+    position: relative;
+    z-index: 1;
+  }
+  .plaza-hero-title {
+    max-width: 760px;
+    margin-bottom: 20px;
+    font-size: clamp(40px, 5.2vw, 66px);
+  }
+  .plaza-hero-copy {
+    max-width: 520px;
+    margin-bottom: 0;
+  }
+  @media (max-width: 760px) {
+    .plaza-hero {
+      padding-block: 46px 40px;
+    }
+    .plaza-hero-title {
+      font-size: 40px;
+    }
+  }
+
+  .plaza-demo-quote {
+    max-width: 520px;
+    text-align: center;
+  }
+  .plaza-demo-quote-mark {
+    margin-bottom: 8px;
+    font-family: var(--font-serif);
+    font-size: 30px;
+    line-height: 0.5;
+    color: #8aa68f;
+  }
+  .plaza-demo-quote-text {
+    font-family: var(--font-serif);
+    font-size: 16.5px;
+    line-height: 1.55;
+    font-style: italic;
+    letter-spacing: 0.01em;
+  }
+  .plaza-demo-quote-author {
+    margin-top: 12px;
+    font-size: 10.5px;
+    color: rgb(var(--c-muted));
+  }
+
+  .plaza-demo-answerbook {
+    display: flex;
+    width: 100%;
+    max-width: 320px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+    text-align: center;
+  }
+  .plaza-demo-answerbook-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: #9aa49b;
+  }
+  .plaza-demo-answerbook-input {
+    width: 100%;
+    border: 1px dashed rgba(54, 91, 73, 0.28);
+    border-radius: 12px;
+    background: rgba(255, 254, 250, 0.82);
+    padding: 9px 12px;
+    font-size: 12.5px;
+    color: rgb(var(--c-text));
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .plaza-demo-answerbook-input::placeholder {
+    color: #a8b1a8;
+  }
+  .plaza-demo-answerbook-input:focus {
+    border-color: rgb(var(--c-primary));
+    border-style: solid;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(54, 91, 73, 0.12);
+  }
+  .plaza-demo-answerbook-input:disabled {
+    opacity: 0.6;
+  }
+  .plaza-demo-answerbook-flip {
+    height: 38px;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(var(--c-primary));
+    color: #f7f6f2;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition:
+      transform 0.2s ease,
+      background-color 0.2s ease,
+      opacity 0.2s ease;
+  }
+  .plaza-demo-answerbook-flip:hover:enabled {
+    background: rgb(var(--c-primary-dark));
+    transform: translateY(-1px);
+  }
+  .plaza-demo-answerbook-flip:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+  .plaza-demo-answerbook-tip {
+    min-height: 15px;
+    margin: 0;
+    font-size: 10.5px;
+    color: rgb(var(--c-muted));
+  }
+  /* 绕上边沿转出，像封页被掀起 */
+  .plaza-demo-answerbook-answer {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    font-style: italic;
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+    color: rgb(var(--c-text));
+    transform-origin: top center;
+    animation: answerbook-turn 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+  .plaza-demo-answerbook-en {
+    margin: 6px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #8d968d;
+  }
+  .plaza-demo-answerbook-no {
+    margin: 8px 0 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: #9aa49b;
+  }
+  .plaza-demo-answerbook-btn {
+    flex: 1;
+    height: 32px;
+    border: 1px solid rgba(54, 91, 73, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 254, 250, 0.78);
+    color: rgb(var(--c-muted));
+    font-size: 11.5px;
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+  .plaza-demo-answerbook-btn:hover:enabled {
+    border-color: rgb(var(--c-primary));
+    background: #f2f4ee;
+    color: rgb(var(--c-primary));
+  }
+  .plaza-demo-answerbook-btn.is-primary {
+    border-color: transparent;
+    background: rgb(var(--c-primary));
+    color: #f7f6f2;
+  }
+  .plaza-demo-answerbook-btn.is-primary:hover:enabled {
+    background: rgb(var(--c-primary-dark));
+    color: #f7f6f2;
+  }
+  .plaza-demo-answerbook-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  @keyframes answerbook-turn {
+    from {
+      opacity: 0;
+      transform: rotateX(-82deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .plaza-demo-answerbook-answer {
+      animation: none;
+    }
+  }
+
+  /* 图片类 Demo 共用：壁纸 / 表情包 / 图片，图片铺满 + 左下角一行说明 */
+  .plaza-demo-photo {
+    position: relative;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 148px;
+    overflow: hidden;
+    border-radius: 17px;
+    background: linear-gradient(120deg, rgb(var(--c-surface)), rgb(var(--c-line)));
+  }
+  .plaza-demo-photo-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .plaza-demo-photo::before {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    content: '';
+    background:
+      radial-gradient(circle at 70% 25%, rgba(255, 255, 255, 0.7), transparent 28%),
+      linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.25) 30%, transparent 60%);
+    mix-blend-mode: overlay;
+  }
+  .plaza-demo-photo::after {
+    position: absolute;
+    z-index: 1;
+    inset: auto 0 0 0;
+    content: '';
+    height: 62px;
+    background: linear-gradient(180deg, transparent, rgba(10, 12, 16, 0.55));
+  }
+  .plaza-demo-photo-caption {
+    position: absolute;
+    z-index: 2;
+    bottom: 14px;
+    left: 16px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: #fff;
+    opacity: 0.9;
+  }
+
+  /* 贴图类（表情包）：容器收到 3:2，贴图撑满整个盒子居中，比原图比例多占一点卡片，只裁掉两侧约 16% */
+  .plaza-demo-photo--fit {
+    aspect-ratio: 3 / 2;
+    flex: 0 1 auto;
+    min-height: 0;
+    /* 只纵向居中：横向 auto margin 会顶掉 width:100%，把盒子压成 0 宽 */
+    margin-block: auto;
+  }
+  .plaza-demo-photo--fit .plaza-demo-photo-img {
+    object-fit: cover;
+  }
+
+  .plaza-demo-tiles {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-content: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 148px;
+    /* 底部留一条给类型名标签，别压在头像上 */
+    padding: 12px 12px 34px;
+    border-radius: 17px;
+    background: linear-gradient(120deg, rgb(var(--c-surface)), rgb(var(--c-line)));
+  }
+  /* 圆形头像跟着卡片宽度长（不再固定 62px），但一行至少排两个，避免窄卡撑成一列把行高顶爆 */
+  .plaza-demo-tile {
+    flex: 1 1 74px;
+    max-width: 112px;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    box-shadow: 0 6px 16px rgba(37, 50, 41, 0.14);
+  }
+  .plaza-demo-tile-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  /* 类型名压在左下角：圆形头像之间的四角是空的，不遮脸 */
+  .plaza-demo-tiles-badge {
+    position: absolute;
+    z-index: 2;
+    bottom: 12px;
+    left: 12px;
+    padding: 3px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 999px;
+    background: rgba(255, 254, 250, 0.82);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: rgb(var(--c-muted));
+    backdrop-filter: blur(6px);
+  }
+
+  /* 榜单类 Demo 共用行式布局：排名 / 标题 / 右侧指标 */
+  .plaza-demo-ranklist {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    align-items: stretch;
+    justify-content: center;
+    padding: 16px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 14px;
+    background: rgba(255, 254, 250, 0.78);
+    box-shadow: 0 18px 50px rgba(37, 50, 41, 0.08);
+    backdrop-filter: blur(8px);
+  }
+  .plaza-demo-ranklist-head {
+    margin-bottom: 2px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+    color: rgb(var(--c-muted));
+  }
+  .plaza-demo-ranklist-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+  }
+  .plaza-demo-ranklist-rank {
+    flex-shrink: 0;
+    width: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: #9aa4ab;
+  }
+  .plaza-demo-ranklist-rank-top {
+    color: #c2703f;
+  }
+  .plaza-demo-ranklist-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 11.5px;
+    color: #3d453e;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .plaza-demo-ranklist-meta {
+    flex-shrink: 0;
+    min-width: 54px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-align: right;
+    color: rgb(var(--c-muted));
+  }
+
+  @keyframes plaza-cardFlash {
+    0%,
+    100% {
+      box-shadow: 0 6px 24px rgba(37, 50, 41, 0.04);
+    }
+    22%,
+    62% {
+      border-color: rgba(54, 91, 73, 0.5);
+      box-shadow:
+        0 0 0 4px rgba(54, 91, 73, 0.14),
+        0 18px 44px rgba(37, 50, 41, 0.1);
+    }
+  }
+
+  /* 播一次即止；1.8s 要和 PlazaBoard 清除 flashId 的时长对齐 */
+  .plaza-card--flash {
+    animation: plaza-cardFlash 1.8s cubic-bezier(0.22, 0.61, 0.36, 1) 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plaza-card--flash {
+      /* 不闪，只留静态描边，深链仍可定位 */
+      animation: none;
+      border-color: rgba(54, 91, 73, 0.5);
+      box-shadow: 0 0 0 4px rgba(54, 91, 73, 0.14);
+    }
+  }
+}

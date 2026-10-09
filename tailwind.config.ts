@@ -1,0 +1,139 @@
+import type { Config } from 'tailwindcss';
+
+/** 颜色一律写成 CSS 变量引用（定义在 app/globals.css），组件里用语义化类名而非硬编码色值 */
+const config: Config = {
+  content: [
+    './app/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './hooks/**/*.{ts,tsx}',
+    './lib/**/*.{ts,tsx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        bg: 'rgb(var(--c-bg) / <alpha-value>)',
+        'bg-soft': 'rgb(var(--c-bg-soft) / <alpha-value>)',
+        surface: 'rgb(var(--c-surface) / <alpha-value>)',
+        ink: 'rgb(var(--c-text) / <alpha-value>)',
+        muted: 'rgb(var(--c-muted) / <alpha-value>)',
+        primary: 'rgb(var(--c-primary) / <alpha-value>)',
+        'primary-dark': 'rgb(var(--c-primary-dark) / <alpha-value>)',
+        accent: 'rgb(var(--c-accent) / <alpha-value>)',
+        line: 'rgb(var(--c-line) / <alpha-value>)',
+        danger: 'rgb(var(--c-danger) / <alpha-value>)',
+        'danger-soft': 'rgb(var(--c-danger-soft) / <alpha-value>)',
+        warn: 'rgb(var(--c-warn) / <alpha-value>)',
+        'warn-soft': 'rgb(var(--c-warn-soft) / <alpha-value>)',
+        ok: 'rgb(var(--c-ok) / <alpha-value>)',
+        sage: 'rgb(var(--tint-sage) / <alpha-value>)',
+        sand: 'rgb(var(--tint-sand) / <alpha-value>)',
+        mist: 'rgb(var(--tint-mist) / <alpha-value>)',
+        term: {
+          bg: 'rgb(var(--c-term-bg) / <alpha-value>)',
+          fg: 'rgb(var(--c-term-fg) / <alpha-value>)',
+          dim: 'rgb(var(--c-term-dim) / <alpha-value>)',
+          key: 'rgb(var(--c-term-key) / <alpha-value>)',
+          val: 'rgb(var(--c-term-val) / <alpha-value>)',
+          num: 'rgb(var(--c-term-num) / <alpha-value>)',
+        },
+      },
+      fontFamily: {
+        sans: ['var(--font-sans)'],
+        serif: ['var(--font-serif)'],
+        mono: ['var(--font-mono)'],
+      },
+      spacing: {
+        // dsp- 前缀是为了不覆盖 Tailwind 默认刻度
+        'dsp-1': '8px',
+        'dsp-2': '16px',
+        'dsp-3': '24px',
+        'dsp-4': '32px',
+        'dsp-5': '48px',
+        'dsp-6': '72px',
+        'dsp-7': '104px',
+        side: '252px',
+        topbar: '64px',
+      },
+      borderRadius: {
+        sm: '10px',
+        md: '18px',
+        lg: '28px',
+        field: '14px',
+      },
+      boxShadow: {
+        soft: '0 18px 50px rgba(37, 50, 41, 0.08)',
+        lift: '0 26px 60px rgba(37, 50, 41, 0.13)',
+        card: '0 6px 24px rgba(37, 50, 41, 0.04)',
+        pop: '0 22px 60px rgba(37, 50, 41, 0.16)',
+      },
+      maxWidth: {
+        content: '1160px',
+        docs: '1400px',
+      },
+      transitionDuration: {
+        // 组件实际用到 0.4s / 0.6s，Tailwind 默认刻度（300/500）取不到
+        '400': '400ms',
+        '600': '600ms',
+      },
+      transitionTimingFunction: {
+        dec: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+      },
+      keyframes: {
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(22px)' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '22%': { transform: 'translateX(-6px)' },
+          '46%': { transform: 'translateX(5px)' },
+          '72%': { transform: 'translateX(-3px)' },
+        },
+        drift: {
+          from: { transform: 'translate3d(0, 0, 0)' },
+          to: { transform: 'translate3d(0, -13px, 0)' },
+        },
+        'pulse-ring': {
+          '0%': { boxShadow: '0 0 0 0 rgba(54, 91, 73, 0.35)' },
+          '70%': { boxShadow: '0 0 0 8px rgba(54, 91, 73, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(54, 91, 73, 0)' },
+        },
+        'toast-in': {
+          from: { opacity: '0', transform: 'translateY(10px) scale(0.98)' },
+          to: { opacity: '1', transform: 'none' },
+        },
+        'drawer-in': {
+          from: { transform: 'translateX(-100%)' },
+          to: { transform: 'none' },
+        },
+        'drawer-in-right': {
+          from: { transform: 'translateX(100%)' },
+          to: { transform: 'none' },
+        },
+        // toast 底部进度条；这里的 animation 不带时长，由组件按 duration 内联注入
+        'toast-progress': {
+          from: { transform: 'scaleX(1)' },
+          to: { transform: 'scaleX(0)' },
+        },
+      },
+      animation: {
+        'fade-up': 'fade-up 0.65s cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        'fade-in': 'fade-in 0.4s ease both',
+        shake: 'shake 0.42s cubic-bezier(0.22, 0.61, 0.36, 1)',
+        drift: 'drift 11s cubic-bezier(0.22, 0.61, 0.36, 1) infinite alternate',
+        'pulse-ring': 'pulse-ring 2.4s ease-out infinite',
+        'toast-in': 'toast-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        'drawer-in': 'drawer-in 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        'drawer-in-right': 'drawer-in-right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) both',
+        'toast-progress': 'toast-progress linear forwards',
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

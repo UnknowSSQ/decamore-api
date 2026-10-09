@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Decamore">
+  <rect width="64" height="64" rx="18" fill="#f7f6f2"/>
+  <path d="M14 14h24a14 14 0 0 1 0 28H22z" fill="#365b49"/>
+  <text x="32" y="45" text-anchor="middle" font-family="Georgia, 'Songti SC', serif" font-size="40" font-style="italic" fill="#f7f6f2">D</text>
+</svg>
