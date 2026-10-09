@@ -1,7 +1,7 @@
 /** 接口文档内容；字段行为与数字均为 2026-10-08 实测 */
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
-import { headersSection } from '../commonSections';
+import { RATE_LIMIT_ROW, headersSection, requestSection } from '../commonSections';
 import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/images';
@@ -25,27 +25,7 @@ const sections: DocSection[] = [
       },
     ],
   },
-  {
-    id: 'request',
-    title: '请求方式',
-    content: [
-      {
-        kind: 'table',
-        variant: 'request',
-        rows: [
-          { item: '请求方法', value: 'GET', description: [
-            { type: 'text', value: '其他方法由框架直接返回 ' },
-            { type: 'code', value: '405' },
-            { type: 'text', value: '（无响应体，不经过业务信封）' },
-          ]},
-          { item: '站内路径', value: '/api/v1/images', description: text('同源页面可直接相对路径调用') },
-          { item: '协议', value: 'HTTP / HTTPS', description: text('/') },
-          { item: '鉴权', value: '无需', description: text('匿名可调用，按 IP 限频')  },
-          { item: 'Content-Type', value: '—', description: text('无请求体，无需设置') },
-        ],
-      },
-    ],
-  },
+  requestSection({ path }),
   {
     id: 'params',
     title: '请求参数',
@@ -213,17 +193,7 @@ const sections: DocSection[] = [
         kind: 'table',
         variant: 'limits',
         rows: [
-          {
-            item: '调用频率',
-            limit: '120 次 / 分钟 / IP',
-            description: [
-              { type: 'text', value: '按「IP + 方法 + 路径」固定窗口计数（窗口 60 秒），阈值取自环境变量 ' },
-              { type: 'code', value: 'RATE_LIMIT_PER_MIN' },
-              { type: 'text', value: '，默认 120；超限返回 ' },
-              { type: 'code', value: '429' },
-              { type: 'text', value: ' 与 Retry-After 头。两组共用同一份配额。' },
-            ],
-          },
+          RATE_LIMIT_ROW,
           {
             item: '目录缓存',
             limit: '10 分钟 / 每类型',

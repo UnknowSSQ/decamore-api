@@ -1,5 +1,6 @@
-/** 十个接口文档共用的响应头段：这些头由 withApiHandler 与中间件统一产出，逐接口写的只会漂 */
-import type { DocSection, InlineFragment } from './types';
+/** 十个接口文档共用的响应头段与请求方式表：这些内容由 withApiHandler 与中间件统一产出，逐接口写的只会漂 */
+import { text } from './fragments';
+import type { DocSection, InlineFragment, LimitRow } from './types';
 
 export interface HeadersSectionOptions {
   /** 本接口的缓存语义，写进 Cache-Control 那一行 */
@@ -64,3 +65,53 @@ export function headersSection({ cache, traceId }: HeadersSectionOptions): DocSe
     ],
   };
 }
+
+export interface RequestSectionOptions {
+  /** 站内路径，写进「站内路径」那一行 */
+  path: string;
+  /** 少数接口在表格前有一句导语 */
+  lead?: DocSection['content'][number];
+}
+
+/** 请求方式表：五行里只有站内路径随接口变化，其余四个接口类型（鉴权 / Content-Type / 协议）都一样 */
+export function requestSection({ path, lead }: RequestSectionOptions): DocSection {
+  return {
+    id: 'request',
+    title: '请求方式',
+    content: [
+      ...(lead ? [lead] : []),
+      {
+        kind: 'table',
+        variant: 'request',
+        rows: [
+          {
+            item: '请求方法',
+            value: 'GET',
+            description: [
+              TXT('其他方法由框架直接返回 '),
+              CODE('405'),
+              TXT('（无响应体，不经过业务信封）'),
+            ],
+          },
+          { item: '站内路径', value: path, description: text('同源页面可直接相对路径调用') },
+          { item: '协议', value: 'HTTP / HTTPS', description: text('/') },
+          { item: '鉴权', value: '无需', description: text('匿名可调用，按 IP 限频') },
+          { item: 'Content-Type', value: '—', description: text('无请求体，无需设置') },
+        ],
+      },
+    ],
+  };
+}
+
+/** 全局限频行：阈值取自环境变量，十个接口逐字相同，重写一遍只会和实现脱节 */
+export const RATE_LIMIT_ROW: LimitRow = {
+  item: '调用频率',
+  limit: '120 次 / 分钟 / IP',
+  description: [
+    TXT('按「IP + 方法 + 路径」固定窗口计数（窗口 60 秒），阈值取自环境变量 '),
+    CODE('RATE_LIMIT_PER_MIN'),
+    TXT('，默认 120；超限返回 '),
+    CODE('429'),
+    TXT(' 与 Retry-After 头。'),
+  ],
+};
