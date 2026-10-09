@@ -1,6 +1,7 @@
 /** 接口文档内容；字段行为与数字均为 2026-10-08 实测 */
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
+import { headersSection } from '../commonSections';
 import type { ApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/wallpaper';
@@ -41,15 +42,15 @@ const sections: DocSection[] = [
         kind: 'table',
         variant: 'request',
         rows: [
-          { name: '请求方法', type: 'GET', description: [
+          { item: '请求方法', value: 'GET', description: [
             { type: 'text', value: '其他方法由框架直接返回 ' },
             { type: 'code', value: '405' },
             { type: 'text', value: '（无响应体，不经过业务信封）' },
           ]},
-          { name: '站内路径', type: '/api/v1/wallpaper', description: text('同源页面可直接相对路径调用') },
-          { name: '协议', type: 'HTTP / HTTPS', description: text('/') },
-          { name: '鉴权', type: '无需', description: text('匿名可调用，按 IP 限频'), required: 'na' },
-          { name: 'Content-Type', type: '—', description: text('无请求体，无需设置') },
+          { item: '站内路径', value: '/api/v1/wallpaper', description: text('同源页面可直接相对路径调用') },
+          { item: '协议', value: 'HTTP / HTTPS', description: text('/') },
+          { item: '鉴权', value: '无需', description: text('匿名可调用，按 IP 限频')  },
+          { item: 'Content-Type', value: '—', description: text('无请求体，无需设置') },
         ],
       },
     ],
@@ -205,68 +206,10 @@ const sections: DocSection[] = [
       },
     ],
   },
-  {
-    id: 'headers',
-    title: '响应头',
-    content: [
-      {
-        kind: 'table',
-        variant: 'headers',
-        rows: [
-          {
-            name: 'Content-Type',
-            type: '',
-            example: 'application/json; charset=utf-8',
-            description: text('接口固定返回 JSON，不支持 JSONP。图片本体的类型是 image/webp 或 image/jpeg。'),
-          },
-          {
-            name: 'Cache-Control',
-            type: '',
-            example: 'no-store, max-age=0',
-            description: text('接口响应不缓存；图片走站内静态资源，带 ETag 与 Last-Modified，不受这条头约束。'),
-          },
-          {
-            name: 'x-trace-id',
-            type: '',
-            example: 'muye4dao-bcfd7105',
-            description: [
-              { type: 'text', value: '与 ' },
-              { type: 'code', value: 'requestId' },
-              { type: 'text', value: ' 同值，用于日志检索。' },
-            ],
-          },
-          {
-            name: 'x-request-id',
-            type: '',
-            example: 'muye4dao-bcfd7105',
-            description: text('由边缘中间件生成的请求 ID，缺失时服务端另行生成。'),
-          },
-          {
-            name: 'Retry-After',
-            type: '',
-            example: '38',
-            description: [
-              { type: 'text', value: '仅在 ' },
-              { type: 'code', value: '429' },
-              { type: 'text', value: ' 时出现，单位秒。' },
-            ],
-          },
-          {
-            name: 'Access-Control-Allow-Origin',
-            type: '',
-            example: '（未下发）',
-            description: text('当前实现没有输出跨域头，浏览器跨源调用会被拦截；同域页面可直接 fetch。'),
-          },
-          {
-            name: 'X-Cache / X-RateLimit-*',
-            type: '',
-            example: '（未下发）',
-            description: text('缓存命中与剩余配额的计数头尚未实现，请勿依赖。'),
-          },
-        ],
-      },
-    ],
-  },
+  headersSection({
+    cache: text('接口响应不缓存；图片走站内静态资源，带 ETag 与 Last-Modified，不受这条头约束。'),
+    traceId: 'muye4dao-bcfd7105',
+  }),
   {
     id: 'errors',
     title: '错误码',
@@ -281,16 +224,14 @@ const sections: DocSection[] = [
           {
             http: '405',
             statusCode: '—',
-            name: '方法不支持',
-            type: '',
+            label: '方法不支持',
             description: text('由框架直接返回，响应体为空'),
             suggestion: text('使用 GET 请求。'),
           },
           {
             http: '422',
             statusCode: '422',
-            name: '参数不合法',
-            type: '',
+            label: '参数不合法',
             description: [
               { type: 'text', value: 'message 为「type 只能是 pc、mobile 或 bing」，并带 ' },
               { type: 'code', value: 'issues' },
@@ -301,8 +242,7 @@ const sections: DocSection[] = [
           {
             http: '429',
             statusCode: '429',
-            name: '频率限制',
-            type: '',
+            label: '频率限制',
             description: [
               { type: 'text', value: 'message 为「请求过于频繁」，description 为「请在 N 秒后重试」，并带 ' },
               { type: 'code', value: 'Retry-After' },
@@ -313,16 +253,14 @@ const sections: DocSection[] = [
           {
             http: '503',
             statusCode: '503',
-            name: '必应上游取不到',
-            type: '',
+            label: '必应上游取不到',
             description: text('message 为「必应壁纸暂时取不到」。只有请求 bing（或随机恰好选中 bing）时才可能出现——站内两类不依赖外网。'),
             suggestion: text('换 pc / mobile 重试，或者稍后再来；站内已经存了当天那张时，就不会再去打扰必应。'),
           },
           {
             http: '500',
             statusCode: '500',
-            name: '服务端内部错误',
-            type: '',
+            label: '服务端内部错误',
             description: text('壁纸目录为空，或目录里的图片没有配齐同名 .webp 缩略图。'),
             suggestion: [
               { type: 'text', value: '重试 1 次；仍失败请携带 ' },
@@ -350,8 +288,8 @@ const sections: DocSection[] = [
         variant: 'limits',
         rows: [
           {
-            name: '调用频率',
-            type: '120 次 / 分钟 / IP',
+            item: '调用频率',
+            limit: '120 次 / 分钟 / IP',
             description: [
               { type: 'text', value: '按「IP + 方法 + 路径」固定窗口计数（窗口 60 秒），阈值取自环境变量 ' },
               { type: 'code', value: 'RATE_LIMIT_PER_MIN' },
@@ -361,28 +299,28 @@ const sections: DocSection[] = [
             ],
           },
           {
-            name: '并发建议',
-            type: '≤ 2 QPS',
+            item: '并发建议',
+            limit: '≤ 2 QPS',
             description: text('批量拉图请串行或合并请求，跟默认阈值留点余地——接口不怕你用，怕你一次性把所有图都翻一遍。'),
           },
           {
-            name: '服务端缓存',
-            type: '目录一次 / 必应 1 小时',
+            item: '服务端缓存',
+            limit: '目录一次 / 必应 1 小时',
             description: text('本地两类在首次请求时扫一次目录，尺寸一并读好放在进程里；必应当天的结果缓存 1 小时。接口响应本身不缓存，你拿到的每次都是新的一张。'),
           },
           {
-            name: '外部依赖',
-            type: '必应 HPImageArchive',
+            item: '外部依赖',
+            limit: '必应 HPImageArchive',
             description: text('bing 类会去问必应要当天索引，并把原图与 640×480 缩略图存一份到站内 wallpaper/bing；存成功就由站内直接供图，存不上就退回必应的直链，连当天索引都拿不到时给 503。'),
           },
           {
-            name: '客户端建议',
-            type: '预览用 thumb',
+            item: '客户端建议',
+            limit: '预览用 thumb',
             description: text('缩略图和直链都能按 id 存在本地。同一类重复请求只会换一张图，不需要为同一屏内容反复问。'),
           },
           {
-            name: '超时与重试',
-            type: '建议 3 s / 1 次',
+            item: '超时与重试',
+            limit: '建议 3 s / 1 次',
             description: [
               { type: 'text', value: '仅对 ' },
               { type: 'code', value: '5xx' },
@@ -404,8 +342,8 @@ const sections: DocSection[] = [
         variant: 'changelog',
         rows: [
           {
-            name: '2026-10-08',
-            type: 'v1.0',
+            date: '2026-10-08',
+            version: 'v1.0',
             description: text('壁纸接口上线：pc / mobile 读站内静态目录，bing 接必应当日壁纸并把当日图镜像进站内。'),
           },
         ],

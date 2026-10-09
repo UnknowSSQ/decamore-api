@@ -1,28 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/** 初值同步算 matchMedia 而不是 useState(false)，避开水合后闪一下 */
-export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState<boolean>(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return false;
-    return window.matchMedia(query).matches;
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mql = window.matchMedia(query);
-    const onChange = (event: MediaQueryListEvent) => setMatches(event.matches);
-    setMatches(mql.matches);
-    mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
-  }, [query]);
-
-  return matches;
-}
-
-/** 1023px 要跟 tailwind 的 lg 断点对齐 */
-export const useIsMobile = () => useMediaQuery('(max-width: 1023px)');
-
 export function useClickOutside<T extends HTMLElement = HTMLDivElement>(
   handler: () => void,
   enabled = true,
@@ -285,31 +263,4 @@ export function useNow(intervalMs = 1000): { now: Date; ready: boolean } {
     return () => clearInterval(timer);
   }, [intervalMs]);
   return { now: new Date(), ready: tick > 0 };
-}
-
-/** 隐私模式下 localStorage 会抛，读写都静默退化为纯内存状态 */
-export function usePersistentState<T>(key: string, initial: T): [T, (next: T) => void] {
-  const [state, setState] = useState<T>(() => {
-    if (typeof window === 'undefined') return initial;
-    try {
-      const raw = window.localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : initial;
-    } catch {
-      return initial;
-    }
-  });
-
-  const update = useCallback(
-    (next: T) => {
-      setState(next);
-      try {
-        window.localStorage.setItem(key, JSON.stringify(next));
-      } catch {
-        /* 存储不可用时忽略 */
-      }
-    },
-    [key],
-  );
-
-  return [state, update];
 }

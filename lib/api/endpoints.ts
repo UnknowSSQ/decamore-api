@@ -41,6 +41,7 @@ export const API = {
     cors: `${V1}/security/cors`,
     settings: `${V1}/settings`,
     notifications: `${V1}/notifications`,
+    notificationsReadAll: `${V1}/notifications/read-all`,
     stats: `${V1}/stats`,
   },
 } as const;

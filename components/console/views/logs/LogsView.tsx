@@ -1,15 +1,14 @@
 'use client';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { Badge, MethodBadge, Button, Icon, Input, Panel, PageHeader, Skeleton, Tooltip } from '@/components/ui';
 import { DataTable, Pagination } from '@/components/ui/DataTable';
 import { Switch } from '@/components/ui/Input';
-import { useRequest } from '@/hooks/useRequest';
-import { useDebouncedValue } from '@/hooks/useUi';
+import { useListQuery } from '@/hooks/useListQuery';
 import { fetchLogs } from '@/lib/api';
 import { formatNumber, formatDateTime, formatDuration } from '@/utils/format';
-import type { CallLog, TableColumn, SortState } from '@/types';
+import type { CallLog, Paged, TableColumn } from '@/types';
 import { StatusBars } from './StatusBars';
 import { LogDetailDrawer } from './LogDetailDrawer';
 
@@ -43,41 +42,51 @@ function LogsViewInner() {
   const searchParams = useSearchParams();
   
   // ?path= 由接口管理的「查看调用日志」带进来，只作初值，之后不再同步回 URL
-  const [keyword, setKeyword] = useState(searchParams.get('path') ?? '');
-  const [statusFamily, setStatusFamily] = useState(searchParams.get('status') ?? 'all');
-  const [method, setMethod] = useState('all');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
-  const [sort, setSort] = useState<SortState>({ key: 'time', order: 'desc' });
   const [liveMode, setLiveMode] = useState(false);
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
 
-  const debouncedKeyword = useDebouncedValue(keyword, 300);
-
-  const query = useMemo<LogQuery>(() => {
-    const params: LogQuery = {
-      page,
-      pageSize,
-      sort: sort.key === 'latency' || sort.key === 'status' ? sort.key : 'time',
-      order: sort.order,
-    };
-    if (debouncedKeyword) params.keyword = debouncedKeyword;
-    // 429 本身属于 4xx，只能按精确状态码筛，走 statusFamily 会被 4xx 吞掉
-    if (statusFamily === '429') params.status = 429;
-    else if (statusFamily === '2xx' || statusFamily === '4xx' || statusFamily === '5xx') {
-      params.statusFamily = statusFamily;
-    }
-    if (method === 'GET' || method === 'POST') params.method = method;
-    return params;
-  }, [page, pageSize, sort, debouncedKeyword, statusFamily, method]);
-
-  // 不开 immediate：首屏请求交给下面的 effect 带上默认 query，否则挂载时打两次
-  const { data, loading, pending, run, refetch } = useRequest(fetchLogs);
-
-  // 副作用只能放 effect：useMemo 按纯计算对待，允许被丢弃或重复执行
-  useEffect(() => {
-    void run(query);
-  }, [query, run]);
+  const {
+    data,
+    loading,
+    pending,
+    refetch,
+    keyword,
+    setKeyword,
+    filters,
+    setFilter,
+    sort,
+    setSort,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+  } = useListQuery<LogQuery, Paged<CallLog>, { statusFamily: string; method: string }>({
+    fetcher: fetchLogs,
+    initialKeyword: searchParams.get('path') ?? '',
+    initialFilters: { statusFamily: searchParams.get('status') ?? 'all', method: 'all' },
+    initialSort: { key: 'time', order: 'desc' },
+    initialPageSize: 12,
+    debounceMs: 300,
+    build: ({ keyword, filters, sort, page, pageSize }) => {
+      const params: LogQuery = {
+        page,
+        pageSize,
+        // 列 key 是 latencyMs（要和 CallLog 字段同名才能取到值），服务端的sort取值叫 latency
+        sort: sort.key === 'latencyMs' ? 'latency' : sort.key === 'status' ? 'status' : 'time',
+        order: sort.order,
+      };
+      if (keyword) params.keyword = keyword;
+      // 429 本身属于 4xx，只能按精确状态码筛，走 statusFamily 会被 4xx 吞掉
+      if (filters.statusFamily === '429') params.status = 429;
+      else if (filters.statusFamily === '2xx' || filters.statusFamily === '4xx' || filters.statusFamily === '5xx') {
+        params.statusFamily = filters.statusFamily;
+      }
+      if (filters.method === 'GET' || filters.method === 'POST') params.method = filters.method;
+      return params;
+    },
+  });
+  const statusFamily = filters.statusFamily;
+  const method = filters.method;
 
   // 错误数与均值只覆盖当前页 items，total 用服务端总数，两者口径不同
   const stats = useMemo(() => {
@@ -250,10 +259,7 @@ function LogsViewInner() {
             <button
               key={opt.value}
               type="button"
-              onClick={() => {
-                setStatusFamily(opt.value);
-                setPage(1);
-              }}
+              onClick={() => setFilter('statusFamily', opt.value)}
               className={`rounded-full border px-3 py-1.5 text-[11.5px] transition-colors ${
                 statusFamily === opt.value
                   ? 'border-primary bg-primary text-[#fffefa]'
@@ -266,10 +272,7 @@ function LogsViewInner() {
         </div>
         <select
           value={method}
-          onChange={(e) => {
-            setMethod(e.target.value);
-            setPage(1);
-          }}
+          onChange={(e) => setFilter('method', e.target.value)}
           className="h-8 rounded-full border border-line bg-surface px-3 text-[11.5px] text-ink"
         >
           {METHOD_OPTIONS.map((opt) => (

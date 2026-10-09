@@ -1,20 +1,184 @@
 /** 文档表格：variant 决定列结构，行数据由 components/docs/apis/*.ts 提供 */
+import type { ReactNode } from 'react';
+
 import { Code } from '@/components/ui';
 import { cn } from '@/utils/cn';
-import type { DocTableRow, DocTableVariant, InlineFragment } from './types';
+import type { InlineFragment, RequiredState, TableNode } from './types';
 
-interface DocTableProps {
-  variant: DocTableVariant;
-  rows: DocTableRow[];
+const TD =
+  'px-0 py-[14px] pr-[14px] border-b border-dashed border-line text-[#4d554e] leading-[1.8] align-top';
+const NAME = cn('whitespace-nowrap text-[12px] font-semibold text-ink');
+const MONO = 'font-mono text-[11.5px] text-[#57615a]';
+
+/** 传整个 TableNode 而不是 variant + rows，switch 收窄后每种行都只剩自己的字段，不需要任何 cast */
+export function DocTable({ node }: { node: TableNode }) {
+  switch (node.variant) {
+    case 'request':
+      return (
+        <Shell headers={['项目', '取值', '说明']}>
+          {node.rows.map((row, i) => (
+            <tr key={i} className="group transition-colors hover:bg-[rgba(54,91,73,0.035)]">
+              <td className={cn(TD, NAME)}>{row.item}</td>
+              <td className={TD}>
+                <span className={MONO}>{row.value}</span>
+              </td>
+              <td className={TD}>{frags(row.description)}</td>
+            </tr>
+          ))}
+        </Shell>
+      );
+
+    case 'params':
+      return (
+        <Shell headers={['字段', '类型', '必填', '默认值', '说明']}>
+          {node.rows.map((row, i) => (
+            <tr key={i} className="group transition-colors hover:bg-[rgba(54,91,73,0.035)]">
+              <FieldName name={row.name} isChild={row.isChild} />
+              <td className={TD}>
+                <span className={MONO}>{row.type}</span>
+              </td>
+              <td className={TD}>{row.required && <RequiredBadge state={row.required} />}</td>
+              <td className={TD}>
+                <span className={MONO}>{row.defaultValue ?? '—'}</span>
+              </td>
+              <td className={TD}>{frags(row.description)}</td>
+            </tr>
+          ))}
+        </Shell>
+      );
+
+    case 'response':
+      return (
+        <Shell headers={['字段', '类型', '说明']}>
+          {node.rows.map((row, i) => (
+            <tr key={i} className="group transition-colors hover:bg-[rgba(54,91,73,0.035)]">
+              <FieldName name={row.name} isChild={row.isChild} />
+              <td className={TD}>
+                <span className={MONO}>{row.type}</span>
+              </td>
+              <td className={TD}>{frags(row.description)}</td>
+            </tr>
+          ))}
+        </Shell>
+      );
+
+    case 'headers':
+      return (
+        <Shell headers={['名称', '示例值', '说明']}>
+          {node.rows.map((row, i) => (
+            <tr key={i} className="group transition-colors hover:bg-[rgba(54,91,73,0.035)]">
+              <td className={cn(TD, NAME)}>
+                <span className="font-mono">{row.name}</span>
+              </td>
+              <td className={TD}>
+                <span className={MONO}>{row.example}</span>
+              </td>
+              <td className={TD}>{frags(row.description)}</td>
+            </tr>
+          ))}
+        </Shell>
+      );
+
+    case 'errors':
+      return (
+        <Shell headers={['HTTP', 'statusCode', '含义', '处理建议']}>
+          {node.rows.map((row, i) => (
+            <tr key={i} className="group transition-colors hover:bg-[rgba(54,91,73,0.035)]">
+              <td className={TD}>
+                <span className="inline-block rounded-[6px] bg-[#f1f2ec] px-2 py-[2px] font-mono text-[11px] font-semibold text-[#6b726b]">
+                  {row.http}
+                </span>
+              </td>
+              <td className={TD}>
+                <span className={MONO}>{row.statusCode}</span>
+              </td>
+              <td className={cn(TD, 'font-medium text-ink')}>
+                <span className="block">{row.label}</span>
+                <span className="block font-normal">{frags(row.description)}</span>
+              </td>
+              <td className={TD}>{row.suggestion && frags(row.suggestion)}</td>
+            </tr>
+          ))}
+        </Shell>
+      );
+
+    case 'limits':
+      return (
+        <Shell headers={['项目', '限制', '说明']}>
+          {node.rows.map((row, i) => (
+            <tr key={i} className="group transition-colors hover:bg-[rgba(54,91,73,0.035)]">
+              <td className={cn(TD, NAME)}>{row.item}</td>
+              <td className={TD}>
+                <span className={MONO}>{row.limit}</span>
+              </td>
+              <td className={TD}>{frags(row.description)}</td>
+            </tr>
+          ))}
+        </Shell>
+      );
+
+    case 'changelog':
+      return (
+        <Shell headers={['日期', '版本', '变更']}>
+          {node.rows.map((row, i) => (
+            <tr key={i} className="group transition-colors hover:bg-[rgba(54,91,73,0.035)]">
+              <td className={TD}>
+                <span className={MONO}>{row.date}</span>
+              </td>
+              <td className={TD}>
+                <span className="inline-block rounded-[6px] bg-[#e9ede4] px-2 py-[2px] font-mono text-[11px] font-semibold text-[#365b49]">
+                  {row.version}
+                </span>
+              </td>
+              <td className={TD}>{frags(row.description)}</td>
+            </tr>
+          ))}
+        </Shell>
+      );
+  }
 }
 
-function renderFragments(fragments: InlineFragment[]) {
+function Shell({ headers, children }: { headers: string[]; children: ReactNode }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-[12.5px]">
+        <thead>
+          <tr>
+            {headers.map((header) => (
+              <th
+                key={header}
+                className="whitespace-nowrap border-b border-line px-0 pb-[11px] pr-[14px] text-left text-[10px] font-semibold uppercase tracking-[0.13em] text-[#9aa49b]"
+              >
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function frags(fragments: InlineFragment[]) {
   return fragments.map((frag, i) =>
     frag.type === 'code' ? <Code key={i}>{frag.value}</Code> : <span key={i}>{frag.value}</span>,
   );
 }
 
-function RequiredBadge({ state }: { state: 'yes' | 'no' | 'na' }) {
+/** 嵌套字段行的名称列：左侧一条竖线表示「属于上一级」 */
+function FieldName({ name, isChild }: { name: string; isChild?: boolean }) {
+  return (
+    <td className={TD}>
+      <span className={cn(NAME, isChild && 'relative pl-[19px] font-medium text-[#57615a]')}>
+        {isChild && <span className="absolute bottom-[18px] left-0 top-[18px] w-px bg-[#d9ddd6]" aria-hidden />}
+        <span className="font-mono">{name}</span>
+      </span>
+    </td>
+  );
+}
+
+function RequiredBadge({ state }: { state: RequiredState }) {
   const map = {
     yes: { label: '必填', className: 'bg-[#f6e3d6] text-[#a1552b]' },
     no: { label: '可选', className: 'bg-[#eceee7] text-[#6b726b]' },
@@ -26,174 +190,4 @@ function RequiredBadge({ state }: { state: 'yes' | 'no' | 'na' }) {
       {item.label}
     </span>
   );
-}
-
-export function DocTable({ variant, rows }: DocTableProps) {
-  const headers = getHeaders(variant);
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[12.5px]">
-        <thead>
-          <tr>
-            {headers.map((header) => (
-              <th
-                key={header}
-                className="whitespace-nowrap px-0 pb-[11px] pr-[14px] text-left text-[10px] font-semibold uppercase tracking-[0.13em] text-[#9aa49b] border-b border-line"
-              >
-                {header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr
-              key={rowIndex}
-              className={cn(
-                'group transition-colors hover:bg-[rgba(54,91,73,0.035)]',
-                row.isChild && 'is-child',
-              )}
-            >
-              {renderRowCells(variant, row)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function getHeaders(variant: DocTableVariant): string[] {
-  switch (variant) {
-    case 'request':
-      return ['项目', '取值', '说明'];
-    case 'params':
-      return ['字段', '类型', '必填', '默认值', '说明'];
-    case 'response':
-      return ['字段', '类型', '说明'];
-    case 'headers':
-      return ['名称', '示例值', '说明'];
-    case 'errors':
-      return ['HTTP', 'statusCode', '含义', '处理建议'];
-    case 'limits':
-      return ['项目', '限制', '说明'];
-    case 'changelog':
-      return ['日期', '版本', '变更'];
-  }
-}
-
-function renderRowCells(variant: DocTableVariant, row: DocTableRow) {
-  const fnameClass = cn(
-    'whitespace-nowrap text-[12px] font-semibold text-ink',
-    row.isChild && 'pl-[19px] relative text-[#57615a] font-medium',
-  );
-
-  const tdBase = 'px-0 py-[14px] pr-[14px] border-b border-dashed border-line text-[#4d554e] leading-[1.8] align-top';
-
-  switch (variant) {
-    case 'request':
-      return (
-        <>
-          <td className={cn(tdBase, fnameClass)}>{row.name}</td>
-          <td className={tdBase}>
-            <span className="font-mono text-[11.5px] text-[#57615a]">{row.type}</span>
-          </td>
-          <td className={tdBase}>{renderFragments(row.description)}</td>
-        </>
-      );
-
-    case 'params':
-      return (
-        <>
-          <td className={cn(tdBase, fnameClass)}>
-            {row.isChild && (
-              <span className="absolute left-0 top-[18px] bottom-[18px] w-px bg-[#d9ddd6]" aria-hidden />
-            )}
-            <span className="font-mono">{row.name}</span>
-          </td>
-          <td className={tdBase}>
-            <span className="font-mono text-[11.5px] text-[#57615a]">{row.type}</span>
-          </td>
-          <td className={tdBase}>
-            {row.required && <RequiredBadge state={row.required} />}
-          </td>
-          <td className={tdBase}>
-            <span className="font-mono text-[11.5px] text-[#57615a]">{row.defaultValue ?? '—'}</span>
-          </td>
-          <td className={tdBase}>{renderFragments(row.description)}</td>
-        </>
-      );
-
-    case 'response':
-      return (
-        <>
-          <td className={cn(tdBase, fnameClass)}>
-            {row.isChild && (
-              <span className="absolute left-0 top-[18px] bottom-[18px] w-px bg-[#d9ddd6]" aria-hidden />
-            )}
-            <span className="font-mono">{row.name}</span>
-          </td>
-          <td className={tdBase}>
-            <span className="font-mono text-[11.5px] text-[#57615a]">{row.type}</span>
-          </td>
-          <td className={tdBase}>{renderFragments(row.description)}</td>
-        </>
-      );
-
-    case 'headers':
-      return (
-        <>
-          <td className={cn(tdBase, fnameClass)}>
-            <span className="font-mono">{row.name}</span>
-          </td>
-          <td className={tdBase}>
-            <span className="font-mono text-[11.5px] text-[#57615a]">{row.example}</span>
-          </td>
-          <td className={tdBase}>{renderFragments(row.description)}</td>
-        </>
-      );
-
-    case 'errors':
-      return (
-        <>
-          <td className={tdBase}>
-            <span className="inline-block rounded-[6px] bg-[#f1f2ec] px-2 py-[2px] font-mono text-[11px] font-semibold text-[#6b726b]">
-              {row.http}
-            </span>
-          </td>
-          <td className={tdBase}>
-            <span className="font-mono text-[11.5px] text-[#57615a]">{row.statusCode}</span>
-          </td>
-          <td className={cn(tdBase, 'font-medium text-ink')}>{renderFragments(row.description)}</td>
-          <td className={tdBase}>{row.suggestion && renderFragments(row.suggestion)}</td>
-        </>
-      );
-
-    case 'limits':
-      return (
-        <>
-          <td className={cn(tdBase, fnameClass)}>{row.name}</td>
-          <td className={tdBase}>
-            <span className="font-mono text-[11.5px] text-[#57615a]">{row.type}</span>
-          </td>
-          <td className={tdBase}>{renderFragments(row.description)}</td>
-        </>
-      );
-
-    case 'changelog':
-      return (
-        <>
-          <td className={tdBase}>
-            <span className="font-mono text-[11.5px] text-[#57615a]">{row.name}</span>
-          </td>
-          <td className={tdBase}>
-            <span className="inline-block rounded-[6px] bg-[#e9ede4] px-2 py-[2px] font-mono text-[11px] font-semibold text-[#365b49]">
-              {row.type}
-            </span>
-          </td>
-          <td className={tdBase}>{renderFragments(row.description)}</td>
-        </>
-      );
-  }
 }

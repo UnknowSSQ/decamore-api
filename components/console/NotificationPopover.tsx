@@ -1,13 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-import { useClickOutside } from '@/hooks/useUi';
+import { useClickOutside, useHotkey } from '@/hooks/useUi';
 import { useToast } from '@/hooks/useToast';
-import { fetchNotifications } from '@/lib/api';
+import { fetchNotifications, markAllNotificationsRead } from '@/lib/api';
 import type { NotificationItem } from '@/types';
 import { cn } from '@/utils/cn';
 
-/** 「全部已读」的 toast 写死了这里的条数 */
+/** 接口失败或返回空列表时用它兜底，免得弹层一片空白 */
 const FALLBACK_NOTIFICATIONS: NotificationItem[] = [
   {
     id: '1',
@@ -43,14 +43,7 @@ export function NotificationPopover({ onClose }: NotificationPopoverProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(FALLBACK_NOTIFICATIONS);
   const toast = useToast();
   const ref = useClickOutside<HTMLDivElement>(onClose);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  useHotkey('Escape', onClose, { ignoreInputs: false });
 
   useEffect(() => {
     fetchNotifications()
@@ -63,9 +56,15 @@ export function NotificationPopover({ onClose }: NotificationPopoverProps) {
       });
   }, []);
 
-  const handleMarkAllRead = () => {
-    toast.success('3 条通知已全部标记为已读');
-    onClose();
+  const handleMarkAllRead = async () => {
+    try {
+      const { changed } = await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+      toast.success(changed > 0 ? `${changed} 条通知已标记为已读` : '没有未读通知');
+      onClose();
+    } catch {
+      toast.error('操作失败', '网络或服务端异常，请稍后重试');
+    }
   };
 
   return (

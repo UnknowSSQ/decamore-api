@@ -2,7 +2,7 @@
 /** 改一项就 PATCH：安全项彼此独立，等整页保存反而拖慢生效 */
 import { useEffect, useState } from 'react';
 
-import { Badge, Button, Callout, Icon, Input, Panel, PageHeader, PanelTitle, SettingRow, Skeleton, EmptyState } from '@/components/ui';
+import { Button, Callout, Icon, Input, Panel, PageHeader, PanelTitle, SettingRow, Skeleton, EmptyState } from '@/components/ui';
 import { Select } from '@/components/ui/Select';
 import { Switch, Checkbox } from '@/components/ui/Input';
 import { useRequest } from '@/hooks/useRequest';
@@ -96,9 +96,14 @@ export function SecurityView() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="安全配置"
-        description="认证策略、访问控制、流量防护与审计 · 变更即刻生效并记录在案"
-        actions={<Badge tone="warn">2 条策略待复核</Badge>}
+        description="认证策略、访问控制、流量防护与审计"
       />
+
+      <Callout tone="info" mark="i">
+        当前真正作用于请求链路的配置：IP 黑白名单、CORS 来源、请求体上限、全局限额，以及「访问规则」页的策略。
+        两步验证、登录通知、会话空闲超时、密码复杂度、失败锁定与 WAF 开关只保存取值，对应的校验流程尚未接入，
+        改动不会改变登录或访问控制的行为。
+      </Callout>
 
       {!canWrite && (
         <Callout tone="warn" mark="!">

@@ -9,35 +9,72 @@ export type ParagraphNode = { kind: 'paragraph'; fragments: InlineFragment[] };
 
 export type RequiredState = 'yes' | 'no' | 'na';
 
-/** 一张表的所有变体共用这个行形状，下面 6 个可选字段按 variant 取用 */
-export interface DocTableRow {
+/**
+ * 每种表一种行形状，字段名即列义（列定义见 DocTable 的 getHeaders）。
+ * 以前七个 variant 共用一个「全部字段可选」的行形状，代价是给响应头表填 required
+ * 之类的字段编译器一声不响，而错误表行里写的 name 会因为渲染层不认它而凭空消失。
+ */
+export interface RequestRow {
+  item: string;
+  value: string;
+  description: InlineFragment[];
+}
+
+export interface ParamRow {
   name: string;
   type: string;
-  description: InlineFragment[];
-  isChild?: boolean;
   required?: RequiredState;
   defaultValue?: string;
-  http?: string;
-  statusCode?: string;
+  /** 嵌套字段行：名称列前会画一条竖线 */
+  isChild?: boolean;
+  description: InlineFragment[];
+}
+
+export interface ResponseRow {
+  name: string;
+  type: string;
+  isChild?: boolean;
+  description: InlineFragment[];
+}
+
+export interface HeaderRow {
+  name: string;
+  example: string;
+  description: InlineFragment[];
+}
+
+export interface ErrorRow {
+  http: string;
+  statusCode: string;
+  /** 这一类错误的短标题，渲染在「含义」列开头 */
+  label: string;
+  description: InlineFragment[];
   suggestion?: InlineFragment[];
-  example?: string;
+}
+
+export interface LimitRow {
+  item: string;
+  limit: string;
+  description: InlineFragment[];
+}
+
+export interface ChangelogRow {
+  date: string;
+  version: string;
+  description: InlineFragment[];
 }
 
 /** 变体决定列数与列义，表头见 DocTable 的 getHeaders */
-export type DocTableVariant =
-  | 'request'    // 项目 / 取值 / 说明
-  | 'params'     // 字段 / 类型 / 必填 / 默认值 / 说明
-  | 'response'   // 字段 / 类型 / 说明，isChild 表示嵌套行
-  | 'headers'    // 名称 / 示例值 / 说明
-  | 'errors'     // HTTP / statusCode / 含义 / 处理建议
-  | 'limits'     // 项目 / 限制 / 说明
-  | 'changelog'; // 日期 / 版本 / 变更
+export type DocTableVariant = 'request' | 'params' | 'response' | 'headers' | 'errors' | 'limits' | 'changelog';
 
-export interface TableNode {
-  kind: 'table';
-  variant: DocTableVariant;
-  rows: DocTableRow[];
-}
+export type TableNode =
+  | { kind: 'table'; variant: 'request'; rows: RequestRow[] }
+  | { kind: 'table'; variant: 'params'; rows: ParamRow[] }
+  | { kind: 'table'; variant: 'response'; rows: ResponseRow[] }
+  | { kind: 'table'; variant: 'headers'; rows: HeaderRow[] }
+  | { kind: 'table'; variant: 'errors'; rows: ErrorRow[] }
+  | { kind: 'table'; variant: 'limits'; rows: LimitRow[] }
+  | { kind: 'table'; variant: 'changelog'; rows: ChangelogRow[] };
 
 export interface CalloutNode {
   kind: 'callout';

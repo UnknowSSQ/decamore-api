@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import {
   Button,
@@ -15,15 +15,15 @@ import {
   Switch,
 } from '@/components/ui';
 import { useCan } from '@/hooks/usePermission';
-import { useRequest } from '@/hooks/useRequest';
+import { useListQuery } from '@/hooks/useListQuery';
 import { useToast } from '@/hooks/useToast';
-import { useDebouncedValue } from '@/hooks/useUi';
 import { deleteManagedApi, fetchManagedApis, updateManagedApi } from '@/lib/api';
+import type { ApiListQuery } from '@/lib/zod/admin.schema';
 import { AUTHORED_DOC_SLUGS } from '@/components/docs/registry';
 import { IMPLEMENTED_API_IDS } from '@/constants/api-catalog';
 import { docApiHref } from '@/constants/app';
 import { formatCompactCn, formatPercent } from '@/utils/format';
-import type { ManagedApi, SortState, TableColumn } from '@/types';
+import type { ManagedApi, Paged, TableColumn } from '@/types';
 
 import { ApiDetailDrawer } from './ApiDetailDrawer';
 import { ApiFormModal } from './ApiFormModal';
@@ -47,43 +47,39 @@ export function ApisView() {
   const canWrite = useCan('api:write');
   const toast = useToast();
 
-  const [keyword, setKeyword] = useState('');
-  const [category, setCategory] = useState<CategoryFilter>('全部');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [sort, setSort] = useState<SortState>({ key: 'calls24h', order: 'desc' });
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-
-  const debouncedKeyword = useDebouncedValue(keyword, 200);
-
+  // 列 key 与后端 sort 值不同名，这里改名；空筛选传 undefined 而非空串
   const {
     data,
     loading,
     pending,
-    run,
-    refetch,
     error,
+    refetch,
     setData,
-  } = useRequest(fetchManagedApis, { immediate: true });
-
-  // 列 key 与后端 sort 值不同名，这里改名；空筛选传 undefined 而非空串
-  const doFetch = useCallback(() => {
-    return run({
-      keyword: debouncedKeyword || undefined,
-      category: category !== '全部' ? category : undefined,
-      status: (statusFilter || undefined) as 'online' | 'degraded' | 'offline' | undefined,
+    reload,
+    keyword,
+    setKeyword,
+    filters,
+    setFilter,
+    sort,
+    setSort,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+  } = useListQuery<Partial<ApiListQuery>, Paged<ManagedApi>, { category: CategoryFilter; status: string }>({
+    fetcher: fetchManagedApis,
+    initialFilters: { category: '全部', status: '' },
+    initialSort: { key: 'calls24h', order: 'desc' },
+    build: ({ keyword, filters, sort, page, pageSize }) => ({
+      keyword: keyword || undefined,
+      category: filters.category !== '全部' ? filters.category : undefined,
+      status: (filters.status || undefined) as 'online' | 'degraded' | 'offline' | undefined,
       sort: sort.key === 'calls24h' ? 'calls' : sort.key === 'avgLatencyMs' ? 'latency' : sort.key === 'errorRate' ? 'errorRate' : 'updated',
       order: sort.order,
       page,
       pageSize,
-    });
-  }, [run, debouncedKeyword, category, statusFilter, sort, page, pageSize]);
-
-  // 任何筛选/排序/分页变化都会换掉 doFetch，这里统一重查并把页码送回第一页
-  useEffect(() => {
-    setPage(1);
-    void doFetch();
-  }, [doFetch]);
+    }),
+  });
 
   const [drawerApi, setDrawerApi] = useState<ManagedApi | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -93,39 +89,42 @@ export function ApisView() {
   const [deletePending, setDeletePending] = useState(false);
 
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const handleStatusToggle = async (api: ManagedApi, next: boolean) => {
-    setTogglingId(api.id);
-    const prev = api.status;
-    // 先落本地，Switch 不等 RTT
-    setData((d) => {
-      if (!d) return d!;
-      return {
-        ...d,
-        items: d.items.map((item) =>
-          item.id === api.id ? { ...item, status: (next ? 'online' : 'degraded') as 'online' | 'degraded' | 'offline' } : item,
-        ),
-      };
-    });
-    try {
-      await updateManagedApi(api.id, {
-        ...( { status: next ? 'online' : 'degraded' } as Record<string, unknown> ),
-      } as Parameters<typeof updateManagedApi>[1]);
-      toast.success(`「${api.name}」已${next ? '上线' : '转入维护'}`);
-    } catch {
+  const handleStatusToggle = useCallback(
+    async (api: ManagedApi, next: boolean) => {
+      setTogglingId(api.id);
+      const prev = api.status;
+      // 先落本地，Switch 不等 RTT
       setData((d) => {
         if (!d) return d!;
         return {
           ...d,
           items: d.items.map((item) =>
-            item.id === api.id ? { ...item, status: prev } : item,
+            item.id === api.id ? { ...item, status: (next ? 'online' : 'degraded') as 'online' | 'degraded' | 'offline' } : item,
           ),
         };
       });
-      toast.error('状态更新失败');
-    } finally {
-      setTogglingId(null);
-    }
-  };
+      try {
+        await updateManagedApi(api.id, {
+          status: next ? 'online' : 'degraded',
+        });
+        toast.success(`「${api.name}」已${next ? '上线' : '转入维护'}`);
+      } catch {
+        setData((d) => {
+          if (!d) return d!;
+          return {
+            ...d,
+            items: d.items.map((item) =>
+              item.id === api.id ? { ...item, status: prev } : item,
+            ),
+          };
+        });
+        toast.error('状态更新失败');
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [setData, toast],
+  );
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -134,7 +133,7 @@ export function ApisView() {
       await deleteManagedApi(deleteTarget.id);
       toast.success(`「${deleteTarget.name}」已删除`);
       setDeleteTarget(null);
-      void doFetch();
+      void reload();
     } catch {
       toast.error('删除失败');
     } finally {
@@ -153,7 +152,7 @@ export function ApisView() {
   };
 
   const handleFormSuccess = () => {
-    void doFetch();
+    void reload();
     if (!editingApi) {
       // 后端还没回新记录的 id，只能等 refetch 后手动点开抽屉
     }
@@ -230,7 +229,7 @@ export function ApisView() {
       },
       {
         key: 'avgLatencyMs',
-        title: 'P95',
+        title: '均耗时',
         widthClass: 'w-[110px]',
         align: 'right',
         sortable: true,
@@ -307,7 +306,7 @@ export function ApisView() {
         ),
       },
     ],
-    [openDetail, togglingId],
+    [openDetail, togglingId, handleStatusToggle],
   );
 
   const rows = data?.items ?? [];
@@ -365,11 +364,11 @@ export function ApisView() {
               key={cat}
               type="button"
               className={`chip rounded-full border px-3 py-1 text-[12px] transition-colors ${
-                category === cat
+                filters.category === cat
                   ? 'border-primary bg-primary/10 font-semibold text-primary'
                   : 'border-line text-muted hover:border-primary/40 hover:text-ink'
               }`}
-              onClick={() => setCategory(cat)}
+              onClick={() => setFilter('category', cat)}
             >
               {cat}
             </button>
@@ -377,8 +376,8 @@ export function ApisView() {
         </div>
 
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={filters.status}
+          onChange={(e) => setFilter('status', e.target.value)}
           className="h-[36px] rounded-full border border-line bg-surface px-3 text-[12px] text-ink"
         >
           {STATUS_OPTIONS.map((opt) => (
@@ -395,7 +394,7 @@ export function ApisView() {
           title="加载失败"
           description={error.message || '接口列表请求失败，请重试'}
           action={
-            <Button variant="outline" size="sm" onClick={() => void doFetch()}>
+            <Button variant="outline" size="sm" onClick={() => void reload()}>
               重试
             </Button>
           }
@@ -403,10 +402,9 @@ export function ApisView() {
       ) : (
         <>
           <div className="overflow-x-auto max-[760px]:block">
-            <DataTable<ManagedApi & Record<string, unknown>>
-              // DataTable 要求行带索引签名，ManagedApi 没有，只能双重 cast
-              columns={columns as unknown as TableColumn<ManagedApi & Record<string, unknown>>[]}
-              rows={rows as unknown as (ManagedApi & Record<string, unknown>)[]}
+            <DataTable<ManagedApi>
+              columns={columns}
+              rows={rows}
               rowKey="id"
               sort={sort}
               onSortChange={setSort}
@@ -439,7 +437,7 @@ export function ApisView() {
         api={drawerApi}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onRefresh={() => void doFetch()}
+        onRefresh={() => void reload()}
       />
 
       <ApiFormModal

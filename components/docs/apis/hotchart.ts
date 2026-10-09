@@ -1,6 +1,7 @@
 /** 接口文档内容；字段行为与数字均为 2026-10-08 实测 */
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
+import { headersSection } from '../commonSections';
 import type { ApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/hotchart';
@@ -32,15 +33,15 @@ const sections: DocSection[] = [
         kind: 'table',
         variant: 'request',
         rows: [
-          { name: '请求方法', type: 'GET', description: [
+          { item: '请求方法', value: 'GET', description: [
             { type: 'text', value: '其他方法由框架直接返回 ' },
             { type: 'code', value: '405' },
             { type: 'text', value: '（无响应体，不经过业务信封）' },
           ]},
-          { name: '站内路径', type: '/api/v1/hotchart', description: text('同源页面可直接相对路径调用') },
-          { name: '协议', type: 'HTTP / HTTPS', description: text('/') },
-          { name: '鉴权', type: '无需', description: text('匿名可调用，按 IP 限频'), required: 'na' },
-          { name: 'Content-Type', type: '—', description: text('无请求体，无需设置') },
+          { item: '站内路径', value: '/api/v1/hotchart', description: text('同源页面可直接相对路径调用') },
+          { item: '协议', value: 'HTTP / HTTPS', description: text('/') },
+          { item: '鉴权', value: '无需', description: text('匿名可调用，按 IP 限频')  },
+          { item: 'Content-Type', value: '—', description: text('无请求体，无需设置') },
         ],
       },
     ],
@@ -57,7 +58,6 @@ const sections: DocSection[] = [
           {
             name: '/',
             type: '/',
-            required: 'na',
             defaultValue: '/',
             description: text('多余的查询串（比如 ?type=tv）不报错也不改变结果，直接忽略'),
           },
@@ -158,68 +158,10 @@ const sections: DocSection[] = [
       },
     ],
   },
-  {
-    id: 'headers',
-    title: '响应头',
-    content: [
-      {
-        kind: 'table',
-        variant: 'headers',
-        rows: [
-          {
-            name: 'Content-Type',
-            type: '',
-            example: 'application/json; charset=utf-8',
-            description: text('固定为 JSON，不支持 JSONP。'),
-          },
-          {
-            name: 'Cache-Control',
-            type: '',
-            example: 'no-store, max-age=0',
-            description: text('接口响应不缓存'),
-          },
-          {
-            name: 'x-trace-id',
-            type: '',
-            example: 'muzifpj8-9179c6b1',
-            description: [
-              { type: 'text', value: '与 ' },
-              { type: 'code', value: 'requestId' },
-              { type: 'text', value: ' 同值，用于日志检索。' },
-            ],
-          },
-          {
-            name: 'x-request-id',
-            type: '',
-            example: 'muzifpj8-9179c6b1',
-            description: text('由边缘中间件生成的请求 ID，缺失时服务端另行生成。'),
-          },
-          {
-            name: 'Retry-After',
-            type: '',
-            example: '38',
-            description: [
-              { type: 'text', value: '仅在 ' },
-              { type: 'code', value: '429' },
-              { type: 'text', value: ' 时出现，单位秒。' },
-            ],
-          },
-          {
-            name: 'Access-Control-Allow-Origin',
-            type: '',
-            example: '（未下发）',
-            description: text('当前实现没有输出跨域头，浏览器跨源调用会被拦截；同域页面可直接 fetch。'),
-          },
-          {
-            name: 'X-Cache / X-RateLimit-*',
-            type: '',
-            example: '（未下发）',
-            description: text('缓存命中看响应里的 cached 字段，剩余配额的计数头还没实现。'),
-          },
-        ],
-      },
-    ],
-  },
+  headersSection({
+    cache: text('接口响应不缓存'),
+    traceId: 'muzifpj8-9179c6b1',
+  }),
   {
     id: 'errors',
     title: '错误码',
@@ -234,16 +176,14 @@ const sections: DocSection[] = [
           {
             http: '405',
             statusCode: '—',
-            name: '方法不支持',
-            type: '',
+            label: '方法不支持',
             description: text('由框架直接返回，响应体为空'),
             suggestion: text('使用 GET 请求。'),
           },
           {
             http: '429',
             statusCode: '429',
-            name: '频率限制',
-            type: '',
+            label: '频率限制',
             description: [
               { type: 'text', value: 'message 为「请求过于频繁」，description 为「请在 N 秒后重试」，并带 ' },
               { type: 'code', value: 'Retry-After' },
@@ -254,8 +194,7 @@ const sections: DocSection[] = [
           {
             http: '503',
             statusCode: '503',
-            name: '上游取不到',
-            type: '',
+            label: '上游取不到',
             description: text('message 为「热映榜暂时取不到」，description 会带上失败原因'),
             suggestion: text('稍后再试；一直不行的话，带着 traceId 来找我们。'),
           },
@@ -281,8 +220,8 @@ const sections: DocSection[] = [
         variant: 'limits',
         rows: [
           {
-            name: '调用频率',
-            type: '120 次 / 分钟 / IP',
+            item: '调用频率',
+            limit: '120 次 / 分钟 / IP',
             description: [
               { type: 'text', value: '按「IP + 方法 + 路径」固定窗口计数（窗口 60 秒），阈值取自环境变量 ' },
               { type: 'code', value: 'RATE_LIMIT_PER_MIN' },
@@ -292,33 +231,33 @@ const sections: DocSection[] = [
             ],
           },
           {
-            name: '榜单缓存',
-            type: '1 小时',
+            item: '榜单缓存',
+            limit: '1 小时',
             description: text('命中时 cached=true；'),
           },
           {
-            name: '缓存实现',
-            type: '进程内存',
+            item: '缓存实现',
+            limit: '进程内存',
             description: text('单进程内存表'),
           },
           {
-            name: '外部依赖',
-            type: '猫眼专业版',
+            item: '外部依赖',
+            limit: '猫眼专业版',
             description: text('必须带上它站内的 referer 与 x-requested-with，缺一个就被判 403；不属于公开文档接口，改版会直接体现为 503。'),
           },
           {
-            name: '并发建议',
-            type: '≤ 2 QPS',
+            item: '并发建议',
+            limit: '≤ 2 QPS',
             description: text('不建议'),
           },
           {
-            name: '客户端建议',
-            type: '轮询 ≥ 1 小时',
+            item: '客户端建议',
+            limit: '轮询 ≥ 1 小时',
             description: text('接口对外缓存 1 小时，更快的轮询只会拿到同一份榜。'),
           },
           {
-            name: '超时与重试',
-            type: '建议 3 s / 1 次',
+            item: '超时与重试',
+            limit: '建议 3 s / 1 次',
             description: [
               { type: 'text', value: '服务端等待上限是 8 秒；客户端只对 ' },
               { type: 'code', value: '5xx' },
@@ -340,8 +279,8 @@ const sections: DocSection[] = [
         variant: 'changelog',
         rows: [
           {
-            name: '2026-10-08',
-            type: 'v1.0',
+            date: '2026-10-08',
+            version: 'v1.0',
             description: text('热映榜上线：猫眼实时票房榜，无参数，服务端缓存 1 小时，返回影片名、当日票房与占比、累计票房、场次与上座率。'),
           },
         ],

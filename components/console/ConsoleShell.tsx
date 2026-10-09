@@ -108,7 +108,7 @@ export function ConsoleShell({ user, children }: ConsoleShellProps) {
       )}
 
       <div className="flex min-w-0 flex-col bg-bg">
-        <ConsoleTopbar user={user} onOpenNav={openNav} />
+        <ConsoleTopbar user={user} navOpen={navOpen} onOpenNav={openNav} />
         <MaintenanceBanner />
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1240px] px-[34px] py-[30px] max-lg:px-5 max-lg:py-6">
           {children}

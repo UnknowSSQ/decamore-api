@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import {
   Badge,
@@ -15,12 +15,12 @@ import {
   Switch,
 } from '@/components/ui';
 import { useCan } from '@/hooks/usePermission';
-import { useRequest } from '@/hooks/useRequest';
+import { useListQuery } from '@/hooks/useListQuery';
 import { useToast } from '@/hooks/useToast';
-import { useDebouncedValue } from '@/hooks/useUi';
 import { deleteRule, fetchRules, updateRule } from '@/lib/api';
 import { formatCompactCn, formatNumber } from '@/utils/format';
-import type { AccessRule, SortState, TableColumn } from '@/types';
+import type { RuleListQuery } from '@/lib/zod/admin.schema';
+import type { AccessRule, Paged, TableColumn } from '@/types';
 
 import { RuleDetailDrawer } from './RuleDetailDrawer';
 import { RuleFormModal } from './RuleFormModal';
@@ -56,38 +56,36 @@ export function RulesView() {
   const canWrite = useCan('rule:write');
   const toast = useToast();
 
-  const [keyword, setKeyword] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [sort, setSort] = useState<SortState>({ key: 'hitsToday', order: 'desc' });
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
-
-  const debouncedKeyword = useDebouncedValue(keyword, 200);
-
   const {
     data,
     loading,
-    run,
     error,
     setData,
-  } = useRequest(fetchRules, { immediate: true });
-
-  // 空串是「不限」，必须转成 undefined，否则会被当成 enabled=false
-  const doFetch = useCallback(() => {
-    return run({
-      keyword: debouncedKeyword || undefined,
-      enabled: statusFilter === 'enabled' ? true : statusFilter === 'disabled' ? false : undefined,
+    reload,
+    keyword,
+    setKeyword,
+    filters,
+    setFilter,
+    sort,
+    setSort,
+  } = useListQuery<RuleListQuery, Paged<AccessRule>, { status: string }>({
+    fetcher: fetchRules,
+    initialFilters: { status: '' },
+    initialSort: { key: 'hitsToday', order: 'desc' },
+    initialPageSize: 20,
+    // 空串是「不限」，必须转成 undefined，否则会被当成 enabled=false
+    build: ({ keyword, filters, sort, page, pageSize }) => ({
+      keyword: keyword || undefined,
+      enabled: filters.status === 'enabled' ? true : filters.status === 'disabled' ? false : undefined,
       page,
       pageSize,
-    });
-  }, [run, debouncedKeyword, statusFilter, page, pageSize]);
+      sort: sort.key === 'limit' || sort.key === 'updatedAt' ? sort.key : 'hitsToday',
+      order: sort.order,
+    }),
+  });
 
-  // 筛选/分页变化都会换掉 doFetch，这里统一重查并回到第一页
-  useEffect(() => {
-    setPage(1);
-    void doFetch();
-  }, [doFetch]);
+  // type 归类只作用于当前页（服务端按 action 收，rate 组跨 429/log 两个 action）
+  const [typeFilter, setTypeFilter] = useState('');
 
   const [drawerRule, setDrawerRule] = useState<AccessRule | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -97,38 +95,41 @@ export function RulesView() {
   const [deletePending, setDeletePending] = useState(false);
 
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const handleStatusToggle = async (rule: AccessRule, next: boolean) => {
-    setTogglingId(rule.id);
-    const prev = rule.enabled;
-    // 先落本地，Switch 不等 RTT
-    setData((d) => {
-      if (!d) return d!;
-      return {
-        ...d,
-        items: d.items.map((item) =>
-          item.id === rule.id ? { ...item, enabled: next } : item,
-        ),
-      };
-    });
-    try {
-      await updateRule(rule.id, { enabled: next });
-      toast.success(`规则「${rule.name}」已${next ? '启用 · 约 30 秒内全网生效' : '停用'}`);
-    } catch {
-      // 失败就退回 prev
+  const handleStatusToggle = useCallback(
+    async (rule: AccessRule, next: boolean) => {
+      setTogglingId(rule.id);
+      const prev = rule.enabled;
+      // 先落本地，Switch 不等 RTT
       setData((d) => {
         if (!d) return d!;
         return {
           ...d,
           items: d.items.map((item) =>
-            item.id === rule.id ? { ...item, enabled: prev } : item,
+            item.id === rule.id ? { ...item, enabled: next } : item,
           ),
         };
       });
-      toast.error('状态更新失败');
-    } finally {
-      setTogglingId(null);
-    }
-  };
+      try {
+        await updateRule(rule.id, { enabled: next });
+        toast.success(`规则「${rule.name}」已${next ? '启用' : '停用'}`);
+      } catch {
+        // 失败就退回 prev
+        setData((d) => {
+          if (!d) return d!;
+          return {
+            ...d,
+            items: d.items.map((item) =>
+              item.id === rule.id ? { ...item, enabled: prev } : item,
+            ),
+          };
+        });
+        toast.error('状态更新失败');
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [setData, toast],
+  );
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -137,7 +138,7 @@ export function RulesView() {
       await deleteRule(deleteTarget.id);
       toast.success(`规则「${deleteTarget.name}」已删除`);
       setDeleteTarget(null);
-      void doFetch();
+      void reload();
     } catch {
       toast.error('删除失败');
     } finally {
@@ -156,7 +157,7 @@ export function RulesView() {
   };
 
   const handleFormSuccess = () => {
-    void doFetch();
+    void reload();
   };
 
   const total = data?.total ?? 0;
@@ -177,17 +178,8 @@ export function RulesView() {
     if (typeFilter) {
       rows = rows.filter((r) => actionToType(r.action) === typeFilter);
     }
-    // 只比数值列，其余保持接口返回的顺序
-    rows = [...rows].sort((a, b) => {
-      const aVal = a[sort.key as keyof AccessRule];
-      const bVal = b[sort.key as keyof AccessRule];
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sort.order === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-      return 0;
-    });
     return rows;
-  }, [data?.items, typeFilter, sort]);
+  }, [data?.items, typeFilter]);
 
   const columns: TableColumn<AccessRule>[] = useMemo(
     () => [
@@ -281,7 +273,7 @@ export function RulesView() {
         ),
       },
     ],
-    [openDetail, togglingId, canWrite],
+    [openDetail, togglingId, canWrite, handleStatusToggle],
   );
 
   return (
@@ -346,8 +338,8 @@ export function RulesView() {
         </div>
 
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={filters.status}
+          onChange={(e) => setFilter('status', e.target.value)}
           className="h-[36px] rounded-full border border-line bg-surface px-3 text-[12px] text-ink"
         >
           {STATUS_OPTIONS.map((opt) => (
@@ -368,15 +360,15 @@ export function RulesView() {
           title="加载失败"
           description={error.message || '规则列表请求失败，请重试'}
           action={
-            <Button variant="outline" size="sm" onClick={() => void doFetch()}>
+            <Button variant="outline" size="sm" onClick={() => void reload()}>
               重试
             </Button>
           }
         />
       ) : (
-        <DataTable<AccessRule & Record<string, unknown>>
-          columns={columns as TableColumn<(AccessRule & Record<string, unknown>)>[]}
-          rows={filteredRows as (AccessRule & Record<string, unknown>)[]}
+        <DataTable<AccessRule>
+          columns={columns}
+          rows={filteredRows}
           rowKey="id"
           sort={sort}
           onSortChange={setSort}
@@ -399,7 +391,7 @@ export function RulesView() {
         rule={drawerRule}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onRefresh={() => void doFetch()}
+        onRefresh={() => void reload()}
       />
 
       <RuleFormModal

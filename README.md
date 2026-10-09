@@ -14,7 +14,7 @@
 
 - Node.js 18.18 以上（开发环境实测 v24.14）
 - npm
-- 无需数据库：当前没有 ORM 与迁移，`DATABASE_URL` 只是占位
+- 无需数据库：数据来自上游抓取、`public/assets` 目录与进程内 store，没有 ORM 与迁移
 
 ## 安装与启动
 
@@ -31,7 +31,7 @@ npm run dev
 openssl rand -base64 48
 ```
 
-开发用账号在 `lib/server/mock/users.ts`，默认 `admin` / `Decamore@2026`，仅用于本地登录后台。
+开发用账号在 `lib/server/mock/users.ts`，账号是 `admin`、口令看那个文件，仅用于本地登录后台。
 
 | 命令 | 作用 |
 | --- | --- |
@@ -40,6 +40,7 @@ openssl rand -base64 48
 | `npm run start` | 运行构建产物 |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | `next lint` |
+| `npm test` | Node 内置 test runner 跑 `tests/*.test.ts`（tsx 编译，`tests/register.mjs` 把 `server-only` 打成空模块） |
 | `npm run env:check` | 校验环境变量是否齐全 |
 
 ## 环境变量
@@ -78,6 +79,8 @@ lib/
   auth/                    令牌与会话读写
   zod/                     请求参数与表单校验
 types/                     业务类型（接口返回形状即契约）
+utils/                     纯函数：格式化、cn、IP/CIDR 与作用域匹配（net.ts）、固定窗口计数
+tests/                     node:test 用例与 register.mjs 加载钩子
 public/assets/             壁纸、头像、表情包、图库与语料 JSON
 docs/API-TEMPLATE.md       新增接口与接口文档的写作规范
 ```
@@ -115,10 +118,12 @@ docs/API-TEMPLATE.md       新增接口与接口文档的写作规范
 约定：
 
 - `meta.requestId` 与响应头 `x-trace-id` 同值，报障时提供它即可定位服务端日志。
-- 公开接口一律 GET，其它方法由框架直接返回 `405`（无响应体）。
-- 限流按「IP + 方法 + 路径」计数，窗口 60 秒，阈值取 `RATE_LIMIT_PER_MIN`，超限返回 `429` 与 `Retry-After` 头。
+- 公开接口一律 GET，其它方法由框架直接返回 `405`（无响应体）；10 个公开接口另导出 `OPTIONS` 处理跨域预检。
+- 默认限流按「IP + 方法 + 路由模板」计数（`/api/v1/apis/[id]` 这一类合用一个桶），窗口 60 秒，阈值取 `RATE_LIMIT_PER_MIN`，超限返回 `429` 与 `Retry-After` 头。
 - 参数不合法返回 `422`，并在 `issues` 里点名字段。
-- 当前不下发 CORS 头，浏览器跨源调用会被拦截；同域页面可直接 `fetch`。
+- 请求带 `Origin` 且该来源在后台「安全设置 · CORS」里时，`/api` 响应才附 `Access-Control-Allow-Origin` 与 `Vary: Origin`。不下发 `Allow-Credentials`，控制台接口仍需同源调用。
+- 后台的 IP 黑名单命中直接 `403`；白名单只豁免频控与访问规则，不豁免黑名单。请求体上限、全局限额与「访问规则」页的策略都按配置在 `withApiHandler` 里执行，页面导航不参与这套判定。
+- 种子访问规则除「登录接口保护」外都是 `enabled: false`：规则现在真的会拦，默认启用比上面口径更严的种子值会让线上限额凭空变低，要开请在后台改。
 
 公开接口一览：
 
@@ -151,4 +156,4 @@ docs/API-TEMPLATE.md       新增接口与接口文档的写作规范
 
 **dev server 运行时不要执行 `npm run build`。** 两者共用 `.next`，生产产物会覆盖 dev 的构建缓存，导致样式失效甚至进程崩溃；恢复方式是删掉 `.next` 后重启。
 
-**改动后的校验顺序**：`npm run typecheck` → `npm run lint` → 用 `curl` 核对接口实际返回，文档与页面文案只写实测到的数字。
+**改动后的校验顺序**：`npm run typecheck` → `npm run lint` → `npm test` → 用 `curl` 核对接口实际返回，文档与页面文案只写实测到的数字。

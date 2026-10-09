@@ -9,7 +9,6 @@ export interface NavItem {
   label: string;
   href: string;
   icon: IconName;
-  badge?: number | string;
 }
 
 export interface NavGroup {
@@ -17,7 +16,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-/** 顶栏面包屑的当前视图名也从这份常量匹配出来；badge 是写死的展示值，不随数据变化 */
+/** 顶栏面包屑的当前视图名也从这份常量匹配出来。计数徽章已移除：写死的数字（16/6/2）与实际条数无关 */
 export const CONSOLE_NAV: NavGroup[] = [
   {
     group: '总览',
@@ -28,15 +27,15 @@ export const CONSOLE_NAV: NavGroup[] = [
   {
     group: '资源管理',
     items: [
-      { label: '接口管理', href: ROUTES.adminApis, icon: 'plug', badge: 16 },
-      { label: '访问规则', href: ROUTES.adminRules, icon: 'list', badge: 6 },
+      { label: '接口管理', href: ROUTES.adminApis, icon: 'plug' },
+      { label: '访问规则', href: ROUTES.adminRules, icon: 'list' },
       { label: '调用日志', href: ROUTES.adminLogs, icon: 'list' },
     ],
   },
   {
     group: '系统配置',
     items: [
-      { label: '安全配置', href: ROUTES.adminSecurity, icon: 'shield', badge: 2 },
+      { label: '安全配置', href: ROUTES.adminSecurity, icon: 'shield' },
       { label: '网站设置', href: ROUTES.adminSettings, icon: 'sliders' },
     ],
   },
@@ -70,16 +69,6 @@ export function ConsoleSidebar({ pathname }: ConsoleSidebarProps) {
               >
                 <Icon name={item.icon} size={16} />
                 <span className="flex-1">{item.label}</span>
-                {item.badge !== undefined && (
-                  <span
-                    className={cn(
-                      'rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold',
-                      isActive ? 'bg-white/20 text-white' : 'bg-sand text-muted',
-                    )}
-                  >
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}

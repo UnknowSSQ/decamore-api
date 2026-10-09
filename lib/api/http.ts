@@ -165,6 +165,9 @@ async function rawFetch<T>(path: string, options: RequestOptions, isRetry = fals
     emitSessionExpired('refresh_failed');
   }
 
+  // 204 按定义没有响应体，删除类接口成功就是空；走到下面会被当成「响应解析失败」
+  if (response.status === 204) return undefined as T;
+
   const text = await response.text();
   let payload: ApiResponse<T> | null = null;
   if (text) {

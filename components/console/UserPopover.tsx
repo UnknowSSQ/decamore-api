@@ -1,9 +1,8 @@
 'use client';
-import { useEffect } from 'react';
 import Link from 'next/link';
 
 import { Icon } from '@/components/ui/Icon';
-import { useClickOutside } from '@/hooks/useUi';
+import { useClickOutside, useHotkey } from '@/hooks/useUi';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/app';
 import type { AuthUser } from '@/types';
@@ -17,13 +16,8 @@ export function UserPopover({ user, onClose }: UserPopoverProps) {
   const { signOut } = useAuth();
   const ref = useClickOutside<HTMLDivElement>(onClose);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  // ignoreInputs=false：焦点在弹层外的搜索框里时 Esc 也该关掉弹层
+  useHotkey('Escape', onClose, { ignoreInputs: false });
 
   const handleSignOut = async () => {
     await signOut();

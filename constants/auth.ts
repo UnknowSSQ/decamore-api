@@ -67,18 +67,6 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   admin: Object.values(PERMISSIONS),
 };
 
-/** 免鉴权的接口路径，中间件与守卫共用这份口径 */
-export const PUBLIC_API_PATHS: readonly string[] = [
-  '/api/v1/auth/login',
-  '/api/v1/auth/refresh',
-  '/api/v1/auth/logout',
-  '/api/v1/hitokoto',
-  '/api/v1/plaza',
-];
-
-/** 免登录页面（中间件放行） */
-export const PUBLIC_PAGE_PATHS: readonly string[] = ['/', '/login', '/plaza', '/docs', '/favicon.ico', '/icon.svg'];
-
 /** 单位秒，勾选「7 天内免登录」时 refresh Cookie 的存活时长 */
 export const REMEMBER_SECONDS = 7 * 24 * 60 * 60;
 

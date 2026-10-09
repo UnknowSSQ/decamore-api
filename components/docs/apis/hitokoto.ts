@@ -1,6 +1,7 @@
 /** 接口文档内容；字段行为与数字均为 2026-10-08 实测 */
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
+import { headersSection } from '../commonSections';
 import type { ApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/hitokoto';
@@ -30,15 +31,15 @@ const sections: DocSection[] = [
         kind: 'table',
         variant: 'request',
         rows: [
-          { name: '请求方法', type: 'GET', description: [
+          { item: '请求方法', value: 'GET', description: [
             { type: 'text', value: '其他方法由框架直接返回 ' },
             { type: 'code', value: '405' },
             { type: 'text', value: '（无响应体，不经过业务信封）' },
           ]},
-          { name: '站内路径', type: '/api/v1/hitokoto', description: text('同源页面可直接相对路径调用') },
-          { name: '协议', type: 'HTTP / HTTPS', description: text('/') },
-          { name: '鉴权', type: '无需', description: text('匿名可调用，按 IP 限频'), required: 'na' },
-          { name: 'Content-Type', type: '—', description: text('无请求体，无需设置') },
+          { item: '站内路径', value: '/api/v1/hitokoto', description: text('同源页面可直接相对路径调用') },
+          { item: '协议', value: 'HTTP / HTTPS', description: text('/') },
+          { item: '鉴权', value: '无需', description: text('匿名可调用，按 IP 限频')  },
+          { item: 'Content-Type', value: '—', description: text('无请求体，无需设置') },
         ],
       },
     ],
@@ -55,7 +56,6 @@ const sections: DocSection[] = [
           {
             name: '/',
             type: '/',
-            required: 'na',
             defaultValue: '/',
             description: text('/'),
           },
@@ -132,68 +132,10 @@ const sections: DocSection[] = [
       },
     ],
   },
-  {
-    id: 'headers',
-    title: '响应头',
-    content: [
-      {
-        kind: 'table',
-        variant: 'headers',
-        rows: [
-          {
-            name: 'Content-Type',
-            type: '',
-            example: 'application/json; charset=utf-8',
-            description: text('固定为 JSON。当前不支持 JSONP，没有 text/javascript 分支。'),
-          },
-          {
-            name: 'Cache-Control',
-            type: '',
-            example: 'no-store, max-age=0',
-            description: text('随机接口默认不缓存；「同参数组合缓存 60 秒」为规划能力。'),
-          },
-          {
-            name: 'x-trace-id',
-            type: '',
-            example: 'muy8epbv-1e4189a2',
-            description: [
-              { type: 'text', value: '与 ' },
-              { type: 'code', value: 'requestId' },
-              { type: 'text', value: ' 同值，用于日志检索。' },
-            ],
-          },
-          {
-            name: 'x-request-id',
-            type: '',
-            example: 'muy8epbv-1e4189a2',
-            description: text('由边缘中间件生成的请求 ID，缺失时服务端另行生成。'),
-          },
-          {
-            name: 'Retry-After',
-            type: '',
-            example: '38',
-            description: [
-              { type: 'text', value: '仅在 ' },
-              { type: 'code', value: '429' },
-              { type: 'text', value: ' 时出现，单位秒。' },
-            ],
-          },
-          {
-            name: 'Access-Control-Allow-Origin',
-            type: '',
-            example: '（未下发）',
-            description: text('当前实现没有输出跨域头，浏览器跨源调用会被拦截；同域页面可直接 fetch。'),
-          },
-          {
-            name: 'X-Cache / X-RateLimit-*',
-            type: '',
-            example: '（未下发）',
-            description: text('缓存命中与配额计数响应头尚未实现，请勿依赖。'),
-          },
-        ],
-      },
-    ],
-  },
+  headersSection({
+    cache: text('随机接口默认不缓存；「同参数组合缓存 60 秒」为规划能力。'),
+    traceId: 'muy8epbv-1e4189a2',
+  }),
   {
     id: 'errors',
     title: '错误码',
@@ -208,16 +150,14 @@ const sections: DocSection[] = [
           {
             http: '405',
             statusCode: '—',
-            name: '方法不支持',
-            type: '',
+            label: '方法不支持',
             description: text('由框架直接返回，响应体为空'),
             suggestion: text('使用 GET 请求。'),
           },
           {
             http: '429',
             statusCode: '429',
-            name: '频率限制',
-            type: '',
+            label: '频率限制',
             description: [
               { type: 'text', value: 'message 为「请求过于频繁」，description 为「请在 N 秒后重试」，并带 ' },
               { type: 'code', value: 'Retry-After' },
@@ -228,8 +168,7 @@ const sections: DocSection[] = [
           {
             http: '500',
             statusCode: '500',
-            name: '服务端内部错误',
-            type: '',
+            label: '服务端内部错误',
             description: text('数据库异常'),
             suggestion: [
               { type: 'text', value: '重试 1 次；仍失败请携带 ' },
@@ -257,8 +196,8 @@ const sections: DocSection[] = [
         variant: 'limits',
         rows: [
           {
-            name: '调用频率',
-            type: '120 次 / 分钟 / IP',
+            item: '调用频率',
+            limit: '120 次 / 分钟 / IP',
             description: [
               { type: 'text', value: '按「IP + 方法 + 路径」固定窗口计数（窗口 60 秒），阈值取自环境变量 ' },
               { type: 'code', value: 'RATE_LIMIT_PER_MIN' },
@@ -268,19 +207,19 @@ const sections: DocSection[] = [
             ],
           },
           {
-            name: '并发建议',
-            type: '≤ 2 QPS',
+            item: '并发建议',
+            limit: '≤ 2 QPS',
             description: text('批量场景请串行或合并请求，与默认阈值保持余量。'),
           },
           {
-            name: '服务端缓存',
-            type: '未实现',
+            item: '服务端缓存',
+            limit: '未实现',
             description: text('响应本身不缓存，Cache-Control 为 no-store，也不下发 X-Cache。'),
           },
-          { name: '客户端建议', type: '≥ 30 s', description: text('避免高频抖动与重复请求。') },
+          { item: '客户端建议', limit: '≥ 30 s', description: text('避免高频抖动与重复请求。') },
           {
-            name: '超时与重试',
-            type: '建议 3 s / 1 次',
+            item: '超时与重试',
+            limit: '建议 3 s / 1 次',
             description: [
               { type: 'text', value: '仅对 ' },
               { type: 'code', value: '5xx' },
@@ -302,8 +241,8 @@ const sections: DocSection[] = [
         variant: 'changelog',
         rows: [
           {
-            name: '2026-10-07',
-            type: 'v1.0',
+            date: '2026-10-07',
+            version: 'v1.0',
             description: text('一言接口上线。'),
           },
         ],

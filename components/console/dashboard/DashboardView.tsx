@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Kicker, Panel, PanelTitle, Skeleton } from '@/components/ui/Panel';
@@ -121,10 +121,14 @@ export function DashboardView({ autoRefreshSec = 30 }: { autoRefreshSec?: number
   const toast = useToast();
   const { now, ready } = useNow();
 
-  const { data, loading, error, run: _run, refetch } = useRequest(
-    () => fetchDashboard(range),
-    { immediate: true },
-  );
+  // fetcher 保持稳定，run 才不会被每次渲染换掉，下面的 effect 才敢把它写进依赖
+  const fetchRange = useCallback((next: RangeValue) => fetchDashboard(next), []);
+  const { data, loading, error, run, refetch } = useRequest(fetchRange);
+
+  // 只 setRange 不发请求的话，新区间要等下一次轮询才拿到，关掉自动刷新就永远停在旧区间
+  useEffect(() => {
+    void run(range);
+  }, [range, run]);
 
   // 轮询间隔来自后台「站点设置 · 自动刷新」，0 或小于 1 秒视为关闭
   usePolling(refetch, Math.max(0, autoRefreshSec) * 1000);

@@ -1,9 +1,12 @@
+import { Suspense } from 'react';
+
 import type { Metadata } from 'next';
 
 import Link from 'next/link';
 
 import { ROUTES } from '@/constants/app';
 import { Brand } from '@/components/ui/Brand';
+import { Skeleton } from '@/components/ui';
 import { LoginForm } from '@/components/auth/LoginForm';
 
 export const metadata: Metadata = {
@@ -64,7 +67,10 @@ export default function LoginPage() {
           </span>
         </header>
 
-        <LoginForm />
+        {/* LoginForm 读 useSearchParams，缺 Suspense 边界会把整页降级成客户端渲染 */}
+        <Suspense fallback={<Skeleton className="h-[220px] w-full rounded-lg" />}>
+          <LoginForm />
+        </Suspense>
       </main>
 
       <footer className="relative z-10 flex flex-wrap items-center justify-center gap-[18px] text-[11px] text-[#98a098]">

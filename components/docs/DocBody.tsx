@@ -30,7 +30,7 @@ function renderContent(item: SectionContent, index: number) {
       );
 
     case 'table':
-      return <DocTable key={index} variant={item.variant} rows={item.rows} />;
+      return <DocTable key={index} node={item} />;
 
     case 'callout':
       return (

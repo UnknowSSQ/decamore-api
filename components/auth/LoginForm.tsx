@@ -158,7 +158,7 @@ export function LoginForm() {
 
       <Callout tone="info" size="sm" className="mt-4">
         <p className="text-[11px] leading-[1.7]">
-          <strong>演示账号：</strong>admin / Decamore@2026
+          <strong>演示账号：</strong>admin，口令见 <code className="font-mono">lib/server/mock/users.ts</code>（仅本地登录用）。
         </p>
       </Callout>
     </form>

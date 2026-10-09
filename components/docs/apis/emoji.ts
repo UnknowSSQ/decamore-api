@@ -1,6 +1,7 @@
 /** 接口文档内容；字段行为与数字均为 2026-10-08 实测 */
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
+import { headersSection } from '../commonSections';
 import type { ApiDoc, CodePaneData, DocSection } from '../types';
 
 const path = '/api/v1/emoji';
@@ -32,15 +33,15 @@ const sections: DocSection[] = [
         kind: 'table',
         variant: 'request',
         rows: [
-          { name: '请求方法', type: 'GET', description: [
+          { item: '请求方法', value: 'GET', description: [
             { type: 'text', value: '其他方法由框架直接返回 ' },
             { type: 'code', value: '405' },
             { type: 'text', value: '（无响应体，不经过业务信封）' },
           ]},
-          { name: '站内路径', type: '/api/v1/emoji', description: text('同源页面可直接相对路径调用') },
-          { name: '协议', type: 'HTTP / HTTPS', description: text('/') },
-          { name: '鉴权', type: '无需', description: text('匿名可调用，按 IP 限频'), required: 'na' },
-          { name: 'Content-Type', type: '—', description: text('无请求体，无需设置') },
+          { item: '站内路径', value: '/api/v1/emoji', description: text('同源页面可直接相对路径调用') },
+          { item: '协议', value: 'HTTP / HTTPS', description: text('/') },
+          { item: '鉴权', value: '无需', description: text('匿名可调用，按 IP 限频')  },
+          { item: 'Content-Type', value: '—', description: text('无请求体，无需设置') },
         ],
       },
     ],
@@ -136,68 +137,10 @@ const sections: DocSection[] = [
       },
     ],
   },
-  {
-    id: 'headers',
-    title: '响应头',
-    content: [
-      {
-        kind: 'table',
-        variant: 'headers',
-        rows: [
-          {
-            name: 'Content-Type',
-            type: '',
-            example: 'application/json; charset=utf-8',
-            description: text('固定为 JSON，不支持 JSONP。'),
-          },
-          {
-            name: 'Cache-Control',
-            type: '',
-            example: 'no-store, max-age=0',
-            description: text('接口响应不缓存；图片本体走站内静态资源'),
-          },
-          {
-            name: 'x-trace-id',
-            type: '',
-            example: 'muzih0k1-2c4a77de',
-            description: [
-              { type: 'text', value: '与 ' },
-              { type: 'code', value: 'requestId' },
-              { type: 'text', value: ' 同值，用于日志检索。' },
-            ],
-          },
-          {
-            name: 'x-request-id',
-            type: '',
-            example: 'muzih0k1-2c4a77de',
-            description: text('由边缘中间件生成的请求 ID，缺失时服务端另行生成。'),
-          },
-          {
-            name: 'Retry-After',
-            type: '',
-            example: '38',
-            description: [
-              { type: 'text', value: '仅在 ' },
-              { type: 'code', value: '429' },
-              { type: 'text', value: ' 时出现，单位秒。' },
-            ],
-          },
-          {
-            name: 'Access-Control-Allow-Origin',
-            type: '',
-            example: '（未下发）',
-            description: text('当前实现没有输出跨域头，浏览器跨源调用会被拦截；同域页面可直接 fetch。'),
-          },
-          {
-            name: 'X-Cache / X-RateLimit-*',
-            type: '',
-            example: '（未下发）',
-            description: text('缓存命中看响应里的 cached 字段，剩余配额的计数头还没实现。'),
-          },
-        ],
-      },
-    ],
-  },
+  headersSection({
+    cache: text('接口响应不缓存；图片本体走站内静态资源'),
+    traceId: 'muzih0k1-2c4a77de',
+  }),
   {
     id: 'errors',
     title: '错误码',
@@ -212,16 +155,14 @@ const sections: DocSection[] = [
           {
             http: '405',
             statusCode: '—',
-            name: '方法不支持',
-            type: '',
+            label: '方法不支持',
             description: text('由框架直接返回，响应体为空'),
             suggestion: text('使用 GET 请求。'),
           },
           {
             http: '422',
             statusCode: '422',
-            name: '参数不合法',
-            type: '',
+            label: '参数不合法',
             description: [
               { type: 'text', value: 'message 为「type 只能是 menhera（表情包目前只有这一类）」，并带 ' },
               { type: 'code', value: 'issues' },
@@ -232,8 +173,7 @@ const sections: DocSection[] = [
           {
             http: '429',
             statusCode: '429',
-            name: '频率限制',
-            type: '',
+            label: '频率限制',
             description: [
               { type: 'text', value: 'message 为「请求过于频繁」，description 为「请在 N 秒后重试」，并带 ' },
               { type: 'code', value: 'Retry-After' },
@@ -244,8 +184,7 @@ const sections: DocSection[] = [
           {
             http: '500',
             statusCode: '500',
-            name: '资源不可用',
-            type: '',
+            label: '资源不可用',
             description: text('message 为「表情包资源不可用」，description 会指出是哪个目录空了或不存在'),
             suggestion: text('确认 public/assets/emoji/<type> 里有图片文件。'),
           },
@@ -269,8 +208,8 @@ const sections: DocSection[] = [
         variant: 'limits',
         rows: [
           {
-            name: '调用频率',
-            type: '120 次 / 分钟 / IP',
+            item: '调用频率',
+            limit: '120 次 / 分钟 / IP',
             description: [
               { type: 'text', value: '按「IP + 方法 + 路径」固定窗口计数（窗口 60 秒），阈值取自环境变量 ' },
               { type: 'code', value: 'RATE_LIMIT_PER_MIN' },
@@ -280,23 +219,23 @@ const sections: DocSection[] = [
             ],
           },
           {
-            name: '目录缓存',
-            type: '10 分钟 / 每类型',
+            item: '目录缓存',
+            limit: '10 分钟 / 每类型',
             description: text('每个类型各存一份清单，命中时 cached=true；'),
           },
           {
-            name: '缓存实现',
-            type: '进程内存',
+            item: '缓存实现',
+            limit: '进程内存',
             description: text('单进程内存表'),
           },
           {
-            name: '新资源生效',
-            type: '最长 10 分钟',
+            item: '新资源生效',
+            limit: '最长 10 分钟',
             description: text('往目录里丢新图不用重启，但也要等缓存过期才会进清单。'),
           },
           {
-            name: '超时与重试',
-            type: '建议 3 s / 1 次',
+            item: '超时与重试',
+            limit: '建议 3 s / 1 次',
             description: [
               { type: 'text', value: '纯本地扫盘，没有上游；客户端只对 ' },
               { type: 'code', value: '5xx' },
@@ -318,8 +257,8 @@ const sections: DocSection[] = [
         variant: 'changelog',
         rows: [
           {
-            name: '2026-10-08',
-            type: 'v1.0',
+            date: '2026-10-08',
+            version: 'v1.0',
             description: text('表情包接口上线：返回 menhera 类的贴图清单与访问地址，目录列表服务端缓存 10 分钟。'),
           },
         ],

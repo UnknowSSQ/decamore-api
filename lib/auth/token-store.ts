@@ -8,10 +8,17 @@ import { STORAGE_KEYS, REFRESH_LEEWAY_MS } from '@/constants/auth';
 import type { AuthUser, TokenStorageMode } from '@/types';
 
 // 模块加载时定型，运行期换模式要整页刷新
-const MODE: TokenStorageMode =
-  (typeof window !== 'undefined' ? window.localStorage.getItem('decamore.tokenMode') : null) === 'local'
-    ? 'local'
-    : 'cookie';
+const MODE: TokenStorageMode = readStoredMode() === 'local' ? 'local' : 'cookie';
+
+/** 这一句跑在 import 阶段，隐私模式禁用存储时 getItem 会抛，不能让整包一起挂 */
+function readStoredMode(): string | null {
+  if (!isBrowser()) return null;
+  try {
+    return window.localStorage.getItem('decamore.tokenMode');
+  } catch {
+    return null;
+  }
+}
 
 /** localStorage 抛异常时的内存兜底 */
 const memory = new Map<string, string>();

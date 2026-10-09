@@ -1,9 +1,10 @@
 'use client';
 /** createPortal 挂到 document.body，避免被父级 transform / overflow 裁剪 */
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { cn } from '@/utils/cn';
+import { Button } from './Button';
 
 /** SSR 阶段没有 document，挂载之后才能渲染 portal */
 function useMounted(): boolean {
@@ -124,6 +125,8 @@ export function Modal({
   width = 'max-w-[520px]',
 }: BaseLayerProps & { width?: string }) {
   const mounted = useMounted();
+  // 标题 id 必须每次实例都不同：表单 Modal 上叠删除 ConfirmModal 时，写死的 id 会让 aria-labelledby 指向另一个弹层
+  const titleId = useId();
   const { panelRef, onOverlayClick } = useLayerBehavior({ open, onClose, dismissOnOverlay });
   if (!mounted || !open) return null;
 
@@ -138,7 +141,7 @@ export function Modal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'dc-modal-title' : undefined}
+        aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
           'relative flex max-h-[86vh] w-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-pop animate-fade-up',
@@ -146,7 +149,7 @@ export function Modal({
           className,
         )}
       >
-        <LayerTitle id="dc-modal-title" title={title} description={description} onClose={onClose} />
+        <LayerTitle id={titleId} title={title} description={description} onClose={onClose} />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
         {footer && <footer className="flex items-center justify-end gap-2 border-t border-line bg-bg-soft/60 px-5 py-3.5">{footer}</footer>}
       </div>
@@ -168,6 +171,7 @@ export function Drawer({
   width = 'w-[min(420px,100vw)]',
 }: BaseLayerProps & { side?: 'left' | 'right'; width?: string }) {
   const mounted = useMounted();
+  const titleId = useId();
   const { panelRef, onOverlayClick } = useLayerBehavior({ open, onClose, dismissOnOverlay });
   if (!mounted || !open) return null;
 
@@ -178,7 +182,7 @@ export function Drawer({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dc-drawer-title"
+        aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
           'absolute top-0 bottom-0 flex flex-col border-line bg-surface shadow-pop',
@@ -187,7 +191,7 @@ export function Drawer({
           className,
         )}
       >
-        <LayerTitle id="dc-drawer-title" title={title} description={description} onClose={onClose} />
+        <LayerTitle id={titleId} title={title} description={description} onClose={onClose} />
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
         {footer && <footer className="border-t border-line bg-bg-soft/60 px-5 py-3.5">{footer}</footer>}
       </div>
@@ -226,25 +230,19 @@ export function ConfirmModal({
       width="max-w-[420px]"
       footer={
         <>
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-9 rounded-full border border-line px-4 text-[12.5px] text-muted transition-colors hover:border-primary hover:text-primary"
-          >
+          <Button variant="outline" size="md" onClick={onClose}>
             {cancelText}
-          </button>
-          <button
-            type="button"
-            data-autofocus
+          </Button>
+          {/* data-autofocus 让焦点陷阱的初始落点在确认键上，破坏性操作少一次 Tab */}
+          <Button
+            variant={danger ? 'danger' : 'primary'}
+            size="md"
+            data-autofocus=""
             disabled={loading}
             onClick={() => void onConfirm()}
-            className={cn(
-              'h-9 rounded-full px-4 text-[12.5px] font-semibold text-[#fffefa] transition-all disabled:opacity-60',
-              danger ? 'bg-danger hover:brightness-95' : 'bg-primary hover:bg-primary-dark',
-            )}
           >
             {loading ? '处理中…' : confirmText}
-          </button>
+          </Button>
         </>
       }
     >

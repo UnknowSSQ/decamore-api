@@ -32,11 +32,11 @@ import type {
 import type { z } from 'zod';
 import type {
   ApiListQuery,
+  RuleListQuery,
   createApiSchema,
   createRuleSchema,
   exportReportBodySchema,
   logListQuerySchema,
-  ruleListQuerySchema,
   securityPatchSchema,
   siteSettingsPatchSchema,
   updateApiSchema,
@@ -66,10 +66,10 @@ export function updateManagedApi(id: string, body: z.infer<typeof updateApiSchem
 }
 
 export function deleteManagedApi(id: string) {
-  return http.delete<{ id: string }>(API.console.apiDetail(id));
+  return http.delete<void>(API.console.apiDetail(id));
 }
 
-export function fetchRules(query: z.infer<typeof ruleListQuerySchema> = { page: 1, pageSize: 20 }) {
+export function fetchRules(query: Partial<RuleListQuery> = {}) {
   return http.get<Paged<AccessRule>>(API.console.rules, { query });
 }
 
@@ -82,7 +82,7 @@ export function updateRule(id: string, body: z.infer<typeof updateRuleSchema>) {
 }
 
 export function deleteRule(id: string) {
-  return http.delete<{ id: string }>(API.console.ruleDetail(id));
+  return http.delete<void>(API.console.ruleDetail(id));
 }
 
 export function fetchLogs(query: Partial<z.infer<typeof logListQuerySchema>> = {}) {
@@ -103,7 +103,7 @@ export function saveIpWhitelist(list: string[]) {
 }
 
 export function removeIpWhitelist(ip: string) {
-  return http.delete<{ ipWhitelist: string[] }>(API.console.ipWhitelist, { query: { ip } });
+  return http.delete<void>(API.console.ipWhitelist, { query: { ip } });
 }
 
 export function saveIpBlacklist(list: string[]) {
@@ -111,7 +111,7 @@ export function saveIpBlacklist(list: string[]) {
 }
 
 export function removeIpBlacklist(ip: string) {
-  return http.delete<{ ipBlacklist: string[] }>(API.console.ipBlacklist, { query: { ip } });
+  return http.delete<void>(API.console.ipBlacklist, { query: { ip } });
 }
 
 export function saveCorsOrigins(origins: string[]) {
@@ -136,11 +136,9 @@ export function markNotificationRead(id: string) {
   return http.post<{ id: string; read: true }>(`${API.console.notifications}/${encodeURIComponent(id)}/read`, {});
 }
 
-/** 读的是 lib/server/stats.ts 的内存环形缓冲 */
-export function fetchApiStats(sinceMs?: number) {
-  return http.get<{ aggregate: unknown; records: unknown[] }>(API.console.stats, {
-    query: { since: sinceMs },
-  });
+/** 返回本次真正翻成已读的条数 */
+export function markAllNotificationsRead() {
+  return http.post<{ changed: number }>(API.console.notificationsReadAll, {});
 }
 
 export function fetchAnswerbook() {

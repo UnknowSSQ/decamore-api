@@ -78,16 +78,15 @@ function skeletonSections(item: ApiCatalogItem): DocSection[] {
           variant: 'request' as const,
           rows: [
             {
-              name: '请求方法',
-              type: item.method,
+              item: '请求方法',
+              value: item.method,
               description: text('以接口车单登记为准，实现后若有变更会同步本页。'),
             },
-            { name: '站内路径', type: item.path, description: text('同源页面可相对路径调用。') },
+            { item: '站内路径', value: item.path, description: text('同源页面可相对路径调用。') },
             {
-              name: '鉴权',
-              type: '规划免鉴权',
+              item: '鉴权',
+              value: '规划免鉴权',
               description: text('趣味与工具类接口计划全部匿名可调用，按 IP 限频。'),
-              required: 'na' as const,
             },
           ],
         },
@@ -123,8 +122,8 @@ function skeletonSections(item: ApiCatalogItem): DocSection[] {
           variant: 'changelog' as const,
           rows: [
             {
-              name: '—',
-              type: '待发布',
+              date: '—',
+              version: '待发布',
               description: text('该接口文档尚未撰写，暂无变更记录。'),
             },
           ],

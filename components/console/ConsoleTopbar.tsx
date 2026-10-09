@@ -13,6 +13,8 @@ import type { AuthUser } from '@/types';
 
 export interface ConsoleTopbarProps {
   user: AuthUser;
+  /** 抽屉开合归 ConsoleShell，按钮要如实报出它的状态 */
+  navOpen: boolean;
   onOpenNav: () => void;
 }
 
@@ -26,7 +28,7 @@ function getViewLabel(pathname: string): string {
   return '仪表盘';
 }
 
-export function ConsoleTopbar({ user, onOpenNav }: ConsoleTopbarProps) {
+export function ConsoleTopbar({ user, navOpen, onOpenNav }: ConsoleTopbarProps) {
   const pathname = usePathname();
   const viewLabel = getViewLabel(pathname);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -50,8 +52,7 @@ export function ConsoleTopbar({ user, onOpenNav }: ConsoleTopbarProps) {
           onClick={onOpenNav}
           className="grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-muted transition-colors hover:border-primary hover:text-primary lg:hidden"
           aria-label="打开导航菜单"
-          // 抽屉的展开态归 ConsoleShell，这里读不到，恒为 false
-          aria-expanded={false}
+          aria-expanded={navOpen}
         >
           <Icon name="menu" size={18} />
         </button>

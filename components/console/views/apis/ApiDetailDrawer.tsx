@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Button, CodeWindow, Drawer, MethodBadge, Switch } from '@/components/ui';
 import { useToast } from '@/hooks/useToast';
 import { updateManagedApi } from '@/lib/api';
-import { API_CATALOG } from '@/constants/api-catalog';
 import { docApiHref } from '@/constants/app';
 import type { ManagedApi } from '@/types';
 import { formatNumber, formatPercent } from '@/utils/format';
@@ -16,9 +15,14 @@ export interface ApiDetailDrawerProps {
   onRefresh: () => void;
 }
 
-/** ManagedApi 类型里没有 description，只能按 path 回查静态目录 */
-function findDesc(path: string): string {
-  return API_CATALOG.find((c) => c.path === path)?.desc ?? '—';
+/** 指标卡的统一形状，四张一起排 */
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-line bg-bg-soft/40 p-3">
+      <span className="text-[10.5px] uppercase tracking-wider text-muted">{label}</span>
+      <span className="font-mono text-[18px] font-semibold text-ink">{value}</span>
+    </div>
+  );
 }
 
 /** curl 与响应体都是前端拼的示例骨架，不是后端返回的真实结构 */
@@ -104,31 +108,14 @@ export function ApiDetailDrawer({ api, open, onClose, onRefresh }: ApiDetailDraw
     >
       <div className="space-y-4">
         <div className="grid grid-cols-4 gap-3">
-          <div className="flex flex-col gap-1 rounded-lg border border-line bg-bg-soft/40 p-3">
-            <span className="text-[10.5px] uppercase tracking-wider text-muted">调用 24h</span>
-            <span className="font-mono text-[18px] font-semibold text-ink">
-              {formatNumber(api.calls24h)}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 rounded-lg border border-line bg-bg-soft/40 p-3">
-            <span className="text-[10.5px] uppercase tracking-wider text-muted">P95 延迟</span>
-            <span className="font-mono text-[18px] font-semibold text-ink">{api.avgLatencyMs}ms</span>
-          </div>
-          <div className="flex flex-col gap-1 rounded-lg border border-line bg-bg-soft/40 p-3">
-            <span className="text-[10.5px] uppercase tracking-wider text-muted">错误率</span>
-            <span className="font-mono text-[18px] font-semibold text-ink">
-              {formatPercent(api.errorRate, 2)}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 rounded-lg border border-line bg-bg-soft/40 p-3">
-            <span className="text-[10.5px] uppercase tracking-wider text-muted">可用性</span>
-            <span className="font-mono text-[18px] font-semibold text-ink">
-              {formatPercent(99.9 - api.errorRate / 10, 2)}
-            </span>
-          </div>
+          <Metric label="调用 24h" value={formatNumber(api.calls24h)} />
+          <Metric label="平均耗时" value={`${api.avgLatencyMs}ms`} />
+          <Metric label="错误率" value={formatPercent(api.errorRate, 2)} />
+          {/* 数字来自本进程的调用环形缓冲（24h 窗口、最多 500 条），没有记录就是 0，不是估算 */}
+          <Metric label="采样范围" value="本进程 24h" />
         </div>
 
-        <p className="text-[12.5px] leading-relaxed text-muted">{findDesc(api.path)}</p>
+        <p className="text-[12.5px] leading-relaxed text-muted">{api.description || '—'}</p>
 
         <CodeWindow
           code={buildApiCode(api)}
