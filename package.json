@@ -4,7 +4,8 @@
   "private": true,
   "description": "Decamore API — 对外公开 JSON 接口的站点与管理控制台（Next.js App Router + Zod 校验 + 运行时安全策略）",
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "next dev -H 0.0.0.0 --turbopack",
+    "dev:webpack": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",

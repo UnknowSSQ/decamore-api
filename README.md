@@ -35,7 +35,7 @@ openssl rand -base64 48
 
 | 命令 | 作用 |
 | --- | --- |
-| `npm run dev` | 开发服务器（`-H 0.0.0.0`） |
+| `npm run dev` | 开发服务器（Turbopack，`-H 0.0.0.0`）；`npm run dev:webpack` 回退 webpack 编译 |
 | `npm run build` | 生产构建 |
 | `npm run start` | 运行构建产物 |
 | `npm run typecheck` | `tsc --noEmit` |
@@ -155,5 +155,7 @@ docs/API-TEMPLATE.md       新增接口与接口文档的写作规范
 **控制台写接口需要鉴权与 CSRF 头。** 非 GET 的控制台接口除 Cookie 外还要带 `X-CSRF-Token`（与 `csrf` Cookie 双提交比对），纯 token 客户端不带该 Cookie 时跳过比对。
 
 **dev server 运行时不要执行 `npm run build`。** 两者共用 `.next`，生产产物会覆盖 dev 的构建缓存，导致样式失效甚至进程崩溃；恢复方式是删掉 `.next` 后重启。
+
+**dev 用 Turbopack，build 仍走 webpack。** 页面「打开就慢」的量级全部来自 dev 的按需编译，不是服务端：同一台机器冷启后首访 `/` 4.77s、`/plaza` 1.84s、`/docs/hotsearch` 1.83s、`/login` 1.48s，换 Turbopack 后是 0.38s / 0.32s / 0.52s / 0.15s；生产 `next start` 的 TTFB 只有 9–27ms。两边打包器不同，所以只在生产出现的构建问题（例如 chunk 拆分）dev 里看不出来，发布前跑一次 `npm run build`。
 
 **改动后的校验顺序**：`npm run typecheck` → `npm run lint` → `npm test` → 用 `curl` 核对接口实际返回，文档与页面文案只写实测到的数字。
