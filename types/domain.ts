@@ -145,6 +145,8 @@ export interface StaticAssetItem {
   /** 字节数；扫描时取不到为 null */
   size: number | null;
   url: string;
+  /** 224px 宽的 webp 派生图；目录里没有对应文件时不下发该字段 */
+  thumbUrl?: string;
 }
 
 export interface StaticAssetList<TType extends string = string> {

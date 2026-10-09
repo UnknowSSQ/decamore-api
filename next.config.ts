@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
    */
   headers: async () => [
     {
-      source: '/assets/:dir(wallpaper|wallpaper-thumb|images|avatar|emoji)/:path*',
+      source: '/assets/:dir(wallpaper|wallpaper-thumb|images|images-thumb|avatar|avatar-thumb|emoji|emoji-thumb)/:path*',
       headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
     },
     {

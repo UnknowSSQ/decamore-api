@@ -108,6 +108,7 @@ const sections: DocSection[] = [
           { name: 'format', type: 'string', description: text('扩展名小写，目前全是 jpg'), isChild: true },
           { name: 'size', type: 'integer | null', description: text('文件字节数，单张 18–93 KB'), isChild: true },
           { name: 'url', type: 'string', description: text('绝对访问地址，直接给 img.src'), isChild: true },
+          { name: 'thumbUrl', type: 'string', description: text('448px 宽的 webp 派生图，1.7–9.8 KB'), isChild: true },
           { name: 'meta', type: 'object', description: text('调用元信息，用于日志检索与时序判断。') },
           {
             name: 'requestId',

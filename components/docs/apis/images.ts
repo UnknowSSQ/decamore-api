@@ -113,6 +113,7 @@ const sections: DocSection[] = [
             isChild: true,
           },
           { name: 'url', type: 'string', description: text('绝对访问地址，直接给 img.src'), isChild: true },
+          { name: 'thumbUrl', type: 'string', description: text('448px 宽的 webp 派生图，8.2–51.1 KB，约为原图的 1/6'), isChild: true },
           { name: 'meta', type: 'object', description: text('调用元信息，用于日志检索与时序判断。') },
           {
             name: 'requestId',

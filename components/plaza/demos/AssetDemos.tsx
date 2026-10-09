@@ -59,7 +59,7 @@ function AssetDeck<TType extends string>({ seed, order, label, fetcher, layout }
           <span key={item.id} className="plaza-demo-tile">
             {/* 站内静态资源，原生 img 足够；换 next/image 还得为将来的 CDN 再配一次域名 */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="plaza-demo-tile-img" src={item.url} alt="" decoding="async" loading="lazy" />
+            <img className="plaza-demo-tile-img" src={item.thumbUrl ?? item.url} alt="" decoding="async" loading="lazy" />
           </span>
         ))}
         <span className="plaza-demo-tiles-badge">{caption}</span>
@@ -72,7 +72,7 @@ function AssetDeck<TType extends string>({ seed, order, label, fetcher, layout }
       {picks[0] && (
         // 站内静态资源，原生 img 足够；换 next/image 还得为将来的 CDN 再配一次域名
         // eslint-disable-next-line @next/next/no-img-element
-        <img className="plaza-demo-photo-img" src={picks[0].url} alt="" decoding="async" />
+        <img className="plaza-demo-photo-img" src={picks[0].thumbUrl ?? picks[0].url} alt="" decoding="async" />
       )}
       <span className="plaza-demo-photo-caption">{caption}</span>
     </div>

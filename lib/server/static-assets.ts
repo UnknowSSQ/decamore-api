@@ -24,8 +24,19 @@ function assetUrl(category: AssetCategory, type: string, file: string): string {
   return `${origin}/assets/${CATEGORY_DIR[category]}/${encodeURIComponent(type)}/${encodeURIComponent(file)}`;
 }
 
+/** 派生图目录是 <category>-thumb，由 scripts/make-thumbs.mjs 生成；缺文件就不下发字段 */
+function thumbFileOf(name: string): string {
+  return `${name.replace(/\.[a-z0-9]+$/i, '')}.webp`;
+}
+
+function thumbAssetUrl(category: AssetCategory, type: string, thumbName: string): string {
+  const origin = siteUrl().replace(/\/$/, '');
+  return `${origin}/assets/${CATEGORY_DIR[category]}-thumb/${encodeURIComponent(type)}/${encodeURIComponent(thumbName)}`;
+}
+
 async function scanType(category: AssetCategory, type: string): Promise<StaticAssetItem[]> {
   const dir = path.join(process.cwd(), 'public', 'assets', CATEGORY_DIR[category], type);
+  const thumbDir = path.join(process.cwd(), 'public', 'assets', `${CATEGORY_DIR[category]}-thumb`, type);
   // 目录读不到时得到空列表，由调用侧统一转成 500
   const names = await readdir(dir).catch(() => [] as string[]);
 
@@ -35,12 +46,17 @@ async function scanType(category: AssetCategory, type: string): Promise<StaticAs
     if (!ALLOWED_EXT.has(ext)) continue;
     const entry = await stat(path.join(dir, name)).catch(() => null);
     if (!entry?.isFile()) continue;
+    const thumb = thumbFileOf(name);
+    const hasThumb = await stat(path.join(thumbDir, thumb))
+      .then((s) => s.isFile())
+      .catch(() => false);
     items.push({
       id: name.replace(/\.[a-z0-9]+$/i, ''),
       file: name,
       format: ext,
       size: entry.size,
       url: assetUrl(category, type, name),
+      ...(hasThumb ? { thumbUrl: thumbAssetUrl(category, type, thumb) } : {}),
     });
   }
   return items;

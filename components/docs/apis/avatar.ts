@@ -123,6 +123,12 @@ const sections: DocSection[] = [
             description: text('绝对访问地址，直接给 img.src。三类都是方图，套圆形容器只切掉一点点边'),
             isChild: true,
           },
+          {
+            name: 'thumbUrl',
+            type: 'string',
+            description: text('224px 宽的 webp 派生图，1.6–9.6 KB；原图单张约 100 KB，小尺寸展示位优先用它'),
+            isChild: true,
+          },
           { name: 'meta', type: 'object', description: text('调用元信息，用于日志检索与时序判断。') },
           {
             name: 'requestId',
