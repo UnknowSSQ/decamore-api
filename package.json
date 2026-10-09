@@ -11,6 +11,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --import ./tests/register.mjs --import tsx --test \"tests/*.test.ts\"",
+    "thumbs": "node scripts/make-thumbs.mjs",
     "env:check": "tsx scripts/check-env.ts"
   },
   "dependencies": {

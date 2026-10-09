@@ -42,6 +42,7 @@ openssl rand -base64 48
 | `npm run lint` | `next lint` |
 | `npm test` | Node 内置 test runner 跑 `tests/*.test.ts`（tsx 编译，`tests/register.mjs` 把 `server-only` 打成空模块） |
 | `npm run env:check` | 校验环境变量是否齐全 |
+| `npm run thumbs` | 为 `public/assets/{avatar,emoji,images}` 生成 `*-thumb` 派生图；新增素材后跑一次，缺图 `npm test` 会红 |
 
 ## 环境变量
 
