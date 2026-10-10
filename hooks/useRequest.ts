@@ -8,9 +8,6 @@ import { useToast } from './useToast';
 
 export interface UseRequestOptions {
   immediate?: boolean;
-  /** 表单类错误要内联展示时关掉自动 toast */
-  toastError?: boolean;
-  successMessage?: string;
 }
 
 export interface UseRequestResult<TArgs extends unknown[], TData> {
@@ -22,8 +19,7 @@ export interface UseRequestResult<TArgs extends unknown[], TData> {
   pending: boolean;
   run: (...args: TArgs) => Promise<TData | undefined>;
   refetch: () => Promise<TData | undefined>;
-  reset: () => void;
-  /** 状态本体是 TData | undefined（reset 会写回 undefined），所以更新函数也允许返回 undefined */
+  /** 状态本体是 TData | undefined，调用方要清空就直接传 undefined */
   setData: (updater: TData | undefined | ((prev: TData | undefined) => TData | undefined)) => void;
 }
 
@@ -31,7 +27,7 @@ export function useRequest<TArgs extends unknown[], TData>(
   fetcher: (...args: TArgs) => Promise<TData>,
   options: UseRequestOptions = {},
 ): UseRequestResult<TArgs, TData> {
-  const { immediate = false, toastError = true, successMessage } = options;
+  const { immediate = false } = options;
   const toast = useToast();
 
   const [data, setData] = useState<TData | undefined>(undefined);
@@ -66,14 +62,13 @@ export function useRequest<TArgs extends unknown[], TData>(
         if (!mounted.current || ticket !== seq.current) return undefined;
         hasDataRef.current = true;
         setData(result);
-        if (successMessage) toast.success(successMessage);
         return result;
       } catch (err: unknown) {
         if (!mounted.current || ticket !== seq.current) return undefined;
         const requestError =
           err instanceof RequestError ? err : new RequestError({ status: 0, code: 'SERVER', message: '请求失败' });
         setError(requestError);
-        if (toastError) toast.error(requestError.message, requestError.description);
+        toast.error(requestError.message, requestError.description);
         return undefined;
       } finally {
         if (mounted.current && ticket === seq.current) {
@@ -82,7 +77,7 @@ export function useRequest<TArgs extends unknown[], TData>(
         }
       }
     },
-    [fetcher, successMessage, toast, toastError],
+    [fetcher, toast],
   );
 
   const refetch = useCallback(() => {
@@ -90,22 +85,13 @@ export function useRequest<TArgs extends unknown[], TData>(
     return args ? run(...args) : Promise.resolve(undefined);
   }, [run]);
 
-  const reset = useCallback(() => {
-    seq.current += 1; // 丢弃进行中的结果
-    hasDataRef.current = false;
-    setData(undefined);
-    setError(undefined);
-    setLoading(false);
-    setPending(false);
-  }, []);
-
   useEffect(() => {
     if (immediate) void run(...([] as unknown as TArgs));
     // 仅在挂载时执行一次；参数变化由调用方通过 run 显式触发
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [immediate]);
 
-  return { data, error, loading, pending, run, refetch, reset, setData };
+  return { data, error, loading, pending, run, refetch, setData };
 }
 
 /** intervalMs 不足 1000 视为关闭轮询 */

@@ -1,5 +1,5 @@
 /** 登录 / 续期 / 登出必须关掉 401 自动续期，否则会递归打爆刷新接口 */
-import type { AuthUser, LoginResult, MeResult, RefreshResult } from '@/types';
+import type { AuthUser, LoginResult, MeResult, Paged, RefreshResult } from '@/types';
 import { API } from './endpoints';
 import { http } from './http';
 import type { ChangePasswordInput, LoginInput } from '@/lib/zod/auth.schema';
@@ -33,8 +33,5 @@ export function changePassword(payload: ChangePasswordInput): Promise<{ updatedA
 }
 
 export function fetchUsers(params: { page?: number; pageSize?: number; keyword?: string }) {
-  return http.get<{ items: AuthUser[]; total: number; page: number; pageSize: number; hasMore: boolean }>(
-    API.auth.users,
-    { query: params },
-  );
+  return http.get<Paged<AuthUser>>(API.auth.users, { query: params });
 }
