@@ -1,7 +1,7 @@
 /** 壁纸：pc / mobile 扫站内目录，bing 取必应当日图并把原图与缩略图镜像进 public/assets/wallpaper/bing */
 import 'server-only';
 
-import { access, mkdir, open, readdir, rename, writeFile } from 'node:fs/promises';
+import { access, mkdir, open, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { siteUrl } from '@/env';
@@ -138,6 +138,25 @@ const globalStore = globalThis as typeof globalThis & {
 };
 
 /** 每进程只扫一次；状态直接放在 globalStore 上，模块级变量每个 route chunk 各一份 */
+/**
+ * 镜像只增不减的话，每天 2 个文件（约 400KB）会一路把仓库顶到几百 MB，
+ * 而历史 blob 再也收不回来。落地新对之后清掉 N 天前的：bing 每天只服务当日一张。
+ */
+const BING_KEEP_DAYS = 7;
+
+async function pruneBingMirrors(): Promise<void> {
+  const names = await readdir(BING_DIR).catch(() => [] as string[]);
+  const cutoff = Date.now() - BING_KEEP_DAYS * 86_400_000;
+  await Promise.all(
+    names.map(async (name) => {
+      if (!/\.(jpe?g|png|webp)$/i.test(name)) return;
+      const full = path.join(BING_DIR, name);
+      const info = await stat(full).catch(() => null);
+      if (info?.isFile() && info.mtimeMs < cutoff) await unlink(full).catch(() => {});
+    }),
+  );
+}
+
 async function buildLocalType(type: 'pc' | 'mobile'): Promise<WallpaperItem[]> {
   const dir = LOCAL_DIR[type];
   const fullDir = path.join(ASSET_ROOT, 'wallpaper', dir);
@@ -228,6 +247,7 @@ async function loadBing(): Promise<WallpaperItem> {
     mirror(remoteFull, path.join(BING_DIR, `${id}${BING_FULL_SUFFIX}`)),
     mirror(remoteThumb, path.join(BING_DIR, `${id}${BING_THUMB_SUFFIX}`)),
   ]);
+  await pruneBingMirrors();
   // 只有落到站内的文件才读尺寸；回落到上游直链时不报分辨率
   const dims = mirroredFull ? await readDimensions(path.join(BING_DIR, `${id}${BING_FULL_SUFFIX}`)) : null;
 
