@@ -104,10 +104,6 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(10px) scale(0.98)' },
           to: { opacity: '1', transform: 'none' },
         },
-        'drawer-in': {
-          from: { transform: 'translateX(-100%)' },
-          to: { transform: 'none' },
-        },
         'drawer-in-right': {
           from: { transform: 'translateX(100%)' },
           to: { transform: 'none' },
@@ -125,7 +121,6 @@ const config: Config = {
         drift: 'drift 11s cubic-bezier(0.22, 0.61, 0.36, 1) infinite alternate',
         'pulse-ring': 'pulse-ring 2.4s ease-out infinite',
         'toast-in': 'toast-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both',
-        'drawer-in': 'drawer-in 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) both',
         'drawer-in-right': 'drawer-in-right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) both',
         'toast-progress': 'toast-progress linear forwards',
       },

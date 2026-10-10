@@ -20,7 +20,6 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   /** 不注入鉴权头，公开接口用 */
   anonymous?: boolean;
   /** 拿到原始 ApiResponse 而非 data */
-  raw?: boolean;
   /**
    * 公开接口是单层信封（code/msg/data/requestId/serverTime），没有 success 字段，必须显式声明，
    * 否则会被 success 判定当成失败响应抛出。
@@ -132,7 +131,6 @@ async function rawFetch<T>(path: string, options: RequestOptions, isRetry = fals
   // 外部取消与超时都收敛到同一个 controller
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new DOMException('timeout', 'TimeoutError')), timeoutMs);
-  options.signal?.addEventListener('abort', () => controller.abort(options.signal?.reason));
 
   let response: Response;
   try {
@@ -201,7 +199,7 @@ async function rawFetch<T>(path: string, options: RequestOptions, isRetry = fals
         url,
       });
     }
-    return (options.raw ? body : body.data) as T;
+    return body.data as T;
   }
 
   if (!response.ok || !isSuccess(payload)) {
@@ -216,7 +214,7 @@ async function rawFetch<T>(path: string, options: RequestOptions, isRetry = fals
     });
   }
 
-  return (options.raw ? payload : payload.data) as T;
+  return payload.data as T;
 }
 
 function shouldRetry(method: string, error: unknown, attemptsLeft: number): boolean {
@@ -248,8 +246,6 @@ export const http = {
   get: <T>(path: string, params?: RequestOptions) => request<T>(path, { ...params, method: 'GET' }),
   post: <T, B = unknown>(path: string, json?: B, params?: Omit<RequestOptions, 'json'>) =>
     request<T>(path, { ...params, method: 'POST', json }),
-  put: <T, B = unknown>(path: string, json?: B, params?: Omit<RequestOptions, 'json'>) =>
-    request<T>(path, { ...params, method: 'PUT', json }),
   patch: <T, B = unknown>(path: string, json?: B, params?: Omit<RequestOptions, 'json'>) =>
     request<T>(path, { ...params, method: 'PATCH', json }),
   delete: <T>(path: string, params?: RequestOptions) => request<T>(path, { ...params, method: 'DELETE' }),

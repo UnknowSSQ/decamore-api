@@ -150,13 +150,16 @@ export function DataTable<T extends object>({
   );
 }
 
+/** 每页条数档位；后台设置允许 6–100 的任意值，当前值不在档位里时下面会临时补进去，
+ *  否则 select 会回落到第一项，显示的条数和真实分页不一致 */
+const PAGE_SIZE_OPTIONS: number[] = [12, 24, 48];
+
 export function Pagination({
   page,
   pageSize,
   total,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [12, 24, 48],
   className,
 }: {
   page: number;
@@ -164,11 +167,14 @@ export function Pagination({
   total: number;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
-  pageSizeOptions?: readonly number[];
   className?: string;
 }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   if (pageCount <= 1 && !onPageSizeChange) return null;
+
+  const sizeOptions = PAGE_SIZE_OPTIONS.includes(pageSize)
+    ? PAGE_SIZE_OPTIONS
+    : [...PAGE_SIZE_OPTIONS, pageSize].sort((a, b) => a - b);
 
   // 当前页居中最多铺 5 个，首尾页恒定可达
   const windowPages: number[] = [];
@@ -217,7 +223,7 @@ export function Pagination({
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
             className="ml-1 h-7 rounded-full border border-line bg-surface px-2 text-[12px] text-ink"
           >
-            {pageSizeOptions.map((size) => (
+            {sizeOptions.map((size) => (
               <option key={size} value={size}>
                 {size} 条/页
               </option>

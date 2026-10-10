@@ -167,9 +167,8 @@ export function Drawer({
   children,
   className,
   dismissOnOverlay = true,
-  side = 'right',
   width = 'w-[min(420px,100vw)]',
-}: BaseLayerProps & { side?: 'left' | 'right'; width?: string }) {
+}: BaseLayerProps & { width?: string }) {
   const mounted = useMounted();
   const titleId = useId();
   const { panelRef, onOverlayClick } = useLayerBehavior({ open, onClose, dismissOnOverlay });
@@ -186,7 +185,7 @@ export function Drawer({
         tabIndex={-1}
         className={cn(
           'absolute top-0 bottom-0 flex flex-col border-line bg-surface shadow-pop',
-          side === 'right' ? 'right-0 animate-drawer-in-right border-l' : 'left-0 animate-drawer-in border-r',
+          'right-0 animate-drawer-in-right border-l',
           width,
           className,
         )}

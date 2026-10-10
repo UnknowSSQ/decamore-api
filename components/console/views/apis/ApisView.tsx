@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState } from 'react';
 
 import {
   Button,
-  ConfirmModal,
   DataTable,
   EmptyState,
   Icon,
@@ -19,7 +18,7 @@ import { useCan } from '@/hooks/usePermission';
 import { useListQuery } from '@/hooks/useListQuery';
 import { useSiteFormat } from '@/hooks/useSiteFormat';
 import { useToast } from '@/hooks/useToast';
-import { deleteManagedApi, fetchManagedApis, updateManagedApi } from '@/lib/api';
+import { fetchManagedApis, updateManagedApi } from '@/lib/api';
 import type { ApiListQuery } from '@/lib/zod/admin.schema';
 import { hasAuthoredDoc } from '@/components/docs/authored-slugs';
 import { isImplementedApiId } from '@/constants/api-catalog';
@@ -95,9 +94,6 @@ export function ApisView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSeen, setModalSeen] = useState(false);
   const [editingApi, setEditingApi] = useState<ManagedApi | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ManagedApi | null>(null);
-  const [deletePending, setDeletePending] = useState(false);
-
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const handleStatusToggle = useCallback(
     async (api: ManagedApi, next: boolean) => {
@@ -136,20 +132,7 @@ export function ApisView() {
     [setData, toast],
   );
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeletePending(true);
-    try {
-      await deleteManagedApi(deleteTarget.id);
-      toast.success(`「${deleteTarget.name}」已删除`);
-      setDeleteTarget(null);
-      void reload();
-    } catch {
-      toast.error('删除失败');
-    } finally {
-      setDeletePending(false);
-    }
-  };
+
 
   const openDetail = useCallback((api: ManagedApi) => {
     setDrawerApi(api);
@@ -459,21 +442,6 @@ export function ApisView() {
           onSuccess={handleFormSuccess}
         />
       )}
-
-      <ConfirmModal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
-        title="确认删除接口"
-        description={
-          deleteTarget
-            ? `即将删除「${deleteTarget.name}」（${deleteTarget.path}），此操作不可恢复。已注册的调用方将无法继续调用该接口。`
-            : undefined
-        }
-        confirmText="删除"
-        danger
-        loading={deletePending}
-      />
     </div>
   );
 }

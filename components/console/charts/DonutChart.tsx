@@ -10,21 +10,16 @@ export interface DonutSegment {
 
 export interface DonutChartProps {
   segments: DonutSegment[];
-  size?: number;
-  radius?: number;
-  strokeWidth?: number;
-  centerLabel?: string;
 }
 
-export function DonutChart({
-  segments,
-  size = 168,
-  radius = 66,
-  strokeWidth = 15,
-  centerLabel,
-}: DonutChartProps) {
-  const center = size / 2;
-  const circumference = 2 * Math.PI * radius;
+/** 唯一调用点只传 segments，几何值收成本组件的常量 */
+const SIZE = 168;
+const RADIUS = 66;
+const STROKE_WIDTH = 15;
+
+export function DonutChart({ segments }: DonutChartProps) {
+  const center = SIZE / 2;
+  const circumference = 2 * Math.PI * RADIUS;
 
   const total = useMemo(() => segments.reduce((s, seg) => s + seg.value, 0), [segments]);
 
@@ -42,22 +37,22 @@ export function DonutChart({
 
   /** 约定第一段就是要显示在圆心的那类（调用方按 2xx 排首位） */
   const successRatio = arcs[0]?.ratio ?? 0;
-  const displayLabel = centerLabel ?? `${(successRatio * 100).toFixed(1)}%`;
+  const displayLabel = `${(successRatio * 100).toFixed(1)}%`;
 
   return (
     <div className="flex items-center gap-6">
-      <div className="relative shrink-0" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <div className="relative shrink-0" style={{ width: SIZE, height: SIZE }}>
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
           <g transform={`rotate(-90 ${center} ${center})`}>
             {arcs.map((arc, i) => (
               <circle
                 key={i}
                 cx={center}
                 cy={center}
-                r={radius}
+                r={RADIUS}
                 fill="none"
                 stroke={arc.color}
-                strokeWidth={strokeWidth}
+                strokeWidth={STROKE_WIDTH}
                 strokeDasharray={arc.dashArray}
                 strokeDashoffset={arc.dashOffset}
                 strokeLinecap="butt"

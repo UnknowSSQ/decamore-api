@@ -22,7 +22,6 @@ export interface CodeWindowProps {
   title?: ReactNode;
   defaultPane?: string;
   lineNumbers?: boolean;
-  copyLabel?: string;
   className?: string;
   footnote?: ReactNode;
 }
@@ -34,7 +33,6 @@ export function CodeWindow({
   title,
   defaultPane,
   lineNumbers = true,
-  copyLabel = '复制',
   className,
   footnote,
 }: CodeWindowProps) {
@@ -53,7 +51,7 @@ export function CodeWindow({
   const copyButton = (
     <button type="button" className="code-copy" onClick={() => void copy(text, current?.value)} aria-label="复制当前示例代码">
       <Icon name={copied ? 'check' : 'copy'} size={13} />
-      {copied ? '已复制' : copyLabel}
+      {copied ? '已复制' : '复制'}
     </button>
   );
 

@@ -66,10 +66,6 @@ export function updateManagedApi(id: string, body: z.infer<typeof updateApiSchem
   return http.patch<ManagedApi>(API.console.apiDetail(id), body);
 }
 
-export function deleteManagedApi(id: string) {
-  return http.delete<void>(API.console.apiDetail(id));
-}
-
 export function fetchRules(query: Partial<RuleListQuery> = {}) {
   return http.get<Paged<AccessRule>>(API.console.rules, { query });
 }

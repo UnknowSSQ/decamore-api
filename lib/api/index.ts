@@ -18,7 +18,6 @@ export {
 export {
   createManagedApi,
   createRule,
-  deleteManagedApi,
   deleteRule,
   exportReport,
   fetchDashboard,
