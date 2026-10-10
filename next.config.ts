@@ -6,6 +6,9 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  // href 与 router.push 的目标由 Next 生成的路由类型校验，写错路径在 tsc 阶段就报
+  typedRoutes: true,
+
   // 允许通过环境变量配置的图片域名（占位：后续接入真实 CDN 时启用）
   images: {
     remotePatterns: (() => {

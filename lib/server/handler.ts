@@ -10,7 +10,7 @@ import { csrfDecision } from '@/utils/csrf';
 import { getServerEnv } from '@/env';
 import { hasAllPermissions, hasAnyPermission } from '@/lib/auth/permissions';
 import { resolveSession, type ResolvedSession } from '@/lib/auth/session';
-import { ERROR_CODE, type ApiResponse } from '@/types';
+import { ERROR_CODE } from '@/types';
 import { ApiError, ForbiddenError, UnauthorizedError } from './errors';
 import { logger } from './logger';
 import {
@@ -41,7 +41,7 @@ export interface ApiContext<TExtra> {
 export type ApiHandler<TExtra> = (
   request: NextRequest,
   context: ApiContext<TExtra>,
-) => Promise<NextResponse | ApiResponse<unknown>> | NextResponse | ApiResponse<unknown>;
+) => Promise<NextResponse> | NextResponse;
 
 export interface WithApiOptions<TExtra = Record<string, never>> {
   /** 默认 true：不显式声明即要求登录 */
@@ -171,7 +171,7 @@ export function withApiHandler<TExtra = Record<string, never>>(
           extra: (options.extra ?? ({} as TExtra)) as TExtra,
         });
 
-        const response = normalizeResponse(result, options.headers);
+        const response = withExtraHeaders(result, options.headers);
         ctx.status = response.status;
         ctx.errorCode = response.status < 400 ? ERROR_CODE.OK : response.status;
 
@@ -197,25 +197,10 @@ function withCors(response: NextResponse, cors: Record<string, string>): NextRes
   return response;
 }
 
-/** 对象返回时状态码由 success 决定：true 走 200，false 用 statusCode */
-function normalizeResponse(
-  result: NextResponse | ApiResponse<unknown>,
-  headers?: Record<string, string>,
-): NextResponse {
-  if (result instanceof NextResponse) {
-    for (const [k, v] of Object.entries(headers ?? {})) result.headers.set(k, v);
-    return result;
-  }
-
-  const status = result.success ? 200 : result.statusCode;
-  return NextResponse.json(result, {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store, max-age=0',
-      ...headers,
-    },
-  });
+/** 统一给响应补上路由声明的额外响应头 */
+function withExtraHeaders(response: NextResponse, headers?: Record<string, string>): NextResponse {
+  for (const [key, value] of Object.entries(headers ?? {})) response.headers.set(key, value);
+  return response;
 }
 
 /** 三条分支都会补记调用统计，异常路径不丢点 */

@@ -1,6 +1,7 @@
 'use client';
 /** 依赖 scroll 与 matchMedia，只能是 Client Component；胶囊态样式在 globals.css 的 .site-header[data-scrolled] */
 import Link from 'next/link';
+import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -83,7 +84,7 @@ export function SiteHeader() {
   );
 }
 
-function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+function NavLink({ href, label, active }: { href: Route; label: string; active: boolean }) {
   return (
     <Link
       href={href}

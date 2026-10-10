@@ -1,4 +1,6 @@
-/** 鉴权判断的唯一真值，零依赖：前端 usePermission 与后端 withAuth 都调这里 */
+/** 鉴权判断的唯一真值，零运行时依赖（只有 type 导入）：前端 usePermission 与后端 withAuth 都调这里 */
+import type { Route } from 'next';
+
 import { PERMISSIONS, ROLE_PERMISSIONS, type Permission, type Role } from '@/constants/auth';
 
 export function permissionsOf(role: Role | undefined): Permission[] {
@@ -19,11 +21,12 @@ export function hasAllPermissions(permissions: readonly Permission[], list: read
 }
 
 /** 防开放重定向：只接受单个 "/" 开头的站内路径，其余一律回落 fallback */
-export function resolveSafeRedirect(raw: string | null | undefined, fallback: string): string {
+export function resolveSafeRedirect(raw: string | null | undefined, fallback: Route): Route {
   if (!raw) return fallback;
   const isInternal = raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('\\');
   if (!isInternal || !/^[\w\-./?=&#%+]+$/.test(raw)) return fallback;
-  return raw;
+  // 过完上面两条才是可信站内路径：typedRoutes 要求出口带 Route 品牌
+  return raw as Route;
 }
 
 /** 用户名长度规则与 Zod schema 保持一致 */

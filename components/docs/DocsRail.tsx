@@ -102,7 +102,7 @@ export function DocsRail({ tocItems, siblingApis }: DocsRailProps) {
             文档首页
           </Link>
           ，或回到{' '}
-          <Link href="/plaza" className="text-primary underline-offset-2 hover:underline">
+          <Link href={ROUTES.plaza} className="text-primary underline-offset-2 hover:underline">
             接口广场
           </Link>
           。

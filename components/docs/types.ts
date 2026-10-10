@@ -1,4 +1,6 @@
 /** /docs/[slug] 的数据形状；Server 与 Client 组件共用，不含运行时代码 */
+import type { Route } from 'next';
+
 import type { ApiCategory, HttpMethod } from '@/types';
 
 export type InlineFragment =
@@ -109,7 +111,7 @@ export interface TocItem {
 export interface SiblingApi {
   label: string;
   path: string;
-  href: string;
+  href: Route;
 }
 
 /** 已撰写文档由 apis/<slug>.ts 给出；未撰写的接口由 registry 按车单推导骨架页 */

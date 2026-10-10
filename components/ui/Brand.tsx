@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
-import { APP_NAME } from '@/constants/app';
+import { APP_NAME, ROUTES } from '@/constants/app';
+import type { Route } from 'next';
 import { cn } from '@/utils/cn';
 
 const MARK_SIZE = {
@@ -27,13 +28,13 @@ export function BrandMark({ size = 'md', className }: { size?: keyof typeof MARK
 }
 
 export function Brand({
-  href = '/',
+  href = ROUTES.home,
   size = 'md',
   label = APP_NAME,
   ariaLabel,
   className,
 }: {
-  href?: string;
+  href?: Route;
   size?: keyof typeof MARK_SIZE;
   label?: string;
   ariaLabel?: string;

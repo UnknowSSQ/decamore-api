@@ -20,6 +20,7 @@ import { fetchMe, login as apiLogin, logout as apiLogout, refreshSession } from 
 import { RequestError } from '@/lib/api/error';
 import { hasPermission as checkPermission } from '@/lib/auth/permissions';
 import { isBrowser, subscribeTokenChanges, tokenStorage } from '@/lib/auth/token-store';
+import type { Route } from 'next';
 import type { AuthStatus, AuthUser, LoginResult, Permission } from '@/types';
 import type { LoginInput } from '@/lib/zod/auth.schema';
 
@@ -37,7 +38,7 @@ interface AuthContextValue {
   hydrated: boolean;
   reload: () => Promise<void>;
   signIn: (input: LoginInput) => Promise<LoginResult>;
-  signOut: (options?: { allDevices?: boolean; redirectTo?: string }) => Promise<void>;
+  signOut: (options?: { allDevices?: boolean; redirectTo?: Route }) => Promise<void>;
   refresh: () => Promise<boolean>;
   can: (permission: Permission) => boolean;
   patchUser: (next: AuthUser) => void;
@@ -199,7 +200,7 @@ export function AuthProvider({
   }, []);
 
   const signOut = useCallback(
-    async (options?: { allDevices?: boolean; redirectTo?: string }) => {
+    async (options?: { allDevices?: boolean; redirectTo?: Route }) => {
       try {
         await apiLogout(options?.allDevices ?? false);
       } catch {

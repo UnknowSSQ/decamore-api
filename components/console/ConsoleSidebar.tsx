@@ -1,4 +1,5 @@
 'use client';
+import type { Route } from 'next';
 import Link from 'next/link';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
@@ -7,7 +8,7 @@ import { cn } from '@/utils/cn';
 
 export interface NavItem {
   label: string;
-  href: string;
+  href: Route;
   icon: IconName;
 }
 
