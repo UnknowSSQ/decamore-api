@@ -2,7 +2,8 @@ import './setup';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
-import { http, RequestError } from '@/lib/api/http';
+import { http } from '@/lib/api/http';
+import { RequestError } from '@/lib/api/error';
 
 const realFetch = globalThis.fetch;
 

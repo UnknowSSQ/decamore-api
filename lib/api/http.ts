@@ -2,7 +2,7 @@
  * 前端唯一请求出口：注入鉴权头、401 续期后重放、统一收敛为 RequestError、超时与幂等重试。
  * 不依赖 React，可在 Worker / 测试环境直接复用。
  */
-import { AUTH_HEADER, AUTH_SCHEME, CSRF_HEADER, COOKIES } from '@/constants/auth';
+import { AUTH_HEADER, AUTH_SCHEME, CSRF_HEADER } from '@/constants/auth';
 import { ERROR_CODE, isSuccess, type ApiResponse, type PublicApiEnvelope } from '@/types';
 import { RequestError } from './error';
 import { readCsrfFromCookie, tokenStorage } from '@/lib/auth/token-store';
@@ -222,7 +222,7 @@ function shouldRetry(method: string, error: unknown, attemptsLeft: number): bool
   return error instanceof RequestError && error.code === 'NETWORK';
 }
 
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = (options.method ?? 'GET').toUpperCase();
   let attemptsLeft = options.retry ?? (method === 'GET' ? 1 : 0);
 
@@ -249,6 +249,3 @@ export const http = {
     request<T>(path, { ...params, method: 'PATCH', json }),
   delete: <T>(path: string, params?: RequestOptions) => request<T>(path, { ...params, method: 'DELETE' }),
 };
-
-export { COOKIES, ERROR_CODE };
-export { RequestError };

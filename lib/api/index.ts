@@ -5,7 +5,7 @@
 export { API } from './endpoints';
 export { RequestError } from './error';
 export type { RequestErrorCode, RequestErrorInit } from './error';
-export { http, request } from './http';
+export { http } from './http';
 export type { RequestOptions } from './http';
 export {
   changePassword,
