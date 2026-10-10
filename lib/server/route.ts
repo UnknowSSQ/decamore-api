@@ -1,4 +1,5 @@
 /** 把 withApiHandler 的 unknown query/body 接上 Zod 推导类型，业务侧免写断言 */
+import 'server-only';
 import type { NextRequest, NextResponse } from 'next/server';
 import type { ZodTypeAny } from 'zod';
 

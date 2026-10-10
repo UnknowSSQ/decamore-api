@@ -1,4 +1,5 @@
 /** 全部 server-only，客户端组件不要 import */
+import 'server-only';
 export * from './errors';
 export * from './response';
 export * from './handler';

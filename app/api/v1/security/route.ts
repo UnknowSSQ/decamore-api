@@ -1,6 +1,6 @@
 import { defineRoute, ok } from '@/lib/server';
 import { securityPatchSchema } from '@/lib/zod/admin.schema';
-import { getSecuritySettings, patchSecuritySettings } from '@/lib/server/mock/security';
+import { getSecuritySettings, patchSecuritySettings } from '@/lib/server/store/security';
 import { PERMISSIONS } from '@/constants/auth';
 
 export const GET = defineRoute(

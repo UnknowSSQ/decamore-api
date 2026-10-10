@@ -7,8 +7,8 @@ import { NextRequest } from 'next/server';
 
 import { ok, withApiHandler } from '@/lib/server';
 import { preflight } from '@/lib/server/protection';
-import { createRule, deleteRule, findAllRules } from '@/lib/server/mock/rules';
-import { patchSecuritySettings } from '@/lib/server/mock/security';
+import { createRule, deleteRule, findAllRules } from '@/lib/server/store/rules';
+import { patchSecuritySettings } from '@/lib/server/store/security';
 
 type Handler = (request: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
 

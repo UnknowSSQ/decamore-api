@@ -5,8 +5,8 @@ import { NextResponse } from 'next/server';
 
 import { createWindowStore, type WindowStore } from '@/utils/rate-window';
 import { ipInList, originAllowed } from '@/utils/net';
-import { getSecuritySettings } from './mock/security';
-import { recordRuleHit, rulesForPath } from './mock/rules';
+import { getSecuritySettings } from './store/security';
+import { recordRuleHit, rulesForPath } from './store/rules';
 import { ForbiddenError, RateLimitError } from './errors';
 import { logger } from './logger';
 

@@ -1,4 +1,5 @@
 /** 业务异常统一抛 ApiError 及子类，由 withApiHandler 兜成标准响应，route 内不写 try/catch */
+import 'server-only';
 import { ERROR_CODE, type ErrorCode, type FieldIssue } from '@/types';
 
 export class ApiError extends Error {

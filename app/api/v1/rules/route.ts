@@ -1,7 +1,7 @@
 /** 规则表就是运行时守卫读的同一份 store，后台改动当场生效 */
 import { defineRoute, ok, created, paged } from '@/lib/server';
 import { ruleListQuerySchema, createRuleSchema } from '@/lib/zod/admin.schema';
-import { createRule, findAllRules } from '@/lib/server/mock/rules';
+import { createRule, findAllRules } from '@/lib/server/store/rules';
 import { PERMISSIONS } from '@/constants/auth';
 import type { AccessRule } from '@/types';
 

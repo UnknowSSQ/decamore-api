@@ -6,7 +6,7 @@
 
 - **公开接口**：10 个免鉴权 GET 接口（内容 / 图片 / 数据三类），实现在 `app/api/v1/*/route.ts`。
 - **文档站**：`/docs` 与 `/docs/<slug>`，每个接口一页，内容由 `components/docs/apis/<slug>.ts` 提供。
-- **控制台**：`/admin` 下的仪表盘、接口管理、调用日志、访问规则、安全设置、网站设置。业务数据目前是进程内 mock（`lib/server/mock/*`），接口返回以真实实现为准。
+- **控制台**：`/admin` 下的仪表盘、接口管理、调用日志、访问规则、安全设置、网站设置。业务数据是进程内状态：配置存储走 `lib/server/store/*`（settings / security / rules），演示数据走 `lib/server/mock/*`（logs / dashboard / notifications / users），接口返回以真实实现为准。
 
 前台另有首页 Live 卡片与 `/plaza` 接口广场，两者与文档共用同一份接口车单。
 
@@ -147,7 +147,9 @@ docs/API-TEMPLATE.md       新增接口与接口文档的写作规范
 
 **可变数据源必须挂在 `globalThis` 上。** 模块级变量在每个 route/page chunk 里各有一份，写入不会跨路由传播，`lib/server/*` 的缓存与 mock store 都按这个方式实现。
 
-**改种子数据要同时提升版本号。** `lib/server/catalog.ts` 的 `SEED_VERSION` 与 `lib/server/mock/settings.ts` 的 `SETTINGS_SEED_VERSION` 决定运行时 store 是否重新播种；只改默认值不 bump，进程里的旧形状会继续生效。
+**改种子数据要同时提升版本号。** `lib/server/catalog.ts` 的 `SEED_VERSION` 与 `lib/server/store/settings.ts` 的 `SETTINGS_SEED_VERSION` 决定运行时 store 是否重新播种；只改默认值不 bump，进程里的旧形状会继续生效。
+
+**`store/` 与 `mock/` 的区别是要不要接真存储。** `store/` 那三个是后台读写的运行时配置（`protection.ts` 的守卫链直接依赖它们），换成数据库时改的是这一层；`mock/` 那四个是演示数据，接真库后整目录可以删。两者都带 `import 'server-only'`，客户端误引会在构建期报错而不是把口令打进浏览器。
 
 **新增公开接口按这条链路补齐**：`types/domain.ts` 定义返回形状 → `lib/server/<name>.ts` 实现 → `lib/zod/admin.schema.ts` 加参数校验 → `app/api/v1/<name>/route.ts` 用 `defineRoute` + `publicOk` → `lib/api` 加前端封装 → `constants/api-catalog.ts` 登记并补进 `IMPLEMENTED_API_IDS` → 需要卡片则加 `DemoKind` 与 `components/plaza/demos/*` → 写 `components/docs/apis/<slug>.ts` 并登记进 registry。文档写作口径见 `docs/API-TEMPLATE.md`。
 

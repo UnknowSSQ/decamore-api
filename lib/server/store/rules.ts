@@ -1,3 +1,4 @@
+import 'server-only';
 import type { AccessRule } from '@/types';
 import type { CreateRuleInput } from '@/lib/zod/admin.schema';
 import { scopeMatches, scopeSpecificity } from '@/utils/net';

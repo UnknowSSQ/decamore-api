@@ -1,3 +1,4 @@
+import 'server-only';
 import type { SecuritySettings } from '@/types';
 
 /** 默认值变了要 bump 版本号：单例活过 dev 热重载，不换版本改了这里的初值也看不到 */

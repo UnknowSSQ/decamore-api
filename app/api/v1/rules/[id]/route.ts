@@ -1,7 +1,7 @@
 /** 规则表与运行时守卫读同一份 store，PATCH/DELETE 直接回写 */
 import { defineRoute, ok, noContent, NotFoundError } from '@/lib/server';
 import { idParamSchema, updateRuleSchema } from '@/lib/zod/admin.schema';
-import { deleteRule, findRuleById, updateRule } from '@/lib/server/mock/rules';
+import { deleteRule, findRuleById, updateRule } from '@/lib/server/store/rules';
 import { PERMISSIONS } from '@/constants/auth';
 
 export const GET = defineRoute(

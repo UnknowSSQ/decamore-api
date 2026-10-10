@@ -8,7 +8,7 @@ import { StatBand } from '@/components/landing/StatBand';
 import { ApiShowcase } from '@/components/landing/ApiShowcase';
 import { QuickStartSection } from '@/components/landing/QuickStartSection';
 import { CtaSection } from '@/components/landing/CtaSection';
-import { getSiteSettings } from '@/lib/server/mock/settings';
+import { getSiteSettings } from '@/lib/server/store/settings';
 import { listCatalogItems } from '@/lib/server/catalog';
 
 export const metadata: Metadata = {

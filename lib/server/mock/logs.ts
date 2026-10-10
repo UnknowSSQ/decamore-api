@@ -1,3 +1,4 @@
+import 'server-only';
 import type { CallLog } from '@/types';
 
 const PATHS = [

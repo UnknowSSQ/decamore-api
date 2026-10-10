@@ -1,4 +1,5 @@
 /** 演示用户只有 admin 一个账号，密码是硬编码明文 */
+import 'server-only';
 
 import type { Role } from '@/constants/auth';
 

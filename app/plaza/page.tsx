@@ -8,7 +8,7 @@ import { BackToTop } from '@/components/shared/BackToTop';
 import { PlazaBoard } from '@/components/plaza/PlazaBoard';
 import { API_CATALOG } from '@/constants/api-catalog';
 import { buttonVariants } from '@/components/ui/button-variants';
-import { getSiteSettings } from '@/lib/server/mock/settings';
+import { getSiteSettings } from '@/lib/server/store/settings';
 import { listCatalogItems } from '@/lib/server/catalog';
 import { cn } from '@/utils/cn';
 

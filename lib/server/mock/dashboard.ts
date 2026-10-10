@@ -1,4 +1,5 @@
 /** 仪表盘数字全部硬编码，trend 按下标用 sin 派生 */
+import 'server-only';
 
 import type { DashboardStats } from '@/types';
 

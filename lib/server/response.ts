@@ -1,4 +1,5 @@
 /** route 只经 ok / created / paged / publicOk / noContent 返回；失败体一律由 withApiHandler 调 buildFailure 产出 */
+import 'server-only';
 import { NextResponse } from 'next/server';
 
 import {

@@ -1,3 +1,4 @@
+import 'server-only';
 import type { NotificationItem } from '@/types';
 
 const seedNotifications = (): NotificationItem[] => [

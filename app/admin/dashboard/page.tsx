@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 
 import { DashboardView } from '@/components/console/dashboard/DashboardView';
-import { getSiteSettings } from '@/lib/server/mock/settings';
+import { getSiteSettings } from '@/lib/server/store/settings';
 
 export const metadata: Metadata = {
   title: { absolute: '仪表盘 · 控制台 · Decamore API' },

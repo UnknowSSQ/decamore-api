@@ -1,6 +1,6 @@
 import { defineRoute, ok } from '@/lib/server';
 import { corsSchema } from '@/lib/zod/admin.schema';
-import { patchSecuritySettings } from '@/lib/server/mock/security';
+import { patchSecuritySettings } from '@/lib/server/store/security';
 import { PERMISSIONS } from '@/constants/auth';
 
 export const POST = defineRoute(

@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 import { ConsoleShell } from '@/components/console/ConsoleShell';
 import { SiteDisplayProvider } from '@/hooks/useSiteFormat';
 import { guardPage } from '@/lib/server/guards';
-import { getSiteSettings } from '@/lib/server/mock/settings';
+import { getSiteSettings } from '@/lib/server/store/settings';
 
 export const metadata: Metadata = {
   title: { absolute: '控制台 · Decamore API' },

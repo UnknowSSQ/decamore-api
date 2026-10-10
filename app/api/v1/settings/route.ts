@@ -1,6 +1,6 @@
 import { defineRoute, ok } from '@/lib/server';
 import { siteSettingsPatchSchema } from '@/lib/zod/admin.schema';
-import { getSiteSettings, patchSiteSettings } from '@/lib/server/mock/settings';
+import { getSiteSettings, patchSiteSettings } from '@/lib/server/store/settings';
 import { PERMISSIONS } from '@/constants/auth';
 
 export const GET = defineRoute(

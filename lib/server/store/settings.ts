@@ -1,3 +1,4 @@
+import 'server-only';
 import type { CardSpan, SiteSettings } from '@/types';
 
 import { DEFAULT_LIVE_CARD_LAYOUT, DEFAULT_PLAZA_CARD_LAYOUT } from '@/constants/card-layout';
