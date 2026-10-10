@@ -106,3 +106,21 @@ describe('调色板', () => {
     assert.deepEqual([...suspicious], [], '这些类没有对应的调色板令牌，Tailwind 不会生成它们');
   });
 });
+
+describe('代码高亮 token', () => {
+  // CodeWindow 用 `tok-${kind}` 拼类名，Tailwind 不参与这类动态串的 purge 核对，
+  // TS 联合与 CSS 选择器对不上时不会有任何报错，只会静默丢颜色
+  const kinds = (readFileSync('lib/render/highlight.ts', 'utf8').match(/export type TokenKind =([\s\S]*?);/)?.[1] ?? '')
+    .split('|')
+    .map((s) => s.trim().replace(/'/g, ''))
+    .filter((s) => s.length > 0 && s !== 'plain');
+  const classes = [...css.matchAll(/\.tok-([a-z]+)/g)].map((m) => m[1] as string);
+
+  it('每个 TokenKind 都有对应的 .tok- 规则', () => {
+    assert.deepEqual(kinds.filter((k) => !classes.includes(k)), [], 'globals.css 里缺这些 .tok- 类');
+  });
+
+  it('每条 .tok- 规则都还有对应的 TokenKind', () => {
+    assert.deepEqual(classes.filter((c) => !kinds.includes(c)), [], '这些高亮类已经没有对应的 token 类型了');
+  });
+});

@@ -95,11 +95,6 @@ const config: Config = {
           from: { transform: 'translate3d(0, 0, 0)' },
           to: { transform: 'translate3d(0, -13px, 0)' },
         },
-        'pulse-ring': {
-          '0%': { boxShadow: '0 0 0 0 rgba(54, 91, 73, 0.35)' },
-          '70%': { boxShadow: '0 0 0 8px rgba(54, 91, 73, 0)' },
-          '100%': { boxShadow: '0 0 0 0 rgba(54, 91, 73, 0)' },
-        },
         'toast-in': {
           from: { opacity: '0', transform: 'translateY(10px) scale(0.98)' },
           to: { opacity: '1', transform: 'none' },
@@ -119,7 +114,6 @@ const config: Config = {
         'fade-in': 'fade-in 0.4s ease both',
         shake: 'shake 0.42s cubic-bezier(0.22, 0.61, 0.36, 1)',
         drift: 'drift 11s cubic-bezier(0.22, 0.61, 0.36, 1) infinite alternate',
-        'pulse-ring': 'pulse-ring 2.4s ease-out infinite',
         'toast-in': 'toast-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both',
         'drawer-in-right': 'drawer-in-right 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) both',
         'toast-progress': 'toast-progress linear forwards',
