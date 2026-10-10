@@ -5,10 +5,13 @@ import { NextResponse } from 'next/server';
 
 import { createWindowStore, type WindowStore } from '@/utils/rate-window';
 import { ipInList, originAllowed } from '@/utils/net';
+import { getServerEnv } from '@/env';
 import { getSecuritySettings } from './store/security';
 import { recordRuleHit, rulesForPath } from './store/rules';
-import { ForbiddenError, RateLimitError } from './errors';
+import { ApiError, ForbiddenError, RateLimitError } from './errors';
 import { logger } from './logger';
+import { applySecurityHeaders } from './security-headers';
+import { resolveClientIp } from './trace';
 
 /** 计数桶挂 globalThis：handler 被每个 route chunk 各编一份，模块级的桶会让限额按 chunk 数量翻倍 */
 const globalStore = globalThis as typeof globalThis & {
@@ -65,16 +68,39 @@ export const PREFLIGHT_HEADERS: Record<string, string> = {
 };
 
 /**
- * 给公开接口用的 OPTIONS 工厂：来源不在配置里就只回 204 而不带跨域头，
+ * 公开接口的 OPTIONS 预检工厂。来源不在配置里时只回 204 而不带跨域头，
  * 浏览器据此判定预检失败，效果等同于未配置。
+ *
+ * 此前它是整条管线的旁路：被拉黑的 IP 照样能无限打预检，既不计频控也不进任何统计，
+ * 而浏览器在每个跨域 GET 前都会自动发一个，等于免费的流量放大。
+ * 这里只补 IP 黑名单与限额——预检没有会话，鉴权 / CSRF / 参数校验本来就不适用。
+ * 抛错就地转状态码：OPTIONS 不经 withApiHandler，没有别人兜错误信封。
  */
-export function preflight() {
+export function preflight(routePattern = '*') {
   return (request: Request): NextResponse => {
+    const ip = resolveClientIp(request.headers);
+    try {
+      const { exempt } = enforceIpLists(ip);
+      if (!exempt) {
+        enforceDefaultLimit(
+          { ip, method: 'OPTIONS', pathname: new URL(request.url).pathname, routePattern },
+          getServerEnv().RATE_LIMIT_PER_MIN,
+        );
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return applySecurityHeaders(new NextResponse(null, { status: error.status, headers: error.headers }));
+      }
+      throw error;
+    }
+
     const cors = corsHeadersFor(request.headers.get('origin'));
-    return new NextResponse(null, {
-      status: 204,
-      headers: { ...cors, ...PREFLIGHT_HEADERS, 'Cache-Control': 'no-store, max-age=0' },
-    });
+    return applySecurityHeaders(
+      new NextResponse(null, {
+        status: 204,
+        headers: { ...cors, ...PREFLIGHT_HEADERS, 'Cache-Control': 'no-store, max-age=0' },
+      }),
+    );
   };
 }
 

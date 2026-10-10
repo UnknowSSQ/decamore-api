@@ -22,6 +22,7 @@ import {
   type GuardInput,
 } from './protection';
 import { recordApiCall } from './stats';
+import { applySecurityHeaders } from './security-headers';
 import { buildFailure } from './response';
 import { parseBody, parseParams, parseQuery, toFieldIssues } from './validate';
 import { createTraceId, resolveClientIp, runWithRequestContext, type RequestContext } from './trace';
@@ -183,9 +184,9 @@ export function withApiHandler<TExtra = Record<string, never>>(
         });
 
         response.headers.set('x-trace-id', traceId);
-        return withCors(response, cors);
+        return applySecurityHeaders(withCors(response, cors));
       } catch (error: unknown) {
-        return withCors(handleFailure(error, traceId, options.headers), cors);
+        return applySecurityHeaders(withCors(handleFailure(error, traceId, options.headers), cors));
       }
     });
   };

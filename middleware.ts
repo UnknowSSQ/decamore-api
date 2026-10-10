@@ -23,9 +23,6 @@ export function middleware(request: NextRequest) {
 
   const hasAccessCookie = request.cookies.has(COOKIES.access);
 
-  // /api 不在此处鉴权，验签 / 权限 / CSRF 都在 withApiHandler 里
-  if (pathname.startsWith('/api')) return response;
-
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
@@ -48,7 +45,8 @@ export function middleware(request: NextRequest) {
   return response;
 }
 
-// /api 也在 matcher 内，只为让 API 响应同样带上 x-request-id
+// /api 不在 matcher 内：安全头与 x-trace-id 由 withApiHandler 与 preflight 自己下发
+// （见 lib/server/security-headers.ts），这里只负责页面路由的鉴权跳转与响应头
 export const config = {
-  matcher: ['/admin/:path*', '/login', '/api/:path*'],
+  matcher: ['/admin/:path*', '/login'],
 };

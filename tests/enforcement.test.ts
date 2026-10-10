@@ -58,6 +58,32 @@ describe('IP 名单', () => {
     assert.equal((await call(handler, '/api/v1/echo', ipOf('10.1.1.1'))).status, 200);
     assert.equal((await call(handler, '/api/v1/echo', ipOf('10.9.9.9'))).status, 403);
   });
+
+  it('OPTIONS 预检也过黑名单：被拉黑的来源拿不到 204，也拿不到跨域头', async () => {
+    resetPolicy();
+    patchSecuritySettings({ ipBlacklist: ['203.0.113.88'], corsOrigins: ['https://allow.me'] });
+    const handle = preflight();
+    const blocked = await handle(
+      new Request('http://localhost/api/v1/hitokoto', {
+        method: 'OPTIONS',
+        headers: { 'x-forwarded-for': '203.0.113.88', origin: 'https://allow.me' },
+      }),
+    );
+    assert.equal(blocked.status, 403);
+    assert.equal(blocked.headers.get('access-control-allow-origin'), null);
+    // 预检不经 withApiHandler，安全头得自己带上，否则被拦的响应反而少了防护
+    assert.equal(blocked.headers.get('x-frame-options'), 'DENY');
+
+    const clean = await handle(
+      new Request('http://localhost/api/v1/hitokoto', {
+        method: 'OPTIONS',
+        headers: { 'x-forwarded-for': '198.51.100.7', origin: 'https://allow.me' },
+      }),
+    );
+    assert.equal(clean.status, 204);
+    assert.equal(clean.headers.get('access-control-allow-origin'), 'https://allow.me');
+    resetPolicy();
+  });
 });
 
 describe('访问规则', () => {
