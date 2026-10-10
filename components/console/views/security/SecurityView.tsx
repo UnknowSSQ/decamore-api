@@ -99,7 +99,7 @@ export function SecurityView() {
 
       <Callout tone="info" mark="i">
         当前真正作用于请求链路的配置：IP 黑白名单、CORS 来源、请求体上限、全局限额，以及「访问规则」页的策略。
-        两步验证、登录通知、会话空闲超时、密码复杂度、失败锁定与 WAF 开关只保存取值，对应的校验流程尚未接入，
+        两步验证、会话空闲超时、密码复杂度、失败锁定与 WAF 开关只保存取值，对应的校验流程尚未接入，
         改动不会改变登录或访问控制的行为。
       </Callout>
 
@@ -139,7 +139,7 @@ export function SecurityView() {
 
             <SettingRow
               title="失败锁定"
-              description="连续失败达阈值后锁定来源 15 分钟。"
+              description="连续失败达阈值后锁定该来源 IP。"
             >
               <Select
                 options={LOCKOUT_OPTIONS}
