@@ -2,6 +2,7 @@
 import 'server-only';
 
 import { asArray, asRecord, getUpstreamJson, num, str } from './upstream';
+import { createBoardCache } from './board-cache';
 import { ERROR_CODE, type HotChartItem, type HotChartResult } from '@/types';
 import { ApiError } from './errors';
 
@@ -51,60 +52,46 @@ function toItems(payload: Record<string, unknown>): HotChartItem[] {
   });
 }
 
-interface CacheEntry {
-  at: number;
+interface Board {
   updateTimeMs: number;
   items: HotChartItem[];
 }
 
-/** 缓存挂 globalThis：Next 按 route 分包，模块级变量每个 chunk 各存一份 */
-const globalStore = globalThis as typeof globalThis & { __decamoreHotChart?: CacheEntry | null };
-const inflight = { pending: null as Promise<HotChartResult> | null };
-
-function toResult(entry: CacheEntry, cached: boolean): HotChartResult {
+function toResult(_key: 'chart', board: Board, cached: boolean): HotChartResult {
   return {
-    updateTime: new Date(entry.updateTimeMs).toISOString(),
+    updateTime: new Date(board.updateTimeMs).toISOString(),
     cached,
-    items: entry.items,
+    items: board.items,
   };
 }
 
-async function load(): Promise<HotChartResult> {
-  let json: Record<string, unknown>;
-  try {
-    // 缺 referer 或 x-requested-with 会被判 403
-    json = await getUpstreamJson(MOVIE_RANK_URL, 'https://piaofang.maoyan.com/dashboard', {
-      'x-requested-with': 'XMLHttpRequest',
-    });
-  } catch (error) {
-    throw unavailable(error instanceof Error ? error.message : String(error));
-  }
+/** 猫眼榜没有分档，只有一个槽位；缓存命中直接返回，并发请求合并成一次上游调用 */
+const resolveHotChart = createBoardCache<'chart', Board, HotChartResult>({
+  slot: '__decamoreHotChart',
+  ttlMs: HOT_CHART_CACHE_TTL_MS,
+  fetch: async () => {
+    let json: Record<string, unknown>;
+    try {
+      // 缺 referer 或 x-requested-with 会被判 403
+      json = await getUpstreamJson(MOVIE_RANK_URL, 'https://piaofang.maoyan.com/dashboard', {
+        'x-requested-with': 'XMLHttpRequest',
+      });
+    } catch (error) {
+      throw unavailable(error instanceof Error ? error.message : String(error));
+    }
 
-  const items = toItems(json);
-  if (items.length === 0) throw unavailable('上游返回的结构里没有可用影片');
+    const items = toItems(json);
+    if (items.length === 0) throw unavailable('上游返回的结构里没有可用影片');
 
-  // 上游偶尔缺 updateInfo，退回抓取时刻
-  const timestamp = num(asRecord(asRecord(json.movieList)?.updateInfo)?.updateTimestamp);
-  const entry: CacheEntry = { at: Date.now(), updateTimeMs: timestamp ?? Date.now(), items };
-  globalStore.__decamoreHotChart = entry;
-  return toResult(entry, false);
-}
-
-/** 缓存命中直接返回；同一 chunk 内的并发请求合并成一次上游调用 */
-async function resolveHotChart(): Promise<HotChartResult> {
-  const entry = globalStore.__decamoreHotChart;
-  if (entry && Date.now() - entry.at < HOT_CHART_CACHE_TTL_MS) return toResult(entry, true);
-
-  if (!inflight.pending) {
-    inflight.pending = load().finally(() => {
-      inflight.pending = null;
-    });
-  }
-  return inflight.pending;
-}
+    // 上游偶尔缺 updateInfo，退回抓取时刻
+    const timestamp = num(asRecord(asRecord(json.movieList)?.updateInfo)?.updateTimestamp);
+    return { updateTimeMs: timestamp ?? Date.now(), items };
+  },
+  toResult,
+});
 
 /** limit 只截 items：缓存与 single-flight 仍按全量共享 */
 export async function getHotChart(limit?: number): Promise<HotChartResult> {
-  const result = await resolveHotChart();
+  const result = await resolveHotChart('chart');
   return limit ? { ...result, items: result.items.slice(0, limit) } : result;
 }

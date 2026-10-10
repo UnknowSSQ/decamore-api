@@ -2,6 +2,7 @@
 import 'server-only';
 
 import { asArray, asRecord, getUpstreamJson, num, str } from './upstream';
+import { createBoardCache } from './board-cache';
 import { ERROR_CODE, type HotPlayItem, type HotPlayType, type HotPlayResult } from '@/types';
 import { ApiError } from './errors';
 
@@ -69,68 +70,49 @@ function toItems(list: unknown[]): HotPlayItem[] {
   });
 }
 
-interface CacheEntry {
-  at: number;
+interface Board {
   boardDate: string;
   items: HotPlayItem[];
 }
 
-/** 缓存挂 globalThis：Next 按 route 分包，模块级变量每个 chunk 各存一份 */
-const globalStore = globalThis as typeof globalThis & {
-  __decamoreHotPlay?: Partial<Record<HotPlayType, CacheEntry>>;
-};
-
-const cache = (globalStore.__decamoreHotPlay ??= {});
-const inflight = new Map<HotPlayType, Promise<HotPlayResult>>();
-
-function toResult(type: HotPlayType, entry: CacheEntry, cached: boolean): HotPlayResult {
+function toResult(type: HotPlayType, board: Board, cached: boolean): HotPlayResult {
   return {
     type,
-    boardDate: entry.boardDate,
+    boardDate: board.boardDate,
     // 东八区零点换算，UTC 串固定落在 16:00:00.000Z 边界
-    updatedAt: new Date(`${entry.boardDate}T00:00:00+08:00`).toISOString(),
+    updatedAt: new Date(`${board.boardDate}T00:00:00+08:00`).toISOString(),
     cached,
-    items: entry.items,
+    items: board.items,
   };
 }
 
-async function load(type: HotPlayType): Promise<HotPlayResult> {
-  const channelType = TYPE_CHANNEL[type];
-  const today = ymd(new Date());
-
-  let boardDate = today;
-  let items: HotPlayItem[];
-  try {
-    const first = await fetchBoard(channelType, today);
-    items = toItems(first.list);
-    // 当天常为空，跟着 last_time 再取一次（官方站点同做法，实测最新只到 T-3）
-    if (items.length === 0 && first.lastTime) {
-      const second = await fetchBoard(channelType, first.lastTime);
-      items = toItems(second.list);
-      boardDate = first.lastTime;
-    }
-  } catch (error) {
-    throw unavailable(type, error instanceof Error ? error.message : String(error));
-  }
-  if (items.length === 0) throw unavailable(type, `上游 ${today} 与 last_time 都没有榜单数据`);
-
-  const entry: CacheEntry = { at: Date.now(), boardDate, items };
-  cache[type] = entry;
-  return toResult(type, entry, false);
-}
-
 /** 命中缓存时 cached=true；并发首请求合并成一次上游调用 */
-async function resolveHotPlay(type: HotPlayType): Promise<HotPlayResult> {
-  const entry = cache[type];
-  if (entry && Date.now() - entry.at < HOT_PLAY_CACHE_TTL_MS) return toResult(type, entry, true);
+const resolveHotPlay = createBoardCache<HotPlayType, Board, HotPlayResult>({
+  slot: '__decamoreHotPlay',
+  ttlMs: HOT_PLAY_CACHE_TTL_MS,
+  fetch: async (type) => {
+    const channelType = TYPE_CHANNEL[type];
+    const today = ymd(new Date());
 
-  const pending = inflight.get(type);
-  if (pending) return pending;
-
-  const task = load(type).finally(() => inflight.delete(type));
-  inflight.set(type, task);
-  return task;
-}
+    let boardDate = today;
+    let items: HotPlayItem[];
+    try {
+      const first = await fetchBoard(channelType, today);
+      items = toItems(first.list);
+      // 当天常为空，跟着 last_time 再取一次（官方站点同做法，实测最新只到 T-3）
+      if (items.length === 0 && first.lastTime) {
+        const second = await fetchBoard(channelType, first.lastTime);
+        items = toItems(second.list);
+        boardDate = first.lastTime;
+      }
+    } catch (error) {
+      throw unavailable(type, error instanceof Error ? error.message : String(error));
+    }
+    if (items.length === 0) throw unavailable(type, `上游 ${today} 与 last_time 都没有榜单数据`);
+    return { boardDate, items };
+  },
+  toResult,
+});
 
 /** limit 只截 items：缓存与 single-flight 仍按全量共享 */
 export async function getHotPlay(type: HotPlayType, limit?: number): Promise<HotPlayResult> {

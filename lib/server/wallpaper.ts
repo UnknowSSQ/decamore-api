@@ -6,6 +6,7 @@ import path from 'node:path';
 
 import { siteUrl } from '@/env';
 import { UPSTREAM_TIMEOUT_MS } from './upstream';
+import { createBoardCache } from './board-cache';
 import { ERROR_CODE, type WallpaperItem, type WallpaperType } from '@/types';
 import { ApiError } from './errors';
 
@@ -130,15 +131,12 @@ async function mirror(remote: string, target: string): Promise<boolean> {
 
 type LocalPool = Record<'pc' | 'mobile', WallpaperItem[]>;
 
-/** 挂 globalThis：每个 route chunk 各扫一遍目录的话，本地池与必应镜像都会被重复构建 */
+/** 挂 globalThis：每个 route chunk 各扫一遍目录的话，本地池会被重复构建 */
 const globalStore = globalThis as typeof globalThis & {
   __decamoreWallpaperPool?: LocalPool | null;
   __decamoreWallpaperPoolPending?: Promise<LocalPool> | null;
-  __decamoreBingShot?: { item: WallpaperItem; at: number } | null;
-  __decamoreBingPending?: Promise<WallpaperItem> | null;
 };
 
-/** 每进程只扫一次；状态直接放在 globalStore 上，模块级变量每个 route chunk 各一份 */
 /**
  * 镜像只增不减的话，每天 2 个文件（约 400KB）会一路把仓库顶到几百 MB，
  * 而历史 blob 再也收不回来。落地新对之后清掉 N 天前的：bing 每天只服务当日一张。
@@ -216,18 +214,13 @@ async function localItems(type: 'pc' | 'mobile'): Promise<WallpaperItem[]> {
   return pool[type];
 }
 
-/** 当日结果缓存 1 小时；已有镜像不再回源 */
-async function todayBing(): Promise<WallpaperItem> {
-  const cached = globalStore.__decamoreBingShot;
-  if (cached && Date.now() - cached.at < BING_TTL_MS) return cached.item;
-
-  const pending = (globalStore.__decamoreBingPending ??= loadBing().finally(() => {
-    globalStore.__decamoreBingPending = null;
-  }));
-  const item = await pending;
-  globalStore.__decamoreBingShot = { item, at: Date.now() };
-  return item;
-}
+/** 当日结果缓存 1 小时；已有镜像不再回源，并发请求合并成一次抓取 */
+const resolveBing = createBoardCache<'today', WallpaperItem, WallpaperItem>({
+  slot: '__decamoreBingShot',
+  ttlMs: BING_TTL_MS,
+  fetch: loadBing,
+  toResult: (_key, item) => item,
+});
 
 async function loadBing(): Promise<WallpaperItem> {
   let feed: BingFeed | undefined;
@@ -270,7 +263,7 @@ const ALL_TYPES: readonly WallpaperType[] = ['pc', 'mobile', 'bing'];
 /** type 缺省时三类等概率随机 */
 export async function pickWallpaper(type?: WallpaperType): Promise<WallpaperItem> {
   const picked = type ?? ALL_TYPES[Math.floor(Math.random() * ALL_TYPES.length)]!;
-  if (picked === 'bing') return todayBing();
+  if (picked === 'bing') return resolveBing('today');
 
   const items = await localItems(picked);
   return items[Math.floor(Math.random() * items.length)]!;

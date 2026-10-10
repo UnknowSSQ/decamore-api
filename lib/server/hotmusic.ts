@@ -2,6 +2,7 @@
 import 'server-only';
 
 import { asArray, asRecord, getUpstreamJson, num, str } from './upstream';
+import { createBoardCache } from './board-cache';
 import { ERROR_CODE, type HotMusicItem, type HotMusicPlatform, type HotMusicResult } from '@/types';
 import { ApiError } from './errors';
 
@@ -149,55 +150,32 @@ const FETCHERS: Record<HotMusicPlatform, () => Promise<UpstreamChart>> = {
   kugou: fetchKugou,
 };
 
-interface CacheEntry {
-  at: number;
-  chart: UpstreamChart;
-}
-
-/** 缓存挂 globalThis：Next 按 route 分包，模块级变量每个 chunk 各存一份 */
-const globalStore = globalThis as typeof globalThis & {
-  __decamoreHotMusic?: Partial<Record<HotMusicPlatform, CacheEntry>>;
-};
-
-const cache = (globalStore.__decamoreHotMusic ??= {});
-const inflight = new Map<HotMusicPlatform, Promise<HotMusicResult>>();
-
-function toResult(platform: HotMusicPlatform, entry: CacheEntry, cached: boolean): HotMusicResult {
+function toResult(platform: HotMusicPlatform, chart: UpstreamChart, cached: boolean): HotMusicResult {
   return {
     platform,
-    chartName: entry.chart.chartName,
-    updatedAt: new Date(entry.chart.updatedAtMs).toISOString(),
+    chartName: chart.chartName,
+    updatedAt: new Date(chart.updatedAtMs).toISOString(),
     cached,
-    items: entry.chart.items.slice(0, HOT_MUSIC_LIMIT),
+    items: chart.items.slice(0, HOT_MUSIC_LIMIT),
   };
 }
 
-async function load(platform: HotMusicPlatform): Promise<HotMusicResult> {
-  let chart: UpstreamChart;
-  try {
-    chart = await FETCHERS[platform]();
-  } catch (error) {
-    throw unavailable(platform, error instanceof Error ? error.message : String(error));
-  }
-  if (chart.items.length === 0) throw unavailable(platform, '上游返回的结构里没有可用曲目');
-
-  const entry: CacheEntry = { at: Date.now(), chart };
-  cache[platform] = entry;
-  return toResult(platform, entry, false);
-}
-
 /** 命中缓存时 cached=true；并发首请求合并成一次上游调用 */
-async function resolveHotMusic(platform: HotMusicPlatform): Promise<HotMusicResult> {
-  const entry = cache[platform];
-  if (entry && Date.now() - entry.at < HOT_MUSIC_CACHE_TTL_MS) return toResult(platform, entry, true);
-
-  const pending = inflight.get(platform);
-  if (pending) return pending;
-
-  const task = load(platform).finally(() => inflight.delete(platform));
-  inflight.set(platform, task);
-  return task;
-}
+const resolveHotMusic = createBoardCache<HotMusicPlatform, UpstreamChart, HotMusicResult>({
+  slot: '__decamoreHotMusic',
+  ttlMs: HOT_MUSIC_CACHE_TTL_MS,
+  fetch: async (platform) => {
+    let chart: UpstreamChart;
+    try {
+      chart = await FETCHERS[platform]();
+    } catch (error) {
+      throw unavailable(platform, error instanceof Error ? error.message : String(error));
+    }
+    if (chart.items.length === 0) throw unavailable(platform, '上游返回的结构里没有可用曲目');
+    return chart;
+  },
+  toResult,
+});
 
 /** limit 只截 items：缓存与 single-flight 仍按全量共享 */
 export async function getHotMusic(platform: HotMusicPlatform, limit?: number): Promise<HotMusicResult> {

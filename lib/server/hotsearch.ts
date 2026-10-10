@@ -2,6 +2,7 @@
 import 'server-only';
 
 import { asArray, asRecord, getUpstreamJson, num, str } from './upstream';
+import { createBoardCache } from './board-cache';
 import { ERROR_CODE, type HotSearchItem, type HotSearchPlatform, type HotSearchResult } from '@/types';
 import { ApiError } from './errors';
 
@@ -174,54 +175,31 @@ const FETCHERS: Record<HotSearchPlatform, () => Promise<UpstreamBoard>> = {
   zhihu: fetchZhihu,
 };
 
-interface CacheEntry {
-  at: number;
-  board: UpstreamBoard;
-}
-
-/** 缓存挂 globalThis：Next 按 route 分包，模块级变量每个 chunk 各存一份 */
-const globalStore = globalThis as typeof globalThis & {
-  __decamoreHotSearch?: Partial<Record<HotSearchPlatform, CacheEntry>>;
-};
-
-const cache = (globalStore.__decamoreHotSearch ??= {});
-const inflight = new Map<HotSearchPlatform, Promise<HotSearchResult>>();
-
-function toResult(platform: HotSearchPlatform, entry: CacheEntry, cached: boolean): HotSearchResult {
+function toResult(platform: HotSearchPlatform, board: UpstreamBoard, cached: boolean): HotSearchResult {
   return {
     platform,
-    updatedAt: new Date(entry.board.updatedAtMs).toISOString(),
+    updatedAt: new Date(board.updatedAtMs).toISOString(),
     cached,
-    items: entry.board.items,
+    items: board.items,
   };
 }
 
-async function load(platform: HotSearchPlatform): Promise<HotSearchResult> {
-  let board: UpstreamBoard;
-  try {
-    board = await FETCHERS[platform]();
-  } catch (error) {
-    throw unavailable(platform, error instanceof Error ? error.message : String(error));
-  }
-  if (board.items.length === 0) throw unavailable(platform, '上游返回的结构里没有可用条目');
-
-  const entry: CacheEntry = { at: Date.now(), board };
-  cache[platform] = entry;
-  return toResult(platform, entry, false);
-}
-
 /** 命中缓存时 cached=true；并发首请求合并成一次上游调用 */
-async function resolveHotSearch(platform: HotSearchPlatform): Promise<HotSearchResult> {
-  const entry = cache[platform];
-  if (entry && Date.now() - entry.at < HOT_SEARCH_CACHE_TTL_MS) return toResult(platform, entry, true);
-
-  const pending = inflight.get(platform);
-  if (pending) return pending;
-
-  const task = load(platform).finally(() => inflight.delete(platform));
-  inflight.set(platform, task);
-  return task;
-}
+const resolveHotSearch = createBoardCache<HotSearchPlatform, UpstreamBoard, HotSearchResult>({
+  slot: '__decamoreHotSearch',
+  ttlMs: HOT_SEARCH_CACHE_TTL_MS,
+  fetch: async (platform) => {
+    let board: UpstreamBoard;
+    try {
+      board = await FETCHERS[platform]();
+    } catch (error) {
+      throw unavailable(platform, error instanceof Error ? error.message : String(error));
+    }
+    if (board.items.length === 0) throw unavailable(platform, '上游返回的结构里没有可用条目');
+    return board;
+  },
+  toResult,
+});
 
 /** limit 只截 items：缓存与 single-flight 仍按全量共享，同一份上游数据服务不同截断的请求 */
 export async function getHotSearch(platform: HotSearchPlatform, limit?: number): Promise<HotSearchResult> {
