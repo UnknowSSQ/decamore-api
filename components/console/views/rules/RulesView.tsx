@@ -1,14 +1,12 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
-
 import {
   Badge,
   Button,
   Callout,
   ConfirmModal,
   DataTable,
-  EmptyState,
   Icon,
   Input,
   Kbd,
@@ -23,47 +21,39 @@ import { deleteRule, fetchRules, updateRule } from '@/lib/api';
 import { formatCompactCn, formatNumber } from '@/utils/format';
 import type { RuleListQuery } from '@/lib/zod/admin.schema';
 import type { AccessRule, Paged, TableColumn } from '@/types';
-
-
 /**
  * 抽屉与表单按需加载：两者各自拖着 zod 写校验，规则列表首屏用不到。
  * 首次打开后才挂载、之后不再卸载——出场动画需要组件还活着。
  */
 const RuleDetailDrawer = dynamic(() => import('./RuleDetailDrawer').then((m) => m.RuleDetailDrawer), { ssr: false });
 const RuleFormModal = dynamic(() => import('./RuleFormModal').then((m) => m.RuleFormModal), { ssr: false });
-
 const TYPE_FILTERS = [
   { value: '', label: '全部' },
   { value: 'rate', label: '限流' },
   { value: 'cache', label: '缓存' },
   { value: 'block', label: '拦截' },
 ] as const;
-
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
   { value: 'enabled', label: '启用' },
   { value: 'disabled', label: '停用' },
 ] as const;
-
 /** 存储按 action，展示归成三类；log 也按限流算 */
 function actionToType(action: string): string {
   if (action === '429' || action === 'log') return 'rate';
   if (action === 'reject') return 'block';
   return 'cache';
 }
-
 const ACTION_META: Record<string, { label: string; tone: 'ok' | 'warn' | 'danger' | 'neutral' | 'brand' }> = {
   '429': { label: '429', tone: 'warn' },
   reject: { label: 'reject', tone: 'danger' },
   captcha: { label: 'captcha', tone: 'brand' },
   log: { label: 'log', tone: 'neutral' },
 };
-
 export function RulesView() {
   const { itemsPerPage } = useSiteFormat();
   const canWrite = useCan('rule:write');
   const toast = useToast();
-
   const {
     data,
     loading,
@@ -91,10 +81,8 @@ export function RulesView() {
       order: sort.order,
     }),
   });
-
   // type 归类只作用于当前页（服务端按 action 收，rate 组跨 429/log 两个 action）
   const [typeFilter, setTypeFilter] = useState('');
-
   const [drawerRule, setDrawerRule] = useState<AccessRule | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSeen, setDrawerSeen] = useState(false);
@@ -103,7 +91,6 @@ export function RulesView() {
   const [editingRule, setEditingRule] = useState<AccessRule | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AccessRule | null>(null);
   const [deletePending, setDeletePending] = useState(false);
-
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const handleStatusToggle = useCallback(
     async (rule: AccessRule, next: boolean) => {
@@ -140,7 +127,6 @@ export function RulesView() {
     },
     [setData, toast],
   );
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeletePending(true);
@@ -155,34 +141,28 @@ export function RulesView() {
       setDeletePending(false);
     }
   };
-
   const openDetail = useCallback((rule: AccessRule) => {
     setDrawerRule(rule);
     setDrawerSeen(true);
     setDrawerOpen(true);
   }, []);
-
   const handleCreate = () => {
     setEditingRule(null);
     setModalSeen(true);
     setModalOpen(true);
   };
-
   const handleFormSuccess = () => {
     void reload();
   };
-
   const total = data?.total ?? 0;
   const activeCount = useMemo(() => {
     if (!data?.items) return 0;
     return data.items.filter((r) => r.enabled).length;
   }, [data]);
-
   const totalHits = useMemo(() => {
     if (!data?.items) return 0;
     return data.items.reduce((sum, r) => sum + r.hitsToday, 0);
   }, [data]);
-
   // type 服务端不认，只对当前页二次过滤，和分页口径不一致
   const filteredRows = useMemo(() => {
     if (!data?.items) return [];
@@ -192,7 +172,6 @@ export function RulesView() {
     }
     return rows;
   }, [data?.items, typeFilter]);
-
   const columns: TableColumn<AccessRule>[] = useMemo(
     () => [
       {
@@ -287,7 +266,6 @@ export function RulesView() {
     ],
     [openDetail, togglingId, canWrite, handleStatusToggle],
   );
-
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -312,14 +290,12 @@ export function RulesView() {
           )
         }
       />
-
       <Callout tone="info" mark="i">
         <p>
           <strong>免密钥模式：</strong>
           Decamore API 无需注册与签名，开发者直接调用。服务的公平与稳定由访问规则保障 —— 单 IP 频控、热点缓存与恶意拦截全部在边缘节点执行，规则变更约 30 秒内全网生效，按优先级自上而下匹配，命中即执行首个动作。
         </p>
       </Callout>
-
       <div className="toolbar flex flex-wrap items-center gap-3">
         <div className="relative">
           <Input
@@ -331,7 +307,6 @@ export function RulesView() {
             suffix={<Kbd>/</Kbd>}
           />
         </div>
-
         <div className="chips flex items-center gap-1.5">
           {TYPE_FILTERS.map((t) => (
             <button
@@ -348,7 +323,6 @@ export function RulesView() {
             </button>
           ))}
         </div>
-
         <select
           value={filters.status}
           onChange={(e) => setFilter('status', e.target.value)}
@@ -360,45 +334,32 @@ export function RulesView() {
             </option>
           ))}
         </select>
-
         <span className="ml-auto text-[12px] text-muted">
           显示 {filteredRows.length} / {total} 条
         </span>
       </div>
-
-      {error ? (
-        <EmptyState
-          mark="⚠"
-          title="加载失败"
-          description={error.message || '规则列表请求失败，请重试'}
-          action={
-            <Button variant="outline" size="sm" onClick={() => void reload()}>
-              重试
+      <DataTable<AccessRule>
+        columns={columns}
+        rows={filteredRows}
+        rowKey="id"
+        sort={sort}
+        onSortChange={setSort}
+        loading={loading}
+        skeletonRows={6}
+        error={error}
+        errorDescription="规则列表请求失败，请重试"
+        onRetry={() => void reload()}
+        emptyTitle="暂无规则"
+        emptyDescription="还没有配置任何访问规则"
+        emptyAction={
+          canWrite ? (
+            <Button variant="primary" size="sm" onClick={handleCreate}>
+              <Icon name="plus" size={14} />
+              新建规则
             </Button>
-          }
-        />
-      ) : (
-        <DataTable<AccessRule>
-          columns={columns}
-          rows={filteredRows}
-          rowKey="id"
-          sort={sort}
-          onSortChange={setSort}
-          loading={loading}
-          skeletonRows={6}
-          emptyTitle="暂无规则"
-          emptyDescription="还没有配置任何访问规则"
-          emptyAction={
-            canWrite ? (
-              <Button variant="primary" size="sm" onClick={handleCreate}>
-                <Icon name="plus" size={14} />
-                新建规则
-              </Button>
-            ) : undefined
-          }
-        />
-      )}
-
+          ) : undefined
+        }
+      />
       {drawerSeen && (
         <RuleDetailDrawer
           rule={drawerRule}
@@ -407,7 +368,6 @@ export function RulesView() {
           onRefresh={() => void reload()}
         />
       )}
-
       {modalSeen && (
         <RuleFormModal
           open={modalOpen}
@@ -416,7 +376,6 @@ export function RulesView() {
           onSuccess={handleFormSuccess}
         />
       )}
-
       <ConfirmModal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

@@ -165,9 +165,6 @@ export function ApisView() {
 
   const handleFormSuccess = () => {
     void reload();
-    if (!editingApi) {
-      // 后端还没回新记录的 id，只能等 refetch 后手动点开抽屉
-    }
   };
 
   const total = data?.total ?? 0;

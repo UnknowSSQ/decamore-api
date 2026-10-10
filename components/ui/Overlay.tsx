@@ -226,6 +226,8 @@ export function ConfirmModal({
     <Modal
       open={open}
       onClose={onClose}
+      // 破坏性确认不该被一次误点遮罩关掉；BaseLayerProps 的注释说的就是这里
+      dismissOnOverlay={false}
       title={title}
       width="max-w-[420px]"
       footer={

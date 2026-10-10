@@ -51,6 +51,7 @@ function LogsViewInner() {
     data,
     loading,
     pending,
+    error,
     refetch,
     keyword,
     setKeyword,
@@ -296,6 +297,8 @@ function LogsViewInner() {
           onSortChange={setSort}
           loading={loading}
           skeletonRows={12}
+          error={error}
+          onRetry={() => void refetch()}
           emptyTitle="暂无匹配的日志"
           emptyDescription="调整筛选条件，或开启右上角「实时追踪」观察新请求。"
           onRowClick={(log) => setSelectedLog(log)}

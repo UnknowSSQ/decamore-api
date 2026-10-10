@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/utils/cn';
 import type { SortState, TableColumn } from '@/types';
+import { Button } from './Button';
 import { EmptyState, Skeleton } from './Panel';
 
 export interface DataTableProps<T> {
@@ -17,9 +18,12 @@ export interface DataTableProps<T> {
   emptyTitle?: ReactNode;
   emptyDescription?: ReactNode;
   emptyAction?: ReactNode;
+  /** 取数失败：优先级高于 empty 与表格本体，否则会把故障渲染成「暂无数据」 */
+  error?: Error | null;
+  errorDescription?: ReactNode;
+  onRetry?: () => void;
   onRowClick?: (row: T, index: number) => void;
   className?: string;
-  dense?: boolean;
 }
 
 /** T 约束用 object 而不是 Record<string, unknown>：后者要求索引签名，CallLog 这类 interface 不满足，
@@ -35,9 +39,11 @@ export function DataTable<T extends object>({
   emptyTitle = '暂无数据',
   emptyDescription,
   emptyAction,
+  error,
+  errorDescription,
+  onRetry,
   onRowClick,
   className,
-  dense,
 }: DataTableProps<T>) {
   const keyOf = (row: T, index: number): string =>
     typeof rowKey === 'function'
@@ -49,6 +55,25 @@ export function DataTable<T extends object>({
     // 同列只切方向，换列默认倒序（数值列倒序更常看）
     onSortChange(sort?.key === key ? { key, order: sort.order === 'asc' ? 'desc' : 'asc' } : { key, order: 'desc' });
   };
+
+  if (error && !loading) {
+    return (
+      <div className={cn('rounded-lg border border-line bg-surface p-2', className)}>
+        <EmptyState
+          mark="⚠"
+          title="加载失败"
+          description={errorDescription ?? error.message}
+          action={
+            onRetry ? (
+              <Button variant="outline" size="sm" onClick={() => void onRetry()}>
+                重试
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
+    );
+  }
 
   if (!loading && rows.length === 0) {
     return (
@@ -93,7 +118,7 @@ export function DataTable<T extends object>({
                 <tr key={`sk-${i}`}>
                   {columns.map((col) => (
                     <td key={col.key}>
-                      <Skeleton className={cn(dense ? 'h-3' : 'h-3.5', 'w-[70%]')} />
+                      <Skeleton className="h-3.5 w-[70%]" />
                     </td>
                   ))}
                 </tr>
@@ -108,7 +133,6 @@ export function DataTable<T extends object>({
                     <td
                       key={col.key}
                       className={cn(
-                        dense && 'py-2',
                         col.align === 'right' && 'text-right',
                         col.align === 'center' && 'text-center',
                       )}
