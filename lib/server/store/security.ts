@@ -2,14 +2,13 @@ import 'server-only';
 import type { SecuritySettings } from '@/types';
 
 /** 默认值变了要 bump 版本号：单例活过 dev 热重载，不换版本改了这里的初值也看不到 */
-const SECURITY_SEED_VERSION = '2026-10-09.enforced-cors-ip-bodylimit';
+const SECURITY_SEED_VERSION = '2026-10-10.trimmed-inert-fields';
 
 /** 请求体上限的默认值（KB）。validate.ts 的兜底常量由它派生，别再各写一份 64 */
 export const DEFAULT_MAX_BODY_SIZE_KB = 64;
 
 const seedSecurity = (): SecuritySettings => ({
   twoFactorEnabled: false,
-  loginNotify: true,
   sessionTimeoutMin: 30,
   passwordPolicy: {
     minLength: 8,
@@ -17,8 +16,6 @@ const seedSecurity = (): SecuritySettings => ({
     requireDigit: true,
     requireSymbol: false,
   },
-  blockFailedAttempts: true,
-  failedAttemptWindowMin: 15,
   failedAttemptMax: 5,
   wafEnabled: true,
   maxBodySizeKb: DEFAULT_MAX_BODY_SIZE_KB,

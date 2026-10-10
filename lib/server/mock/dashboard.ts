@@ -38,36 +38,6 @@ export function buildDashboardStats(range: '24h' | '7d' | '30d'): DashboardStats
       { name: '缓存服务', uptime: 99.99, status: 'ok' },
       { name: '日志系统', uptime: 98.2, status: 'warn' },
     ],
-    activities: [
-      {
-        time: '2026-10-07T02:15:00.000Z',
-        actor: 'Admin',
-        action: '登录',
-        target: '系统',
-        tone: 'ok',
-      },
-      {
-        time: '2026-10-07T01:00:00.000Z',
-        actor: '系统',
-        action: '更新规则',
-        target: '热点接口频控',
-        tone: 'warn',
-      },
-      {
-        time: '2026-10-06T22:30:00.000Z',
-        actor: '系统',
-        action: '拦截异常',
-        target: '198.51.100.42',
-        tone: 'danger',
-      },
-      {
-        time: '2026-10-06T18:00:00.000Z',
-        actor: 'Admin',
-        action: '创建接口',
-        target: '/api/v1/hotchart',
-        tone: 'ok',
-      },
-    ],
   };
 }
 

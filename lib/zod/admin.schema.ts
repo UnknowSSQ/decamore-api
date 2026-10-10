@@ -135,7 +135,6 @@ export type LogListQuery = z.infer<typeof logListQuerySchema>;
 export const securityPatchSchema = z
   .object({
     twoFactorEnabled: boolish.optional(),
-    loginNotify: boolish.optional(),
     sessionTimeoutMin: z.coerce.number().int().min(5).max(1440).optional(),
     passwordPolicy: z
       .object({
@@ -146,8 +145,6 @@ export const securityPatchSchema = z
       })
       .strict()
       .optional(),
-    blockFailedAttempts: boolish.optional(),
-    failedAttemptWindowMin: z.coerce.number().int().min(1).max(1440).optional(),
     failedAttemptMax: z.coerce.number().int().min(3).max(100).optional(),
     wafEnabled: boolish.optional(),
     maxBodySizeKb: z.coerce.number().int().min(16).max(16_384).optional(),

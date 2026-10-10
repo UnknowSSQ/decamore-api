@@ -259,16 +259,12 @@ export interface DashboardStats {
   statusMix: { code: string; count: number; ratio: number }[];
   topApis: { path: string; calls: number; share: number }[];
   health: { name: string; uptime: number; status: 'ok' | 'warn' | 'down' }[];
-  activities: { time: string; actor: string; action: string; target: string; tone: 'ok' | 'warn' | 'danger' }[];
 }
 
 export interface SecuritySettings {
   twoFactorEnabled: boolean;
-  loginNotify: boolean;
   sessionTimeoutMin: number;
   passwordPolicy: { minLength: number; requireUpper: boolean; requireDigit: boolean; requireSymbol: boolean };
-  blockFailedAttempts: boolean;
-  failedAttemptWindowMin: number;
   failedAttemptMax: number;
   wafEnabled: boolean;
   maxBodySizeKb: number;
