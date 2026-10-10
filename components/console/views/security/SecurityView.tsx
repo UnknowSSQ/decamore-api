@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 
 import { Button, Callout, Icon, Input, Panel, PageHeader, PanelTitle, SettingRow, Skeleton, EmptyState } from '@/components/ui';
 import { Select } from '@/components/ui/Select';
-import { Switch, Checkbox } from '@/components/ui/Input';
 import { useRequest } from '@/hooks/useRequest';
 import { useCan } from '@/hooks/usePermission';
 import { useToast } from '@/hooks/useToast';
@@ -12,22 +11,11 @@ import { fetchSecurity, patchSecurity, saveIpWhitelist, removeIpWhitelist, saveI
 import { ipOrCidrSchema, corsOriginSchema } from '@/lib/zod/common';
 import type { SecuritySettings } from '@/types';
 
-const SESSION_OPTIONS = [
-  { value: '30', label: '30 分钟' },
-  { value: '60', label: '1 小时' },
-  { value: '480', label: '8 小时' },
-];
-
-const LOCKOUT_OPTIONS = [
-  { value: '3', label: '3 次' },
-  { value: '5', label: '5 次' },
-  { value: '10', label: '10 次' },
-];
-
-const CONCURRENCY_OPTIONS = [
-  { value: '10', label: '10' },
-  { value: '32', label: '32' },
-  { value: '64', label: '64' },
+/** 频控窗口的可选项，value 就是秒数；与 securityPatchSchema 的 periodSec 范围一致 */
+const PERIOD_OPTIONS = [
+  { value: '60', label: '1 分钟' },
+  { value: '300', label: '5 分钟' },
+  { value: '3600', label: '1 小时' },
 ];
 
 export function SecurityView() {
@@ -63,22 +51,6 @@ export function SecurityView() {
     return commit({ ...localData, [key]: value }, { [key]: value });
   };
 
-  // path 形如 'passwordPolicy.minLength'，PATCH 按整个 parent 提交（后端是整组覆盖）
-  const updateNestedField = (path: string, value: unknown) => {
-    if (!localData) return;
-
-    const [parent, child] = path.split('.');
-    if (!parent || !child) return;
-    const parentObj = localData[parent as keyof SecuritySettings] as Record<string, unknown> | undefined;
-    if (!parentObj) return;
-
-    const nextParent = { ...parentObj, [child]: value };
-    return commit(
-      { ...localData, [parent]: nextParent },
-      { [parent]: nextParent } as Partial<SecuritySettings>,
-    );
-  };
-
   if (loading) return <SecuritySkeleton />;
   if (error || !localData) {
     return (
@@ -94,13 +66,12 @@ export function SecurityView() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="安全配置"
-        description="认证策略、访问控制、流量防护与审计"
+        description="访问控制与流量防护"
       />
 
       <Callout tone="info" mark="i">
-        当前真正作用于请求链路的配置：IP 黑白名单、CORS 来源、请求体上限、全局限额，以及「访问规则」页的策略。
-        两步验证、会话空闲超时、密码复杂度、失败锁定与 WAF 开关只保存取值，对应的校验流程尚未接入，
-        改动不会改变登录或访问控制的行为。
+        这里的每一项都直接参与请求链路判定：IP 黑白名单与访问规则在守卫里执行，
+        请求体上限传给 body 解析，全局限额按来源 IP 计数，CORS 只在来源命中时下发响应头。
       </Callout>
 
       {!canWrite && (
@@ -111,104 +82,19 @@ export function SecurityView() {
 
       <div className="grid grid-cols-2 gap-6">
         <Panel>
-          <PanelTitle title="登录与认证" />
-          <div className="mt-4 flex flex-col gap-4">
-            <SettingRow
-              title="两步验证（2FA）"
-              description="管理员登录需输入 TOTP 动态码，离线恢复码共 10 枚。"
-            >
-              <Switch
-                checked={localData.twoFactorEnabled}
-                onChange={(v) => updateField('twoFactorEnabled', v)}
-                disabled={!canWrite}
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="会话空闲超时"
-              description="超时未操作将自动登出控制台。"
-            >
-              <Select
-                options={SESSION_OPTIONS}
-                value={String(localData.sessionTimeoutMin)}
-                onChange={(e) => updateField('sessionTimeoutMin', Number(e.target.value))}
-                disabled={!canWrite}
-                className="w-32"
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="失败锁定"
-              description="连续失败达阈值后锁定该来源 IP。"
-            >
-              <Select
-                options={LOCKOUT_OPTIONS}
-                value={String(localData.failedAttemptMax)}
-                onChange={(e) => updateField('failedAttemptMax', Number(e.target.value))}
-                disabled={!canWrite}
-                className="w-32"
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="密码最小长度"
-              description="适用于所有控制台成员账号。"
-            >
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min={8}
-                  max={20}
-                  value={localData.passwordPolicy.minLength}
-                  onChange={(e) => updateNestedField('passwordPolicy.minLength', Number(e.target.value))}
-                  disabled={!canWrite}
-                  className="w-32"
-                />
-                <span className="w-12 text-right text-[12px] text-ink">{localData.passwordPolicy.minLength} 位</span>
-              </div>
-            </SettingRow>
-
-            <SettingRow
-              title="密码复杂度"
-              description="强制要求包含的字符类型。"
-            >
-              <div className="flex items-center gap-4">
-                <Checkbox
-                  checked={localData.passwordPolicy.requireUpper}
-                  onChange={(e) => updateNestedField('passwordPolicy.requireUpper', e.target.checked)}
-                  disabled={!canWrite}
-                  label="大写"
-                />
-                <Checkbox
-                  checked={localData.passwordPolicy.requireDigit}
-                  onChange={(e) => updateNestedField('passwordPolicy.requireDigit', e.target.checked)}
-                  disabled={!canWrite}
-                  label="数字"
-                />
-                <Checkbox
-                  checked={localData.passwordPolicy.requireSymbol}
-                  onChange={(e) => updateNestedField('passwordPolicy.requireSymbol', e.target.checked)}
-                  disabled={!canWrite}
-                  label="符号"
-                />
-              </div>
-            </SettingRow>
-          </div>
-        </Panel>
-
-        <Panel>
           <PanelTitle title="流量防护" />
           <div className="mt-4 flex flex-col gap-4">
             <SettingRow
               title="全局速率限制"
-              description="按来源 IP 每分钟请求上限，超出返回 429。"
+              description="按来源 IP 计的请求上限，超出返回 429。"
             >
               <div className="flex items-center gap-3">
                 <input
                   type="range"
+                  // step 要能整除到默认值 5000：用 60 的话滑杆会显示成 4980，与右侧数字不一致
                   min={60}
                   max={6000}
-                  step={60}
+                  step={20}
                   value={localData.globalRateLimit.limit}
                   onChange={(e) =>
                     updateField('globalRateLimit', { ...localData.globalRateLimit, limit: Number(e.target.value) })
@@ -216,17 +102,16 @@ export function SecurityView() {
                   disabled={!canWrite}
                   className="w-32"
                 />
-                <span className="w-20 text-right text-[12px] text-ink">{localData.globalRateLimit.limit} RPM</span>
+                <span className="w-20 text-right text-[12px] text-ink">{localData.globalRateLimit.limit} 次</span>
               </div>
             </SettingRow>
 
             <SettingRow
-              title="单 IP 并发上限"
-              description="同一来源 IP 的并行连接数上限。"
+              title="限速窗口"
+              description="上面的次数在这个时长内累计，窗口走完后重新计数。"
             >
               <Select
-                // 复用 periodSec：配置里没有独立的并发字段
-                options={CONCURRENCY_OPTIONS}
+                options={PERIOD_OPTIONS}
                 value={String(localData.globalRateLimit.periodSec)}
                 onChange={(e) =>
                   updateField('globalRateLimit', { ...localData.globalRateLimit, periodSec: Number(e.target.value) })
@@ -248,17 +133,6 @@ export function SecurityView() {
                 className="w-32"
                 min={16}
                 max={16384}
-              />
-            </SettingRow>
-
-            <SettingRow
-              title="WAF 防护"
-              description="Web 应用防火墙，拦截常见攻击。"
-            >
-              <Switch
-                checked={localData.wafEnabled}
-                onChange={(v) => updateField('wafEnabled', v)}
-                disabled={!canWrite}
               />
             </SettingRow>
           </div>
@@ -289,23 +163,12 @@ export function SecurityView() {
           placeholder="输入需要封禁的 IP"
           addButtonLabel="封禁"
           canWrite={canWrite}
-          footnote={<>近 7 日自动封禁 <strong>17</strong> 个异常来源</>}
         />
 
         <Panel>
           <PanelTitle
             title="CORS 允许来源"
             description="浏览器端跨域调用白名单。"
-            extra={
-              <label className="flex items-center gap-2 text-[12px] text-muted">
-                <Switch
-                  checked={true} // 【待开发】从 localData 读取
-                  onChange={() => toast.info('【待开发】CORS 凭证开关')}
-                  disabled={!canWrite}
-                />
-                <span>允许携带凭证</span>
-              </label>
-            }
           />
           <div className="mt-4 flex flex-col gap-3">
             <TagList
@@ -333,12 +196,7 @@ export function SecurityView() {
         <Panel className="col-span-2">
           <PanelTitle
             title="管理操作审计"
-            description="谁在什么时间改了什么 · 不可篡改，保留 180 天"
-            extra={
-              <Button variant="outline" size="sm" trailing="↗">
-                导出审计记录
-              </Button>
-            }
+            description="谁在什么时间改了什么"
           />
           <div className="mt-4">
             <EmptyState mark="⌕" title="【待开发】审计日志" description="审计日志查询功能待实现。" />
@@ -517,7 +375,6 @@ function IpListEditor({
   addButtonLabel,
   canWrite,
   callout,
-  footnote,
 }: {
   title: string;
   description: string;
@@ -528,7 +385,6 @@ function IpListEditor({
   addButtonLabel: string;
   canWrite: boolean;
   callout?: React.ReactNode;
-  footnote?: React.ReactNode;
 }) {
   return (
     <Panel>
@@ -543,7 +399,6 @@ function IpListEditor({
           validate={(v) => ipOrCidrSchema.safeParse(v).success}
         />
         {callout}
-        {footnote && <div className="text-[11px] text-muted">{footnote}</div>}
       </div>
     </Panel>
   );

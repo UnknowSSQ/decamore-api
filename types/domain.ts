@@ -261,12 +261,8 @@ export interface DashboardStats {
   health: { name: string; uptime: number; status: 'ok' | 'warn' | 'down' }[];
 }
 
+/** 只登记真正参与请求链路判定的项：加字段就要有对应的 enforcement，否则后台会多出只会保存数字的开关 */
 export interface SecuritySettings {
-  twoFactorEnabled: boolean;
-  sessionTimeoutMin: number;
-  passwordPolicy: { minLength: number; requireUpper: boolean; requireDigit: boolean; requireSymbol: boolean };
-  failedAttemptMax: number;
-  wafEnabled: boolean;
   maxBodySizeKb: number;
   globalRateLimit: { limit: number; periodSec: number };
   ipWhitelist: string[];

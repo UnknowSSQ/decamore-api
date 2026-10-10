@@ -132,21 +132,9 @@ export const logListQuerySchema = paginationSchema.extend({
 );
 export type LogListQuery = z.infer<typeof logListQuerySchema>;
 
+/** 与 SecuritySettings 同步：只接受真正参与请求链路判定的两项，IP 名单与 CORS 走各自的端点 */
 export const securityPatchSchema = z
   .object({
-    twoFactorEnabled: boolish.optional(),
-    sessionTimeoutMin: z.coerce.number().int().min(5).max(1440).optional(),
-    passwordPolicy: z
-      .object({
-        minLength: z.coerce.number().int().min(8).max(64),
-        requireUpper: boolish,
-        requireDigit: boolish,
-        requireSymbol: boolish,
-      })
-      .strict()
-      .optional(),
-    failedAttemptMax: z.coerce.number().int().min(3).max(100).optional(),
-    wafEnabled: boolish.optional(),
     maxBodySizeKb: z.coerce.number().int().min(16).max(16_384).optional(),
     globalRateLimit: z
       .object({

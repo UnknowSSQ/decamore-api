@@ -2,22 +2,12 @@ import 'server-only';
 import type { SecuritySettings } from '@/types';
 
 /** 默认值变了要 bump 版本号：单例活过 dev 热重载，不换版本改了这里的初值也看不到 */
-const SECURITY_SEED_VERSION = '2026-10-10.trimmed-inert-fields';
+const SECURITY_SEED_VERSION = '2026-10-10.enforced-only';
 
 /** 请求体上限的默认值（KB）。validate.ts 的兜底常量由它派生，别再各写一份 64 */
 export const DEFAULT_MAX_BODY_SIZE_KB = 64;
 
 const seedSecurity = (): SecuritySettings => ({
-  twoFactorEnabled: false,
-  sessionTimeoutMin: 30,
-  passwordPolicy: {
-    minLength: 8,
-    requireUpper: true,
-    requireDigit: true,
-    requireSymbol: false,
-  },
-  failedAttemptMax: 5,
-  wafEnabled: true,
   maxBodySizeKb: DEFAULT_MAX_BODY_SIZE_KB,
   globalRateLimit: { limit: 5000, periodSec: 3600 },
   ipWhitelist: ['10.0.0.0/8', '172.16.0.0/12'],
@@ -42,7 +32,6 @@ const SECURITY: SecuritySettings = globalStore.__decamoreSecurity!;
 function snapshot(settings: SecuritySettings): SecuritySettings {
   return {
     ...settings,
-    passwordPolicy: { ...settings.passwordPolicy },
     globalRateLimit: { ...settings.globalRateLimit },
     ipWhitelist: [...settings.ipWhitelist],
     ipBlacklist: [...settings.ipBlacklist],
