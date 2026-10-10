@@ -11,6 +11,7 @@ import type {
   DashboardStats,
   EmojiListResult,
   EmojiType,
+  ExportReportResult,
   HotChartResult,
   HotMusicPlatform,
   HotMusicResult,
@@ -48,9 +49,9 @@ export function fetchDashboard(range: RangeValue = '24h', live = false) {
   return http.get<DashboardStats>(API.console.dashboard, { query: { range, live: live ? '1' : undefined } });
 }
 
-/** 直链由服务端生成，前端不拼下载路径 */
+/** 返回体形状由 ExportReportResult 单点定义，服务端与这里共用，不再各写一份泛型实参 */
 export function exportReport(body: z.infer<typeof exportReportBodySchema>) {
-  return http.post<{ fileName: string; downloadUrl: string; rows: number }>(API.console.exportReport, body);
+  return http.post<ExportReportResult>(API.console.exportReport, body);
 }
 
 export function fetchManagedApis(query: Partial<ApiListQuery> = {}) {

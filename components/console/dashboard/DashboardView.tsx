@@ -138,8 +138,18 @@ export function DashboardView({ autoRefreshSec = 30 }: { autoRefreshSec?: number
 
   const handleExport = async () => {
     try {
-      await exportReport({ range, format: 'csv' });
-      toast.success('仪表盘报表已生成，正在下载…', '【待开发】真实下载直链');
+      const report = await exportReport({ range, format: 'csv' });
+      // BOM 是给 Excel 的：没有它 UTF-8 的中文列会被按 GBK 解码成乱码
+      const blob = new Blob([report.format === 'csv' ? `﻿${report.content}` : report.content], {
+        type: report.format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json',
+      });
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = report.fileName;
+      link.click();
+      URL.revokeObjectURL(href);
+      toast.success(`已导出 ${report.rows} 行`, report.fileName);
     } catch {
       toast.error('导出失败');
     }

@@ -238,6 +238,15 @@ export interface CallLog {
   cacheHit: boolean;
 }
 
+/** POST /api/v1/dashboard/export：报表内容随信封回，前端用 Blob 落地成文件 */
+export interface ExportReportResult {
+  fileName: string;
+  format: 'csv' | 'json';
+  /** 各段行数合计，供 UI 说明导出了多少条 */
+  rows: number;
+  content: string;
+}
+
 export interface DashboardStats {
   callsToday: number;
   callsDelta: number;
