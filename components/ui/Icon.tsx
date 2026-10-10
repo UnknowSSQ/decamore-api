@@ -70,12 +70,9 @@ export interface IconProps {
   name: IconName;
   size?: number;
   className?: string;
-  /** 纯图标按钮要传 false 并配 aria-label，否则读屏里是个空按钮 */
-  decorative?: boolean;
-  strokeWidth?: number;
 }
 
-export function Icon({ name, size = 18, className, decorative = true, strokeWidth = 1.6 }: IconProps) {
+export function Icon({ name, size = 18, className }: IconProps) {
   const glyph = GLYPHS[name];
   return (
     <svg
@@ -84,10 +81,11 @@ export function Icon({ name, size = 18, className, decorative = true, strokeWidt
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={strokeWidth}
+      strokeWidth={1.6}
       strokeLinecap="round"
       strokeLinejoin="round"
-      aria-hidden={decorative || undefined}
+      // 图标本身一律对读屏隐藏；纯图标按钮的语义由按钮自己的 aria-label 承担
+      aria-hidden
       className={cn('shrink-0', className)}
     >
       {glyph}

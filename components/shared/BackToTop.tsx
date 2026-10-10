@@ -5,16 +5,9 @@ import { useCallback } from 'react';
 
 import { Icon } from '@/components/ui/Icon';
 import { useScrollVisible } from '@/hooks/useUi';
-import { cn } from '@/utils/cn';
 
-interface BackToTopProps {
-  threshold?: number;
-  bottomGapPx?: number;
-  className?: string;
-}
-
-export function BackToTop({ threshold = 400, bottomGapPx = 260, className }: BackToTopProps) {
-  const visible = useScrollVisible(threshold, bottomGapPx);
+export function BackToTop({ threshold = 400 }: { threshold?: number }) {
+  const visible = useScrollVisible(threshold);
 
   const toTop = useCallback(() => {
     // 平滑滚动对晕动症不友好，reduced-motion 下直接跳到顶
@@ -31,14 +24,9 @@ export function BackToTop({ threshold = 400, bottomGapPx = 260, className }: Bac
       aria-hidden={!visible}
       aria-label="回到顶部"
       title="回到顶部"
-      className={cn(
-        'fixed right-5 bottom-[104px] z-[45] grid h-[44px] w-[44px] place-items-center',
-        'rounded-full border border-line bg-surface/95 text-ink shadow-pop backdrop-blur',
-        'transition-[opacity,transform,border-color,color] duration-300 ease-dec',
-        'hover:-translate-y-0.5 hover:border-primary hover:text-primary',
-        visible ? 'visible translate-y-0 opacity-100' : 'invisible translate-y-3 opacity-0',
-        className,
-      )}
+      className={`fixed right-5 bottom-[104px] z-[45] grid h-[44px] w-[44px] place-items-center rounded-full border border-line bg-surface/95 text-ink shadow-pop backdrop-blur transition-[opacity,transform,border-color,color] duration-300 ease-dec hover:-translate-y-0.5 hover:border-primary hover:text-primary ${
+        visible ? 'visible translate-y-0 opacity-100' : 'invisible translate-y-3 opacity-0'
+      }`}
     >
       <Icon name="arrow-up" size={18} />
     </button>

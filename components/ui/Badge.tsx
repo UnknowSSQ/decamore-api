@@ -15,13 +15,11 @@ export function Badge({
   tone = 'neutral',
   children,
   className,
-  dot,
   mono,
 }: {
   tone?: BadgeTone;
   children: ReactNode;
   className?: string;
-  dot?: boolean;
   mono?: boolean;
 }) {
   return (
@@ -33,7 +31,6 @@ export function Badge({
         className,
       )}
     >
-      {dot && <span aria-hidden className={cn('h-1.5 w-1.5 shrink-0 rounded-full bg-current')} />}
       {children}
     </span>
   );
