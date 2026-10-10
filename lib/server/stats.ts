@@ -1,4 +1,4 @@
-/** 接口调用统计：结构化日志 + 内存环形缓冲，供 /api/v1/stats 与控制台仪表盘取数 */
+/** 接口调用统计：结构化日志 + 内存环形缓冲，供控制台仪表盘与接口管理逐行指标取数 */
 import 'server-only';
 
 import { getServerEnv } from '@/env';
@@ -30,27 +30,15 @@ export interface ApiCallRecord {
   responseBytes?: number;
 }
 
-export interface ApiCallAggregate {
-  total: number;
-  successCount: number;
-  errorCount: number;
-  /** 0~1 的比例，不是百分数 */
-  errorRate: number;
-  avgDurationMs: number;
-  p95DurationMs: number;
-  byRoute: { route: string; count: number; avgDurationMs: number; errorCount: number }[];
-  byStatusFamily: Record<string, number>;
-}
-
 /** 只留最近 RING_CAPACITY 条，进程重启即清空 */
 const RING_CAPACITY = 500;
 
-/** 挂 globalThis：每个 route chunk 各带一份 ring 时，/api/v1/stats 只能看见自己记下的那点调用 */
+/** 挂 globalThis：每个 route chunk 各带一份 ring 时，routeCallStats 只能看见自己记下的那点调用 */
 const globalStore = globalThis as typeof globalThis & { __decamoreCallRing?: ApiCallRecord[] };
 const ring: ApiCallRecord[] = (globalStore.__decamoreCallRing ??= []);
 
-/** 统计接口自身与健康检查不记账，避免自我放大 */
-const SKIP_PATTERNS: RegExp[] = [/^\/api\/v1\/stats/, /^\/api\/health/, /\/_next\//];
+/** 自身与健康检查不记账，避免自我放大 */
+const SKIP_PATTERNS: RegExp[] = [/^\/api\/health/, /\/_next\//];
 
 function shouldSkip(path: string): boolean {
   return SKIP_PATTERNS.some((re) => re.test(path));
@@ -118,12 +106,7 @@ async function persist(record: ApiCallRecord): Promise<void> {
   logger.debug({ event: 'api.stats.persist_stub', meta: { traceId: record.traceId, route: record.route } });
 }
 
-/** 只读到内存里最近 RING_CAPACITY 条，非全量 */
-export function recentApiCalls(limit = 50): ApiCallRecord[] {
-  return ring.slice(-Math.max(1, Math.min(limit, RING_CAPACITY)));
-}
-
-/** 按路由模板汇总窗口内的真实调用数；与 byRoute 不同，不做 top N 截断，供接口管理逐行取数 */
+/** 按路由模板汇总窗口内的真实调用数；与仪表盘的分桶不同，不做 top N 截断，供接口管理逐行取数 */
 export function routeCallStats(sinceMs = Date.now() - 24 * 3600 * 1000): Record<string, { count: number; avgDurationMs: number; errorCount: number }> {
   const acc = new Map<string, { count: number; sum: number; errors: number }>();
   for (const r of ring) {
@@ -140,49 +123,6 @@ export function routeCallStats(sinceMs = Date.now() - 24 * 3600 * 1000): Record<
     out[route] = { count: v.count, avgDurationMs: round(v.sum / v.count), errorCount: v.errors };
   }
   return out;
-}
-
-/** 基于内存环形缓冲聚合，进程重启后为空 */
-export function aggregateApiCalls(sinceMs = Date.now() - 24 * 3600 * 1000): ApiCallAggregate {
-  const list = ring.filter((r) => r.accessedAtMs >= sinceMs);
-  const total = list.length;
-  const successCount = list.filter((r) => r.success).length;
-  const durations = list.map((r) => r.durationMs).sort((a, b) => a - b);
-
-  const routeMap = new Map<string, { count: number; sum: number; errors: number }>();
-  const familyMap: Record<string, number> = { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 };
-
-  for (const r of list) {
-    const bucket = routeMap.get(r.route) ?? { count: 0, sum: 0, errors: 0 };
-    bucket.count += 1;
-    bucket.sum += r.durationMs;
-    if (!r.success) bucket.errors += 1;
-    routeMap.set(r.route, bucket);
-
-    const family = `${Math.floor(r.status / 100)}xx`;
-    familyMap[family] = (familyMap[family] ?? 0) + 1;
-  }
-
-  const p95Index = Math.min(durations.length - 1, Math.floor(durations.length * 0.95));
-
-  return {
-    total,
-    successCount,
-    errorCount: total - successCount,
-    errorRate: total === 0 ? 0 : round((total - successCount) / total),
-    avgDurationMs: total === 0 ? 0 : round(list.reduce((s, r) => s + r.durationMs, 0) / total),
-    p95DurationMs: durations.length ? (durations[p95Index] ?? 0) : 0,
-    byRoute: [...routeMap.entries()]
-      .map(([route, v]) => ({
-        route,
-        count: v.count,
-        avgDurationMs: round(v.sum / v.count),
-        errorCount: v.errors,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10),
-    byStatusFamily: familyMap,
-  };
 }
 
 function round(value: number): number {
