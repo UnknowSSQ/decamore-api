@@ -15,7 +15,8 @@ interface DeckProps<TType extends string> {
   /** 轮换序列；长度 1 就等于不轮换 */
   order: readonly TType[];
   label: Record<TType, string>;
-  fetcher: (type: TType) => Promise<StaticAssetList<TType>>;
+  /** limit 由版式决定：tiles 一排 6 张，cover / fit 只用 1 张 */
+  fetcher: (type: TType, limit: number) => Promise<StaticAssetList<TType>>;
   /** cover 铺满裁切，fit 按贴图比例居中放大，tiles 一排圆形 */
   layout: 'cover' | 'fit' | 'tiles';
 }
@@ -24,17 +25,17 @@ function AssetDeck<TType extends string>({ seed, order, label, fetcher, layout }
   const [picks, setPicks] = useState<StaticAssetItem[]>([]);
   const [failed, setFailed] = useState(false);
   const type = order[seed % order.length] as TType;
+  const want = layout === 'tiles' ? TILE_COUNT : 1;
 
   useEffect(() => {
     // 快速连点时丢弃过期响应，避免后到的旧列表覆盖新列表
     let ignore = false;
     void (async () => {
       try {
-        const next = await fetcher(type);
+        // 随机取样交给服务端：只要 want 条，不必把整个目录拉下来再挑
+        const next = await fetcher(type, want);
         if (ignore) return;
-        // 抽之前先打乱，连点同一类也不会反复看到同一批
-        const shuffled = [...next.items].sort(() => Math.random() - 0.5);
-        setPicks(shuffled.slice(0, layout === 'cover' ? 1 : TILE_COUNT));
+        setPicks(next.items);
         setFailed(false);
       } catch {
         if (!ignore) setFailed(true);
@@ -43,7 +44,7 @@ function AssetDeck<TType extends string>({ seed, order, label, fetcher, layout }
     return () => {
       ignore = true;
     };
-    // fetcher / layout 都是模块级常量，依赖里只留真正会变的
+    // fetcher / want 由版式决定，依赖里只留真正会变的
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, seed]);
 
@@ -85,7 +86,7 @@ export function EmojiDemo({ seed }: DemoProps) {
       order={['menhera']}
       label={EMOJI_LABEL}
       layout="fit"
-      fetcher={(type) => fetchEmoji(type)}
+      fetcher={(type, limit) => fetchEmoji(type, limit)}
     />
   );
 }
@@ -97,7 +98,7 @@ export function AvatarDemo({ seed }: DemoProps) {
       order={['boy', 'girl', 'anime']}
       label={AVATAR_LABEL}
       layout="tiles"
-      fetcher={(type) => fetchAvatars(type)}
+      fetcher={(type, limit) => fetchAvatars(type, limit)}
     />
   );
 }
@@ -109,7 +110,7 @@ export function ImageDemo({ seed }: DemoProps) {
       order={['beauty', 'pretty']}
       label={IMAGE_LABEL}
       layout="cover"
-      fetcher={(type) => fetchImages(type)}
+      fetcher={(type, limit) => fetchImages(type, limit)}
     />
   );
 }

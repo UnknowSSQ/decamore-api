@@ -91,7 +91,7 @@ async function load(): Promise<HotChartResult> {
 }
 
 /** 缓存命中直接返回；同一 chunk 内的并发请求合并成一次上游调用 */
-export async function getHotChart(): Promise<HotChartResult> {
+async function resolveHotChart(): Promise<HotChartResult> {
   const entry = globalStore.__decamoreHotChart;
   if (entry && Date.now() - entry.at < HOT_CHART_CACHE_TTL_MS) return toResult(entry, true);
 
@@ -101,4 +101,10 @@ export async function getHotChart(): Promise<HotChartResult> {
     });
   }
   return inflight.pending;
+}
+
+/** limit 只截 items：缓存与 single-flight 仍按全量共享 */
+export async function getHotChart(limit?: number): Promise<HotChartResult> {
+  const result = await resolveHotChart();
+  return limit ? { ...result, items: result.items.slice(0, limit) } : result;
 }

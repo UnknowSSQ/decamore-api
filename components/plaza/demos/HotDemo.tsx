@@ -44,7 +44,7 @@ export function HotDemo({ seed }: DemoProps) {
     let ignore = false;
     void (async () => {
       try {
-        const next = await fetchHotSearch(platform);
+        const next = await fetchHotSearch(platform, SHOW_ROWS);
         if (!ignore) {
           setBoard(next);
           setFailed(false);

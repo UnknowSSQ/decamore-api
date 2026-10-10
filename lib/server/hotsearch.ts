@@ -211,7 +211,7 @@ async function load(platform: HotSearchPlatform): Promise<HotSearchResult> {
 }
 
 /** 命中缓存时 cached=true；并发首请求合并成一次上游调用 */
-export async function getHotSearch(platform: HotSearchPlatform): Promise<HotSearchResult> {
+async function resolveHotSearch(platform: HotSearchPlatform): Promise<HotSearchResult> {
   const entry = cache[platform];
   if (entry && Date.now() - entry.at < HOT_SEARCH_CACHE_TTL_MS) return toResult(platform, entry, true);
 
@@ -221,4 +221,10 @@ export async function getHotSearch(platform: HotSearchPlatform): Promise<HotSear
   const task = load(platform).finally(() => inflight.delete(platform));
   inflight.set(platform, task);
   return task;
+}
+
+/** limit 只截 items：缓存与 single-flight 仍按全量共享，同一份上游数据服务不同截断的请求 */
+export async function getHotSearch(platform: HotSearchPlatform, limit?: number): Promise<HotSearchResult> {
+  const result = await resolveHotSearch(platform);
+  return limit ? { ...result, items: result.items.slice(0, limit) } : result;
 }

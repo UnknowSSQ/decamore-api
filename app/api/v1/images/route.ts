@@ -8,7 +8,7 @@ export const GET = defineRoute(
     query: imageQuerySchema,
     route: '/api/v1/images',
   },
-  async (_req, { query }) => publicOk(await listAssets('images', query.type, IMAGE_TYPES)),
+  async (_req, { query }) => publicOk(await listAssets('images', query.type, IMAGE_TYPES, query.limit)),
 );
 
 /** 跨域预检：来源在后台 CORS 配置里才带 Allow-Origin */

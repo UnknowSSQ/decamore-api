@@ -27,7 +27,7 @@ export function PlayDemo({ seed }: DemoProps) {
     let ignore = false;
     void (async () => {
       try {
-        const next = await fetchHotPlay(type);
+        const next = await fetchHotPlay(type, SHOW_ROWS);
         if (!ignore) {
           setBoard(next);
           setFailed(false);

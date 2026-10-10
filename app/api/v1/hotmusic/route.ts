@@ -8,7 +8,7 @@ export const GET = defineRoute(
     query: hotmusicQuerySchema,
     route: '/api/v1/hotmusic',
   },
-  async (_req, { query }) => publicOk(await getHotMusic(query?.platform ?? DEFAULT_HOT_MUSIC_PLATFORM)),
+  async (_req, { query }) => publicOk(await getHotMusic(query?.platform ?? DEFAULT_HOT_MUSIC_PLATFORM, query?.limit)),
 );
 
 /** 跨域预检：来源在后台 CORS 配置里才带 Allow-Origin */

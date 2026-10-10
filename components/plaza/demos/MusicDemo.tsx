@@ -50,7 +50,7 @@ export function MusicDemo({ seed }: DemoProps) {
     let ignore = false;
     void (async () => {
       try {
-        const next = await fetchHotMusic(platform);
+        const next = await fetchHotMusic(platform, SHOW_ROWS);
         if (!ignore) {
           setChart(next);
           setFailed(false);

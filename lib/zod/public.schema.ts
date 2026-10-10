@@ -27,7 +27,15 @@ export const EMOJI_TYPES = ['menhera'] as const satisfies readonly EmojiType[];
 export const AVATAR_TYPES = ['boy', 'girl', 'anime'] as const satisfies readonly AvatarType[];
 export const IMAGE_TYPES = ['beauty', 'pretty'] as const satisfies readonly ImageType[];
 
-/** 空串等价于不传：显式带 ?type= 的空值不该被判成非法参数（下方各 schema 内联同一句 preprocess） */
+/** 空串等价于不传：显式带 ?type= 的空值不该被判成非法参数 */
+const optionalParam = <S extends z.ZodTypeAny>(schema: S) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+
+/**
+ * 截断条数。刻意「可选且无默认」：不传就按全量返回，
+ * 给公开接口加默认 limit 会静默改变既有调用方拿到的结果。
+ */
+const limitParam = optionalParam(z.coerce.number().int().min(1).max(100));
 
 export const plazaQuerySchema = z.object({
   keyword: keywordSchema,
@@ -40,8 +48,8 @@ export const wallpaperTypeSchema = z.enum(WALLPAPER_TYPES, {
 });
 
 export const wallpaperQuerySchema = z.object({
-  /** 不传时三类等概率随机 */
-  type: z.preprocess((value) => (value === '' ? undefined : value), wallpaperTypeSchema.optional()),
+  /** 不传时三类等概率随机；本接口一次只回一条，所以没有 limit */
+  type: optionalParam(wallpaperTypeSchema),
 });
 export type WallpaperQueryInput = z.infer<typeof wallpaperQuerySchema>;
 
@@ -50,7 +58,9 @@ export const hotsearchPlatformSchema = z.enum(HOT_SEARCH_PLATFORMS, {
 });
 
 export const hotsearchQuerySchema = z.object({
-  platform: z.preprocess((value) => (value === '' ? undefined : value), hotsearchPlatformSchema.optional()),
+  platform: optionalParam(hotsearchPlatformSchema),
+  /** 只取前 N 条；不传为全量 */
+  limit: limitParam,
 });
 export type HotSearchQueryInput = z.infer<typeof hotsearchQuerySchema>;
 
@@ -59,7 +69,9 @@ export const hotmusicPlatformSchema = z.enum(HOT_MUSIC_PLATFORMS, {
 });
 
 export const hotmusicQuerySchema = z.object({
-  platform: z.preprocess((value) => (value === '' ? undefined : value), hotmusicPlatformSchema.optional()),
+  platform: optionalParam(hotmusicPlatformSchema),
+  /** 只取前 N 条；不传为全量 */
+  limit: limitParam,
 });
 export type HotMusicQueryInput = z.infer<typeof hotmusicQuerySchema>;
 
@@ -68,9 +80,18 @@ export const hotplayTypeSchema = z.enum(HOT_PLAY_TYPES, {
 });
 
 export const hotplayQuerySchema = z.object({
-  type: z.preprocess((value) => (value === '' ? undefined : value), hotplayTypeSchema.optional()),
+  type: optionalParam(hotplayTypeSchema),
+  /** 只取前 N 条；不传为全量 */
+  limit: limitParam,
 });
 export type HotPlayQueryInput = z.infer<typeof hotplayQuerySchema>;
+
+/** 热映榜没有类型参数，只有截断条数 */
+export const hotchartQuerySchema = z.object({
+  /** 只取前 N 条；不传为全量 */
+  limit: limitParam,
+});
+export type HotChartQueryInput = z.infer<typeof hotchartQuerySchema>;
 
 export const emojiTypeSchema = z.enum(EMOJI_TYPES, {
   errorMap: () => ({ message: 'type 只能是 menhera（表情包目前只有这一类）' }),
@@ -85,6 +106,18 @@ export const imageTypeSchema = z.enum(IMAGE_TYPES, {
 });
 
 /** 这三个接口的 type 有确定默认值，缺省即随机该类 */
-export const emojiQuerySchema = z.object({ type: z.preprocess((value) => (value === '' ? undefined : value), emojiTypeSchema.optional().default('menhera')) });
-export const avatarQuerySchema = z.object({ type: z.preprocess((value) => (value === '' ? undefined : value), avatarTypeSchema.optional().default('boy')) });
-export const imageQuerySchema = z.object({ type: z.preprocess((value) => (value === '' ? undefined : value), imageTypeSchema.optional().default('beauty')) });
+export const emojiQuerySchema = z.object({
+  type: z.preprocess((value) => (value === '' ? undefined : value), emojiTypeSchema.optional().default('menhera')),
+  /** 只取前 N 条；不传为全量 */
+  limit: limitParam,
+});
+export const avatarQuerySchema = z.object({
+  type: z.preprocess((value) => (value === '' ? undefined : value), avatarTypeSchema.optional().default('boy')),
+  /** 只取前 N 条；不传为全量 */
+  limit: limitParam,
+});
+export const imageQuerySchema = z.object({
+  type: z.preprocess((value) => (value === '' ? undefined : value), imageTypeSchema.optional().default('beauty')),
+  /** 只取前 N 条；不传为全量 */
+  limit: limitParam,
+});

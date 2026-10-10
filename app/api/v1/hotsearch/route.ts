@@ -8,7 +8,7 @@ export const GET = defineRoute(
     query: hotsearchQuerySchema,
     route: '/api/v1/hotsearch',
   },
-  async (_req, { query }) => publicOk(await getHotSearch(query?.platform ?? DEFAULT_HOT_SEARCH_PLATFORM)),
+  async (_req, { query }) => publicOk(await getHotSearch(query?.platform ?? DEFAULT_HOT_SEARCH_PLATFORM, query?.limit)),
 );
 
 /** 跨域预检：来源在后台 CORS 配置里才带 Allow-Origin */

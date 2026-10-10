@@ -30,7 +30,7 @@ export function HotChartDemo({ seed }: DemoProps) {
     let ignore = false;
     void (async () => {
       try {
-        const next = await fetchHotChart();
+        const next = await fetchHotChart(SHOW_ROWS);
         if (!ignore) {
           setBoard(next);
           setFailed(false);

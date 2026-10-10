@@ -76,7 +76,7 @@ const cache = (globalStore.__decamoreAssetIndex ??= {});
 const inflight = new Map<string, Promise<StaticAssetItem[]>>();
 
 /** allowedTypes 是 schema 之外的兜底，防止绕过枚举读到别的目录；并发首请求合并成一次磁盘扫描 */
-export async function listAssets<TType extends string>(
+async function resolveAssets<TType extends string>(
   category: AssetCategory,
   type: TType,
   allowedTypes: readonly TType[],
@@ -111,4 +111,26 @@ export async function listAssets<TType extends string>(
 
   cache[key] = { at: Date.now(), items };
   return { type, total: items.length, cached: false, items };
+}
+
+/**
+ * limit 在素材类接口上是「随机取 N 条」而不是「取前 N 条」：目录本身无序，
+ * 按名字截断会让每次请求拿到同一批，毁掉这几个接口的随机语义。
+ * total 仍是目录全量，调用方能分辨「一共多少」与「这次给了多少」；
+ * 缓存与 single-flight 按全量共享，不同截断请求共用同一份索引。
+ */
+export async function listAssets<TType extends string>(
+  category: AssetCategory,
+  type: TType,
+  allowedTypes: readonly TType[],
+  limit?: number,
+): Promise<StaticAssetList<TType>> {
+  const result = await resolveAssets(category, type, allowedTypes);
+  if (!limit) return result;
+  const picked = [...result.items];
+  for (let i = picked.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [picked[i], picked[j]] = [picked[j]!, picked[i]!];
+  }
+  return { ...result, items: picked.slice(0, limit) };
 }

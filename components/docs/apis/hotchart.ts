@@ -41,6 +41,17 @@ const sections: DocSection[] = [
             defaultValue: '/',
             description: text('多余的查询串（比如 ?type=tv）不报错也不改变结果，直接忽略'),
           },
+          {
+            name: 'limit',
+            type: 'integer',
+            required: 'no',
+            defaultValue: '不传为全量',
+            description: [
+              { type: 'text', value: '只给榜单' },
+              { type: 'code', value: '前 N 条' },
+              { type: 'text', value: '（榜单有序，截的是头部）；取值 1–100，超范围返回 422。' },
+            ],
+          },
         ],
       },
       {

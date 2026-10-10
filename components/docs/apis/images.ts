@@ -44,6 +44,19 @@ const sections: DocSection[] = [
               { type: 'text', value: '留空或不传时给 beauty；' },
             ],
           },
+          {
+            name: 'limit',
+            type: 'integer',
+            required: 'no',
+            defaultValue: '不传为全量',
+            description: [
+              { type: 'text', value: '随机取 ' },
+              { type: 'code', value: 'N 条' },
+              { type: 'text', value: '（目录本身无序，服务端洗牌后再截，所以每次结果不同）；' },
+              { type: 'code', value: 'total' },
+              { type: 'text', value: ' 仍是目录全量。取值 1–100。' },
+            ],
+          },
         ],
       },
       {

@@ -176,9 +176,9 @@ export function fetchWallpaper(type?: WallpaperType) {
 }
 
 /** platform 省略时服务端按微博返回；榜单在服务端缓存 60 秒 */
-export function fetchHotSearch(platform?: HotSearchPlatform) {
+export function fetchHotSearch(platform?: HotSearchPlatform, limit?: number) {
   return http.get<HotSearchResult>(API.publicApi.hotsearch, {
-    query: { platform },
+    query: { platform, limit },
     envelope: 'public',
     anonymous: true,
     skipAuthRefresh: true,
@@ -186,9 +186,9 @@ export function fetchHotSearch(platform?: HotSearchPlatform) {
 }
 
 /** platform 省略时按 QQ 音乐返回；同样缓存 60 秒、只给前 30 名 */
-export function fetchHotMusic(platform?: HotMusicPlatform) {
+export function fetchHotMusic(platform?: HotMusicPlatform, limit?: number) {
   return http.get<HotMusicResult>(API.publicApi.hotmusic, {
-    query: { platform },
+    query: { platform, limit },
     envelope: 'public',
     anonymous: true,
     skipAuthRefresh: true,
@@ -196,9 +196,9 @@ export function fetchHotMusic(platform?: HotMusicPlatform) {
 }
 
 /** type 省略时返回电视剧榜；源是欢网大屏播出榜，缓存 10 分钟 */
-export function fetchHotPlay(type?: HotPlayType) {
+export function fetchHotPlay(type?: HotPlayType, limit?: number) {
   return http.get<HotPlayResult>(API.publicApi.hotplay, {
-    query: { type },
+    query: { type, limit },
     envelope: 'public',
     anonymous: true,
     skipAuthRefresh: true,
@@ -206,8 +206,9 @@ export function fetchHotPlay(type?: HotPlayType) {
 }
 
 /** 猫眼实时票房榜，服务端缓存 1 小时 */
-export function fetchHotChart() {
+export function fetchHotChart(limit?: number) {
   return http.get<HotChartResult>(API.publicApi.hotchart, {
+    query: { limit },
     envelope: 'public',
     anonymous: true,
     skipAuthRefresh: true,
@@ -215,9 +216,9 @@ export function fetchHotChart() {
 }
 
 /** type 省略时为 menhera */
-export function fetchEmoji(type?: EmojiType) {
+export function fetchEmoji(type?: EmojiType, limit?: number) {
   return http.get<EmojiListResult>(API.publicApi.emoji, {
-    query: { type },
+    query: { type, limit },
     envelope: 'public',
     anonymous: true,
     skipAuthRefresh: true,
@@ -225,9 +226,9 @@ export function fetchEmoji(type?: EmojiType) {
 }
 
 /** type 省略时为 boy */
-export function fetchAvatars(type?: AvatarType) {
+export function fetchAvatars(type?: AvatarType, limit?: number) {
   return http.get<AvatarListResult>(API.publicApi.avatar, {
-    query: { type },
+    query: { type, limit },
     envelope: 'public',
     anonymous: true,
     skipAuthRefresh: true,
@@ -235,9 +236,9 @@ export function fetchAvatars(type?: AvatarType) {
 }
 
 /** type 省略时为 beauty */
-export function fetchImages(type?: ImageType) {
+export function fetchImages(type?: ImageType, limit?: number) {
   return http.get<ImageListResult>(API.publicApi.images, {
-    query: { type },
+    query: { type, limit },
     envelope: 'public',
     anonymous: true,
     skipAuthRefresh: true,

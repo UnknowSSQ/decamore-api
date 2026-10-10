@@ -120,7 +120,7 @@ async function load(type: HotPlayType): Promise<HotPlayResult> {
 }
 
 /** 命中缓存时 cached=true；并发首请求合并成一次上游调用 */
-export async function getHotPlay(type: HotPlayType): Promise<HotPlayResult> {
+async function resolveHotPlay(type: HotPlayType): Promise<HotPlayResult> {
   const entry = cache[type];
   if (entry && Date.now() - entry.at < HOT_PLAY_CACHE_TTL_MS) return toResult(type, entry, true);
 
@@ -130,4 +130,10 @@ export async function getHotPlay(type: HotPlayType): Promise<HotPlayResult> {
   const task = load(type).finally(() => inflight.delete(type));
   inflight.set(type, task);
   return task;
+}
+
+/** limit 只截 items：缓存与 single-flight 仍按全量共享 */
+export async function getHotPlay(type: HotPlayType, limit?: number): Promise<HotPlayResult> {
+  const result = await resolveHotPlay(type);
+  return limit ? { ...result, items: result.items.slice(0, limit) } : result;
 }

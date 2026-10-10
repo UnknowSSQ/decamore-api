@@ -187,7 +187,7 @@ async function load(platform: HotMusicPlatform): Promise<HotMusicResult> {
 }
 
 /** 命中缓存时 cached=true；并发首请求合并成一次上游调用 */
-export async function getHotMusic(platform: HotMusicPlatform): Promise<HotMusicResult> {
+async function resolveHotMusic(platform: HotMusicPlatform): Promise<HotMusicResult> {
   const entry = cache[platform];
   if (entry && Date.now() - entry.at < HOT_MUSIC_CACHE_TTL_MS) return toResult(platform, entry, true);
 
@@ -197,4 +197,10 @@ export async function getHotMusic(platform: HotMusicPlatform): Promise<HotMusicR
   const task = load(platform).finally(() => inflight.delete(platform));
   inflight.set(platform, task);
   return task;
+}
+
+/** limit 只截 items：缓存与 single-flight 仍按全量共享 */
+export async function getHotMusic(platform: HotMusicPlatform, limit?: number): Promise<HotMusicResult> {
+  const result = await resolveHotMusic(platform);
+  return limit ? { ...result, items: result.items.slice(0, limit) } : result;
 }

@@ -8,7 +8,7 @@ export const GET = defineRoute(
     query: emojiQuerySchema,
     route: '/api/v1/emoji',
   },
-  async (_req, { query }) => publicOk(await listAssets('emoji', query.type, EMOJI_TYPES)),
+  async (_req, { query }) => publicOk(await listAssets('emoji', query.type, EMOJI_TYPES, query.limit)),
 );
 
 /** 跨域预检：来源在后台 CORS 配置里才带 Allow-Origin */

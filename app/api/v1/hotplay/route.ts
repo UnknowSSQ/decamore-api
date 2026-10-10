@@ -8,7 +8,7 @@ export const GET = defineRoute(
     query: hotplayQuerySchema,
     route: '/api/v1/hotplay',
   },
-  async (_req, { query }) => publicOk(await getHotPlay(query?.type ?? DEFAULT_HOT_PLAY_TYPE)),
+  async (_req, { query }) => publicOk(await getHotPlay(query?.type ?? DEFAULT_HOT_PLAY_TYPE, query?.limit)),
 );
 
 /** 跨域预检：来源在后台 CORS 配置里才带 Allow-Origin */

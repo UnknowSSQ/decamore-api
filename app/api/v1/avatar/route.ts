@@ -8,7 +8,7 @@ export const GET = defineRoute(
     query: avatarQuerySchema,
     route: '/api/v1/avatar',
   },
-  async (_req, { query }) => publicOk(await listAssets('avatar', query.type, AVATAR_TYPES)),
+  async (_req, { query }) => publicOk(await listAssets('avatar', query.type, AVATAR_TYPES, query.limit)),
 );
 
 /** 跨域预检：来源在后台 CORS 配置里才带 Allow-Origin */

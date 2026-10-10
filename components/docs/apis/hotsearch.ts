@@ -50,6 +50,17 @@ const sections: DocSection[] = [
               { type: 'text', value: '留空或不传时给微博；' },
             ],
           },
+          {
+            name: 'limit',
+            type: 'integer',
+            required: 'no',
+            defaultValue: '不传为全量',
+            description: [
+              { type: 'text', value: '只给榜单' },
+              { type: 'code', value: '前 N 条' },
+              { type: 'text', value: '（榜单有序，截的是头部）；取值 1–100，超范围返回 422。' },
+            ],
+          },
         ],
       },
       {
