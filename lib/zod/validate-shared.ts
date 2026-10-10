@@ -46,9 +46,3 @@ export function toFirstIssueMap(issues: FieldIssue[]): Record<string, string> {
   for (const issue of issues) map[issue.field] ??= issue.message;
   return map;
 }
-
-export function issueMapOf(schema: z.ZodTypeAny, data: unknown): Record<string, string> {
-  const result = schema.safeParse(data);
-  if (result.success) return {};
-  return toFirstIssueMap(toFieldIssues(result.error));
-}

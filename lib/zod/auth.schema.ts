@@ -26,7 +26,6 @@ export const refreshSchema = z
   })
   .strict();
 
-export type RefreshInput = z.infer<typeof refreshSchema>;
 
 /** POST /api/v1/auth/logout */
 export const logoutSchema = z
@@ -35,7 +34,6 @@ export const logoutSchema = z
   })
   .strict();
 
-export type LogoutInput = z.infer<typeof logoutSchema>;
 
 /** GET /api/v1/auth/me 的 query */
 export const meQuerySchema = z.object({

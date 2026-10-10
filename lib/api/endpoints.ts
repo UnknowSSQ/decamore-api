@@ -1,6 +1,4 @@
 /** 与 app/api/** 目录一一对应；版本升级与路径参数拼装只改这里 */
-import type { HttpMethod } from '@/types';
-
 const V1 = '/api/v1';
 
 export const API = {
@@ -45,11 +43,3 @@ export const API = {
     stats: `${V1}/stats`,
   },
 } as const;
-
-export const METHOD_TONE: Record<HttpMethod, 'ok' | 'brand' | 'warn' | 'danger' | 'neutral'> = {
-  GET: 'ok',
-  POST: 'brand',
-  PUT: 'warn',
-  PATCH: 'warn',
-  DELETE: 'danger',
-};

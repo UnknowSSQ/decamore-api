@@ -2,7 +2,7 @@
  * 业务代码只写 `import { http, API, RequestError } from '@/lib/api'`。
  * 安全边界：这里的模块都会进浏览器 bundle，lib/server/*、lib/auth/jwt.ts、lib/auth/session.ts 一律不得导出，否则密钥打进前端资源。
  */
-export { API, METHOD_TONE } from './endpoints';
+export { API } from './endpoints';
 export { RequestError } from './error';
 export type { RequestErrorCode, RequestErrorInit } from './error';
 export { http, request } from './http';

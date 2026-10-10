@@ -19,7 +19,6 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipAuthRefresh?: boolean;
   /** 不注入鉴权头，公开接口用 */
   anonymous?: boolean;
-  /** 拿到原始 ApiResponse 而非 data */
   /**
    * 公开接口是单层信封（code/msg/data/requestId/serverTime），没有 success 字段，必须显式声明，
    * 否则会被 success 判定当成失败响应抛出。

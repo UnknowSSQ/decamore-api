@@ -4,7 +4,7 @@
  */
 import 'server-only';
 
-import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
+import { SignJWT, jwtVerify } from 'jose';
 import { randomUUID } from 'node:crypto';
 
 import { getServerEnv } from '@/env';
@@ -104,11 +104,7 @@ export async function verifyToken(
   }
 }
 
-/** 剩余有效期（秒），用于设置 Cookie maxAge */
-export function remainingTtl(claims: { exp: number }, nowSec = Math.floor(Date.now() / 1000)): number {
-  return Math.max(0, claims.exp - nowSec);
-}
-
+/** 历史 Cookie 里的 operator / viewer 一律视为无效会话，逼出重新登录，不能让旧令牌静默升级成管理员 */
 function isRole(value: unknown): value is Role {
   return value === 'admin';
 }
@@ -116,22 +112,4 @@ function isRole(value: unknown): value is Role {
 /** 浏览器可见，配合双提交校验 */
 export function generateCsrfToken(): string {
   return randomUUID().replace(/-/g, '') + randomUUID().replace(/-/g, '').slice(0, 16);
-}
-
-/** 不校验签名，只按 typ / sub / exp 的形状收窄，不合格返回 null */
-export function asAccessTokenClaims(payload: JWTPayload): AccessTokenClaims | null {
-  if (payload.typ !== 'access' || typeof payload.sub !== 'string' || typeof payload.exp !== 'number') {
-    return null;
-  }
-  // 历史 Cookie 里的 operator / viewer 一律视为无效会话，逼出重新登录，不能让旧令牌静默升级成管理员
-  if (!isRole(payload.role)) return null;
-  return {
-    sub: payload.sub,
-    name: String(payload.name ?? ''),
-    role: payload.role,
-    typ: 'access',
-    exp: payload.exp,
-    iat: payload.iat ?? 0,
-    jti: String(payload.jti ?? ''),
-  };
 }

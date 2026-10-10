@@ -1,6 +1,6 @@
 /** 只做「路径 + 出入参类型」的薄封装；组件层经 hooks 调用，不直接用 http */
 import { API } from './endpoints';
-import { http } from './http';
+import { http, type RequestOptions } from './http';
 import type {
   AccessRule,
   ApiCatalogItem,
@@ -138,12 +138,13 @@ export function markAllNotificationsRead() {
   return http.post<{ changed: number }>(API.console.notificationsReadAll, {});
 }
 
+/** 公开接口三件套：单层信封、不带鉴权头、无会话可续期。plaza 走后台信封，不在这里 */
+function publicGet<T>(path: string, query?: RequestOptions['query']) {
+  return http.get<T>(path, { query, envelope: 'public', anonymous: true, skipAuthRefresh: true });
+}
+
 export function fetchAnswerbook() {
-  return http.get<AnswerBookEntry>(API.publicApi.answerbook, {
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<AnswerBookEntry>(API.publicApi.answerbook);
 }
 
 /** 本地演示仍读 constants/api-catalog，保证首屏可交互 */
@@ -155,89 +156,45 @@ export function fetchPlazaCatalog(params: { keyword?: string; category?: string 
 }
 
 export function fetchHitokoto() {
-  return http.get<HitokotoLine>(API.publicApi.hitokoto, {
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<HitokotoLine>(API.publicApi.hitokoto);
 }
 
 /** type 省略时服务端在 pc / mobile / bing 三类里等概率随机 */
 export function fetchWallpaper(type?: WallpaperType) {
-  return http.get<WallpaperItem>(API.publicApi.wallpaper, {
-    query: { type },
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<WallpaperItem>(API.publicApi.wallpaper, { type });
 }
 
 /** platform 省略时服务端按微博返回；榜单在服务端缓存 60 秒 */
 export function fetchHotSearch(platform?: HotSearchPlatform, limit?: number) {
-  return http.get<HotSearchResult>(API.publicApi.hotsearch, {
-    query: { platform, limit },
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<HotSearchResult>(API.publicApi.hotsearch, { platform, limit });
 }
 
 /** platform 省略时按 QQ 音乐返回；同样缓存 60 秒、只给前 30 名 */
 export function fetchHotMusic(platform?: HotMusicPlatform, limit?: number) {
-  return http.get<HotMusicResult>(API.publicApi.hotmusic, {
-    query: { platform, limit },
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<HotMusicResult>(API.publicApi.hotmusic, { platform, limit });
 }
 
 /** type 省略时返回电视剧榜；源是欢网大屏播出榜，缓存 10 分钟 */
 export function fetchHotPlay(type?: HotPlayType, limit?: number) {
-  return http.get<HotPlayResult>(API.publicApi.hotplay, {
-    query: { type, limit },
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<HotPlayResult>(API.publicApi.hotplay, { type, limit });
 }
 
 /** 猫眼实时票房榜，服务端缓存 1 小时 */
 export function fetchHotChart(limit?: number) {
-  return http.get<HotChartResult>(API.publicApi.hotchart, {
-    query: { limit },
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<HotChartResult>(API.publicApi.hotchart, { limit });
 }
 
 /** type 省略时为 menhera */
 export function fetchEmoji(type?: EmojiType, limit?: number) {
-  return http.get<EmojiListResult>(API.publicApi.emoji, {
-    query: { type, limit },
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<EmojiListResult>(API.publicApi.emoji, { type, limit });
 }
 
 /** type 省略时为 boy */
 export function fetchAvatars(type?: AvatarType, limit?: number) {
-  return http.get<AvatarListResult>(API.publicApi.avatar, {
-    query: { type, limit },
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<AvatarListResult>(API.publicApi.avatar, { type, limit });
 }
 
 /** type 省略时为 beauty */
 export function fetchImages(type?: ImageType, limit?: number) {
-  return http.get<ImageListResult>(API.publicApi.images, {
-    query: { type, limit },
-    envelope: 'public',
-    anonymous: true,
-    skipAuthRefresh: true,
-  });
+  return publicGet<ImageListResult>(API.publicApi.images, { type, limit });
 }

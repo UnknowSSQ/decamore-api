@@ -51,7 +51,6 @@ export const wallpaperQuerySchema = z.object({
   /** 不传时三类等概率随机；本接口一次只回一条，所以没有 limit */
   type: optionalParam(wallpaperTypeSchema),
 });
-export type WallpaperQueryInput = z.infer<typeof wallpaperQuerySchema>;
 
 export const hotsearchPlatformSchema = z.enum(HOT_SEARCH_PLATFORMS, {
   errorMap: () => ({ message: 'platform 只能是 weibo、douyin、baidu 或 zhihu' }),
@@ -62,7 +61,6 @@ export const hotsearchQuerySchema = z.object({
   /** 只取前 N 条；不传为全量 */
   limit: limitParam,
 });
-export type HotSearchQueryInput = z.infer<typeof hotsearchQuerySchema>;
 
 export const hotmusicPlatformSchema = z.enum(HOT_MUSIC_PLATFORMS, {
   errorMap: () => ({ message: 'platform 只能是 qq、netease 或 kugou' }),
@@ -73,7 +71,6 @@ export const hotmusicQuerySchema = z.object({
   /** 只取前 N 条；不传为全量 */
   limit: limitParam,
 });
-export type HotMusicQueryInput = z.infer<typeof hotmusicQuerySchema>;
 
 export const hotplayTypeSchema = z.enum(HOT_PLAY_TYPES, {
   errorMap: () => ({ message: 'type 只能是 tv、movie 或 variety' }),
@@ -84,14 +81,12 @@ export const hotplayQuerySchema = z.object({
   /** 只取前 N 条；不传为全量 */
   limit: limitParam,
 });
-export type HotPlayQueryInput = z.infer<typeof hotplayQuerySchema>;
 
 /** 热映榜没有类型参数，只有截断条数 */
 export const hotchartQuerySchema = z.object({
   /** 只取前 N 条；不传为全量 */
   limit: limitParam,
 });
-export type HotChartQueryInput = z.infer<typeof hotchartQuerySchema>;
 
 export const emojiTypeSchema = z.enum(EMOJI_TYPES, {
   errorMap: () => ({ message: 'type 只能是 menhera（表情包目前只有这一类）' }),

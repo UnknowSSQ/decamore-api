@@ -4,8 +4,6 @@ export type ToastTone = 'success' | 'error' | 'warning' | 'info';
 /** 与 components/ui/StatusBadge 对应 */
 export type BadgeTone = 'ok' | 'warn' | 'danger' | 'neutral' | 'brand';
 
-export type Size = 'sm' | 'md' | 'lg';
-
 /** DataTable 的列定义 */
 export interface TableColumn<TRecord> {
   key: string;

@@ -27,7 +27,6 @@ export const dashboardQuerySchema = z.object({
   /** 只影响 mock 数据抖动，不改查询口径 */
   live: boolish.default(false),
 });
-export type DashboardQuery = z.infer<typeof dashboardQuerySchema>;
 
 export const exportReportBodySchema = z.object({
   range: rangeSchema.default('24h'),
@@ -162,7 +161,6 @@ export const securityPatchSchema = z
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, { message: '没有需要保存的字段' });
-export type SecurityPatchInput = z.infer<typeof securityPatchSchema>;
 
 export const ipListSchema = z.object({
   list: z.array(ipOrCidrSchema).min(1, '请至少填写一个 IP 或网段').max(200, '单次最多提交 200 条'),
