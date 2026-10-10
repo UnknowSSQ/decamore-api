@@ -7,13 +7,19 @@ const require = createRequire(import.meta.url);
 const sharp = require('sharp');
 
 /**
- * 宽度按 plaza 版式定档：avatar 是 6 格 112px 小图，emoji / images 是铺满卡片的单图，
+ * 宽度按版式定档：avatar 是 6 格 112px 小图，emoji / images 是铺满卡片的单图，
  * 224px 用在后者上会明显发虚，所以大版图给 448（约 2x 卡片宽）。
+ *
+ * wallpaper 的 640 是仓库里既有 wallpaper-thumb 的实际尺寸，别顺手改：
+ * wallpaper.ts 把「缩略图存在」当作进池子的硬条件（缺 thumb 的原图直接不进列表），
+ * 所以这一条必须在 TARGETS 里——漏掉的话改档位只会让壁纸静默停在旧尺寸。
+ * types 限定 desktop / mobile：bing 是运行时镜像目录，没人读它的派生图。
  */
 const TARGETS = [
   { src: 'avatar', dst: 'avatar-thumb', width: 224 },
   { src: 'emoji', dst: 'emoji-thumb', width: 448 },
   { src: 'images', dst: 'images-thumb', width: 448 },
+  { src: 'wallpaper', dst: 'wallpaper-thumb', width: 640, types: ['desktop', 'mobile'] },
 ];
 
 const QUALITY = 72;
@@ -21,9 +27,10 @@ const force = process.argv.includes('--force');
 
 let made = 0;
 let bytes = 0;
-for (const { src, dst, width } of TARGETS) {
+for (const { src, dst, width, types } of TARGETS) {
   const root = path.join('public', 'assets', src);
-  for (const type of (await readdir(root, { withFileTypes: true })).filter((e) => e.isDirectory())) {
+  const dirs = (await readdir(root, { withFileTypes: true })).filter((e) => e.isDirectory());
+  for (const type of types ? dirs.filter((e) => types.includes(e.name)) : dirs) {
     const typeDir = path.join(root, type.name);
     const outDir = path.join('public', 'assets', dst, type.name);
     await mkdir(outDir, { recursive: true });

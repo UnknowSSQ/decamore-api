@@ -19,7 +19,8 @@ const BING_THUMB_SUFFIX = '_640x480.jpg';
 const BING_FEED_URL = 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN';
 const BING_TTL_MS = 60 * 60 * 1000;
 /** 只读文件头解析尺寸：跳过 EXIF / ICC 段后 SOF 一般落在前 512 KB 内 */
-const HEADER_BYTES = 512 * 1024;
+/** 只读文件头取宽高：PNG 尺寸在前 24 字节、JPEG 的 SOF 极少落在几十 KB 之后，读不出就回 null */
+const HEADER_BYTES = 64 * 1024;
 const BING_UNAVAILABLE = '必应壁纸暂时取不到';
 
 interface BingFeed {
@@ -144,28 +145,32 @@ async function buildLocalType(type: 'pc' | 'mobile'): Promise<WallpaperItem[]> {
   const thumbDir = path.join(ASSET_ROOT, 'wallpaper-thumb', dir);
 
   const names = await readdir(fullDir).catch(() => [] as string[]);
-  const items: WallpaperItem[] = [];
-  for (const name of names.sort()) {
-    if (!/\.(jpe?g|png)$/i.test(name)) continue;
-    const base = name.replace(/\.[a-z0-9]+$/i, '');
-    const full = path.join(fullDir, name);
-    const thumb = path.join(thumbDir, `${base}.webp`);
-    // 没有同名缩略图的不进池子：接口必须保证 thumb 一定拿得到
-    if (!(await exists(thumb))) continue;
-    const dims = await readDimensions(full);
-    items.push({
-      type,
-      url: assetUrl(full),
-      thumb: assetUrl(thumb),
-      id: base,
-      width: dims?.width ?? null,
-      height: dims?.height ?? null,
-      title: null,
-      copyright: null,
-      date: null,
-    });
-  }
-  return items;
+  // 派生图目录一次读完：逐文件 exists 的话 desktop + mobile 32 项就是 32 次串行往返
+  const thumbs = new Set(await readdir(thumbDir).catch(() => [] as string[]));
+
+  const built = await Promise.all(
+    names.sort().map(async (name): Promise<WallpaperItem | null> => {
+      if (!/\.(jpe?g|png)$/i.test(name)) return null;
+      const base = name.replace(/\.[a-z0-9]+$/i, '');
+      const thumbName = `${base}.webp`;
+      // 没有同名缩略图的不进池子：接口必须保证 thumb 一定拿得到
+      if (!thumbs.has(thumbName)) return null;
+      const full = path.join(fullDir, name);
+      const dims = await readDimensions(full);
+      return {
+        type,
+        url: assetUrl(full),
+        thumb: assetUrl(path.join(thumbDir, thumbName)),
+        id: base,
+        width: dims?.width ?? null,
+        height: dims?.height ?? null,
+        title: null,
+        copyright: null,
+        date: null,
+      };
+    }),
+  );
+  return built.filter((item): item is WallpaperItem => item !== null);
 }
 
 function loadLocalPool(): Promise<LocalPool> {
