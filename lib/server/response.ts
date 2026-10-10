@@ -35,6 +35,12 @@ function resolveTraceId(): string {
 interface BuildOptions {
   headers?: Record<string, string>;
   cookies?: SetCookieDescriptor[];
+  /**
+   * 可缓存秒数，只给「同一 URL 必然同一结果」的读接口用。
+   * 随机语义的接口（一言、随机壁纸、素材抽样）不能设：浏览器一缓存，
+   * 「点击换一张」就会看起来没反应。
+   */
+  cacheSeconds?: number;
 }
 
 function buildMeta(): ResponseMeta {
@@ -121,8 +127,16 @@ export function paged<T>(items: T[], total: number, page: number, pageSize: numb
 function json<T>(body: T, status: number, options?: BuildOptions): NextResponse<T> {
   const headers = new Headers({
     'Content-Type': 'application/json; charset=utf-8',
-    // 默认不缓存，写接口由业务覆盖
+    // 默认不缓存，读接口按各自的服务端 TTL 显式放开
     'Cache-Control': 'no-store, max-age=0',
+    ...(options?.cacheSeconds
+      ? {
+          'Cache-Control': `private, max-age=${options.cacheSeconds}, stale-while-revalidate=${Math.max(
+            15,
+            Math.floor(options.cacheSeconds / 2),
+          )}`,
+        }
+      : {}),
     ...options?.headers,
   });
 

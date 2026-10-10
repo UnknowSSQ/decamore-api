@@ -5,6 +5,8 @@ import type { DocSection, InlineFragment, LimitRow } from './types';
 export interface HeadersSectionOptions {
   /** 本接口的缓存语义，写进 Cache-Control 那一行 */
   cache: InlineFragment[];
+  /** Cache-Control 的示例值；放开缓存的接口必须与响应头实际下发的一致 */
+  cacheExample?: string;
   /** 示例请求 ID，取该接口实测响应里的值 */
   traceId: string;
 }
@@ -12,7 +14,7 @@ export interface HeadersSectionOptions {
 const CODE = (value: string): InlineFragment => ({ type: 'code', value });
 const TXT = (value: string): InlineFragment => ({ type: 'text', value });
 
-export function headersSection({ cache, traceId }: HeadersSectionOptions): DocSection {
+export function headersSection({ cache, cacheExample, traceId }: HeadersSectionOptions): DocSection {
   return {
     id: 'headers',
     title: '响应头',
@@ -28,7 +30,7 @@ export function headersSection({ cache, traceId }: HeadersSectionOptions): DocSe
           },
           {
             name: 'Cache-Control',
-            example: 'no-store, max-age=0',
+            example: cacheExample ?? 'no-store, max-age=0',
             description: cache,
           },
           {

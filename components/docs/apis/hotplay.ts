@@ -151,7 +151,8 @@ const sections: DocSection[] = [
     ],
   },
   headersSection({
-    cache: text('接口响应不缓存'),
+    cache: text('响应按服务端同一份榜单缓存 600 秒，同窗口内浏览器可直接复用；因为 CORS 来源可变，所以是 private。'),
+    cacheExample: 'private, max-age=600, stale-while-revalidate=300',
     traceId: 'muzi2zsp-516ebcc8',
   }),
   {
