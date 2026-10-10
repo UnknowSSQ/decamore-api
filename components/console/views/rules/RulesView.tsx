@@ -1,4 +1,5 @@
 'use client';
+import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 
 import {
@@ -23,8 +24,13 @@ import { formatCompactCn, formatNumber } from '@/utils/format';
 import type { RuleListQuery } from '@/lib/zod/admin.schema';
 import type { AccessRule, Paged, TableColumn } from '@/types';
 
-import { RuleDetailDrawer } from './RuleDetailDrawer';
-import { RuleFormModal } from './RuleFormModal';
+
+/**
+ * 抽屉与表单按需加载：两者各自拖着 zod 写校验，规则列表首屏用不到。
+ * 首次打开后才挂载、之后不再卸载——出场动画需要组件还活着。
+ */
+const RuleDetailDrawer = dynamic(() => import('./RuleDetailDrawer').then((m) => m.RuleDetailDrawer), { ssr: false });
+const RuleFormModal = dynamic(() => import('./RuleFormModal').then((m) => m.RuleFormModal), { ssr: false });
 
 const TYPE_FILTERS = [
   { value: '', label: '全部' },
@@ -91,7 +97,9 @@ export function RulesView() {
 
   const [drawerRule, setDrawerRule] = useState<AccessRule | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerSeen, setDrawerSeen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalSeen, setModalSeen] = useState(false);
   const [editingRule, setEditingRule] = useState<AccessRule | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AccessRule | null>(null);
   const [deletePending, setDeletePending] = useState(false);
@@ -150,11 +158,13 @@ export function RulesView() {
 
   const openDetail = useCallback((rule: AccessRule) => {
     setDrawerRule(rule);
+    setDrawerSeen(true);
     setDrawerOpen(true);
   }, []);
 
   const handleCreate = () => {
     setEditingRule(null);
+    setModalSeen(true);
     setModalOpen(true);
   };
 
@@ -389,19 +399,23 @@ export function RulesView() {
         />
       )}
 
-      <RuleDetailDrawer
-        rule={drawerRule}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onRefresh={() => void reload()}
-      />
+      {drawerSeen && (
+        <RuleDetailDrawer
+          rule={drawerRule}
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          onRefresh={() => void reload()}
+        />
+      )}
 
-      <RuleFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        editingRule={editingRule}
-        onSuccess={handleFormSuccess}
-      />
+      {modalSeen && (
+        <RuleFormModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          editingRule={editingRule}
+          onSuccess={handleFormSuccess}
+        />
+      )}
 
       <ConfirmModal
         open={!!deleteTarget}

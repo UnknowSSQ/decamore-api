@@ -1,4 +1,5 @@
 'use client';
+import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 
 import {
@@ -26,10 +27,14 @@ import { docApiHref } from '@/constants/app';
 import { formatCompactCn, formatPercent } from '@/utils/format';
 import type { ManagedApi, Paged, TableColumn } from '@/types';
 
-import { ApiDetailDrawer } from './ApiDetailDrawer';
-import { ApiFormModal } from './ApiFormModal';
-
 const CATEGORY_FILTERS = ['全部', '内容', '数据', '图片'] as const;
+
+/**
+ * 抽屉与表单按需加载：两者各自拖着 zod 写校验与代码窗（含 highlight 着色），列表首屏用不到。
+ * 首次打开后才挂载、之后不再卸载——出场动画需要组件还活着。
+ */
+const ApiDetailDrawer = dynamic(() => import('./ApiDetailDrawer').then((m) => m.ApiDetailDrawer), { ssr: false });
+const ApiFormModal = dynamic(() => import('./ApiFormModal').then((m) => m.ApiFormModal), { ssr: false });
 type CategoryFilter = (typeof CATEGORY_FILTERS)[number];
 
 const STATUS_OPTIONS = [
@@ -86,7 +91,9 @@ export function ApisView() {
 
   const [drawerApi, setDrawerApi] = useState<ManagedApi | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerSeen, setDrawerSeen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalSeen, setModalSeen] = useState(false);
   const [editingApi, setEditingApi] = useState<ManagedApi | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ManagedApi | null>(null);
   const [deletePending, setDeletePending] = useState(false);
@@ -146,11 +153,13 @@ export function ApisView() {
 
   const openDetail = useCallback((api: ManagedApi) => {
     setDrawerApi(api);
+    setDrawerSeen(true);
     setDrawerOpen(true);
   }, []);
 
   const handleCreate = () => {
     setEditingApi(null);
+    setModalSeen(true);
     setModalOpen(true);
   };
 
@@ -436,19 +445,23 @@ export function ApisView() {
         </>
       )}
 
-      <ApiDetailDrawer
-        api={drawerApi}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onRefresh={() => void reload()}
-      />
+      {drawerSeen && (
+        <ApiDetailDrawer
+          api={drawerApi}
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          onRefresh={() => void reload()}
+        />
+      )}
 
-      <ApiFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        editingApi={editingApi}
-        onSuccess={handleFormSuccess}
-      />
+      {modalSeen && (
+        <ApiFormModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          editingApi={editingApi}
+          onSuccess={handleFormSuccess}
+        />
+      )}
 
       <ConfirmModal
         open={!!deleteTarget}
