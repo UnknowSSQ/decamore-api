@@ -1,9 +1,11 @@
 /** 路由集中在这里，sidebar / nav / 重定向共用同一份，避免组件里散落硬编码路径 */
 import type { Route } from 'next';
+import pkg from '../package.json';
 
 export const APP_NAME = 'Decamore API' as const;
 export const APP_DESCRIPTION = '面向开发者打造免费轻量的多元接口能力，统一 JSON 格式输出，一步接入即可调用。';
-export const APP_VERSION = '0.1.0';
+/** 版本号只有 package.json 一份：手改这里迟早和包版本脱节 */
+export const APP_VERSION = pkg.version;
 export const CONSOLE_VERSION = 'console v2.6.0';
 export const CONSOLE_REGION = 'cn-east';
 export const COPYRIGHT_YEAR = 2026;

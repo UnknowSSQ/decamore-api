@@ -5,6 +5,7 @@ import { Button, CodeWindow, Drawer, MethodBadge, Switch } from '@/components/ui
 import { useToast } from '@/hooks/useToast';
 import { updateManagedApi } from '@/lib/api';
 import { docApiHref } from '@/constants/app';
+import { apiUrl } from '@/components/docs/url';
 import type { ManagedApi } from '@/types';
 import { formatNumber, formatPercent } from '@/utils/format';
 
@@ -28,7 +29,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 /** curl 与响应体都是前端拼的示例骨架，不是后端返回的真实结构 */
 function buildApiCode(api: ManagedApi): string {
   const lines: string[] = [];
-  lines.push(`curl -X ${api.method} "https://api.decamore.dev${api.path}"`);
+  lines.push(`curl -X ${api.method} "${apiUrl(api.path)}"`);
   lines.push('');
   lines.push(`# 响应 · ${api.method} ${api.path} · 200 OK`);
   lines.push('{');

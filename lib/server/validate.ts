@@ -2,8 +2,11 @@
 import { type ZodTypeAny, type TypeOf } from 'zod';
 
 import { toFieldIssues } from '@/lib/zod/validate-shared';
-import { MAX_BODY_BYTES } from '@/lib/zod/common';
+import { DEFAULT_MAX_BODY_SIZE_KB } from './store/security';
 import { ValidationError } from './errors';
+
+/** 兜底上限：正常路径由 withApiHandler 传入实时配置，这里只在没人传时挡住大 body */
+const MAX_BODY_BYTES = DEFAULT_MAX_BODY_SIZE_KB * 1024;
 
 export { toFieldIssues, validateSoft, issueMapOf } from '@/lib/zod/validate-shared';
 

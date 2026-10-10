@@ -46,8 +46,6 @@ export const API = {
   },
 } as const;
 
-export const PUBLIC_API_BASE = 'https://api.decamore.dev';
-
 export const METHOD_TONE: Record<HttpMethod, 'ok' | 'brand' | 'warn' | 'danger' | 'neutral'> = {
   GET: 'ok',
   POST: 'brand',

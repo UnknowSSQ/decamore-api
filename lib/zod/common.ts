@@ -69,6 +69,3 @@ export const datetimeSchema = z
 
 /** 搜索关键词：限长，避免超长 query 打穿数据库 */
 export const keywordSchema = z.string().trim().max(64, '搜索关键词不超过 64 字').optional();
-
-/** 单位字节，对应安全配置里 maxBodySizeKb 的默认值 64 */
-export const MAX_BODY_BYTES = 64 * 1024;

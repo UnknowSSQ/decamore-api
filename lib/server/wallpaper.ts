@@ -5,6 +5,7 @@ import { access, mkdir, open, readdir, rename, stat, unlink, writeFile } from 'n
 import path from 'node:path';
 
 import { siteUrl } from '@/env';
+import { UPSTREAM_TIMEOUT_MS } from './upstream';
 import { ERROR_CODE, type WallpaperItem, type WallpaperType } from '@/types';
 import { ApiError } from './errors';
 
@@ -231,7 +232,7 @@ async function todayBing(): Promise<WallpaperItem> {
 async function loadBing(): Promise<WallpaperItem> {
   let feed: BingFeed | undefined;
   try {
-    const res = await fetch(BING_FEED_URL, { redirect: 'follow', signal: AbortSignal.timeout(8_000) });
+    const res = await fetch(BING_FEED_URL, { redirect: 'follow', signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HPImageArchive HTTP ${res.status}`);
     const json = (await res.json()) as { images?: BingFeed[] };
     feed = json.images?.[0];
