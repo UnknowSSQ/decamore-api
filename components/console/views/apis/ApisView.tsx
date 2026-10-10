@@ -21,8 +21,8 @@ import { useSiteFormat } from '@/hooks/useSiteFormat';
 import { useToast } from '@/hooks/useToast';
 import { deleteManagedApi, fetchManagedApis, updateManagedApi } from '@/lib/api';
 import type { ApiListQuery } from '@/lib/zod/admin.schema';
-import { AUTHORED_DOC_SLUGS } from '@/components/docs/authored-slugs';
-import { IMPLEMENTED_API_IDS } from '@/constants/api-catalog';
+import { hasAuthoredDoc } from '@/components/docs/authored-slugs';
+import { isImplementedApiId } from '@/constants/api-catalog';
 import { docApiHref } from '@/constants/app';
 import { formatCompactCn, formatPercent } from '@/utils/format';
 import type { ManagedApi, Paged, TableColumn } from '@/types';
@@ -214,15 +214,15 @@ export function ApisView() {
           <div className="flex flex-col items-start gap-1">
             <span
               className={`rounded-full border px-2 py-[2px] text-[10.5px] font-medium ${
-                IMPLEMENTED_API_IDS.includes(row.id)
+                isImplementedApiId(row.id)
                   ? 'border-line bg-bg-soft text-ok'
                   : 'border-line bg-bg-soft text-warn'
               }`}
             >
-              {IMPLEMENTED_API_IDS.includes(row.id) ? '服务端已实现' : '服务端未实现'}
+              {isImplementedApiId(row.id) ? '服务端已实现' : '服务端未实现'}
             </span>
             <span className="rounded-full border border-line bg-bg-soft px-2 py-[2px] text-[10.5px] font-medium text-muted">
-              {AUTHORED_DOC_SLUGS.includes(row.id) ? '文档已撰写' : '文档待撰写'}
+              {hasAuthoredDoc(row.id) ? '文档已撰写' : '文档待撰写'}
             </span>
           </div>
         ),

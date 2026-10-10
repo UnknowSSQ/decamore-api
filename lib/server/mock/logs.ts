@@ -8,6 +8,9 @@ const PATHS = [
   '/api/v1/hotmusic',
   '/api/v1/hotplay',
   '/api/v1/hotchart',
+  '/api/v1/emoji',
+  '/api/v1/avatar',
+  '/api/v1/images',
 ];
 
 const IPS = [

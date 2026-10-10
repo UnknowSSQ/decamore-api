@@ -130,8 +130,12 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
 /** 数组顺序即 chip 渲染顺序 */
 export const API_CATEGORIES = ['内容', '图片', '数据'] as const;
 
-/** 已有 app/api/v1/<id>/route.ts 的接口 id；文档状态与服务端状态都以此为准，避免后台、广场、文档三处口径不一 */
-export const IMPLEMENTED_API_IDS: readonly string[] = [
+/**
+ * 仓库里带了服务端实现的那批接口 id。
+ * 刻意不叫「全部接口」：后台可以新建接口，那些 id 只有运行时才知道，
+ * 所以 ApiCatalogItem.id 保持 string，这里只覆盖编译期能确定的一批。
+ */
+export const SEALED_API_IDS = [
   'hitokoto',
   'answerbook',
   'wallpaper',
@@ -142,7 +146,24 @@ export const IMPLEMENTED_API_IDS: readonly string[] = [
   'emoji',
   'avatar',
   'images',
-];
+] as const;
+export type SealedApiId = (typeof SEALED_API_IDS)[number];
+
+/** 已有 app/api/v1/<id>/route.ts 的接口 id；文档状态与服务端状态都以此为准，避免后台、广场、文档三处口径不一 */
+export const IMPLEMENTED_API_IDS: readonly SealedApiId[] = [...SEALED_API_IDS];
+
+/**
+ * 判断一个运行时 id 在不在编译期那批里。
+ * 直接写 IMPLEMENTED_API_IDS.includes(row.id) 会被拒：数组元素是字面量联合，
+ * 而后台可编辑的目录里 id 只能是 string。收在这里放行一次，调用点就不用各写断言。
+ */
+export function isSealedApiId(value: string): value is SealedApiId {
+  return (SEALED_API_IDS as readonly string[]).includes(value);
+}
+
+export function isImplementedApiId(value: string): boolean {
+  return isSealedApiId(value) && (IMPLEMENTED_API_IDS as readonly string[]).includes(value);
+}
 
 /** 传入后台可编辑的目录即可复用到非种子数据 */
 export function categoryCounts(items: readonly ApiCatalogItem[] = API_CATALOG): Record<string, number> {

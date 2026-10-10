@@ -4,7 +4,7 @@
  * 未撰写文档的接口由车单推导骨架页，保证每个接口都有稳定 URL。
  * 新接口：写 apis/<slug>.ts → 以 ['<slug>', doc] 加进 API_DOCS → 同步 authored-slugs.ts →（服务端实现后）补进 IMPLEMENTED_API_IDS。
  */
-import { API_CATEGORIES, IMPLEMENTED_API_IDS } from '@/constants/api-catalog';
+import { API_CATEGORIES, isImplementedApiId, type SealedApiId } from '@/constants/api-catalog';
 import { docApiHref } from '@/constants/app';
 import type { ApiCatalogItem } from '@/types';
 
@@ -22,8 +22,8 @@ import { imagesDoc } from './apis/images';
 import { wallpaperDoc } from './apis/wallpaper';
 import type { ApiDoc, AuthoredApiDoc, CodePaneData, DocSection, MetaRow, SiblingApi, TocItem } from './types';
 
-/** 键 = 车单 id = /docs/<slug>；文档模块本身不再声明身份 */
-const API_DOCS = new Map<string, AuthoredApiDoc>([
+/** 键 = 车单 id = /docs/<slug>；文档模块本身不再声明身份。键收成 SealedApiId，写错即编译错误 */
+const API_DOCS = new Map<SealedApiId, AuthoredApiDoc>([
   ['hitokoto', hitokotoDoc],
   ['answerbook', answerbookDoc],
   ['wallpaper', wallpaperDoc],
@@ -56,7 +56,7 @@ const TODO_CALLOUT = (what: string) => ({
 });
 
 function skeletonSections(item: ApiCatalogItem): DocSection[] {
-  const pending = !IMPLEMENTED_API_IDS.includes(item.id);
+  const pending = !isImplementedApiId(item.id);
 
   return [
     {
@@ -154,8 +154,9 @@ const SKELETON_PANES: CodePaneData[] = [
 ];
 
 function toDoc(item: ApiCatalogItem): ApiDoc {
-  const authored = API_DOCS.get(item.id);
-  const implemented = IMPLEMENTED_API_IDS.includes(item.id);
+  // 后台可新建接口，那些 id 不在编译期联合里；查不到就是没写过文档
+  const authored = API_DOCS.get(item.id as SealedApiId);
+  const implemented = isImplementedApiId(item.id);
 
   const identity = {
     slug: item.id,
