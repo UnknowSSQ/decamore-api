@@ -6,7 +6,7 @@ import { useDebouncedValue } from './useUi';
 import { useRequest, type UseRequestResult } from './useRequest';
 import type { SortState } from '@/types';
 
-export interface ListQueryState<TFilters> {
+interface ListQueryState<TFilters> {
   /** 已防抖的关键词，build 里用这个值 */
   keyword: string;
   filters: TFilters;
@@ -15,11 +15,10 @@ export interface ListQueryState<TFilters> {
   pageSize: number;
 }
 
-export interface UseListQueryResult<TQuery, TItem, TFilters> extends Pick<
+interface UseListQueryResult<TQuery, TItem, TFilters> extends Pick<
     UseRequestResult<[TQuery], TItem>,
     'data' | 'loading' | 'pending' | 'error' | 'refetch' | 'setData'
   > {
-  query: TQuery;
   /** 用当前条件重发一次，重试按钮与增删改后的刷新都调它 */
   reload: () => Promise<TItem | undefined>;
   keyword: string;
@@ -98,7 +97,6 @@ export function useListQuery<TQuery, TItem, TFilters extends object>(options: {
     error,
     refetch,
     setData,
-    query,
     reload,
     keyword,
     setKeyword,

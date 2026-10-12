@@ -1,9 +1,12 @@
+import { API_CATALOG } from '@/constants/api-catalog';
+import { RATE_LIMIT_PER_MIN_DEFAULT } from '@/constants/app';
 import { Reveal } from '@/components/shared/Reveal';
 
+/** 只放能从代码里指出依据的数字：接口数取车单长度，频控取 env 默认值 */
 const STATS = [
-  { value: '16+', label: '可用接口，持续增加' },
-  { value: '99.9%', label: '服务可用性，全天在线' },
-  { value: '<80ms', label: '平均响应，就近返回' },
+  { value: String(API_CATALOG.length), label: '公开接口，全部免鉴权' },
+  { value: '60s', label: '榜单接口起算的服务端缓存' },
+  { value: String(RATE_LIMIT_PER_MIN_DEFAULT), label: '每分钟单 IP 默认额度' },
   { value: '¥0', label: '所有接口，免费调用' },
 ];
 

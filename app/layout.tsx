@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from 'next';
 
 import { AppProviders } from '@/components/providers/AppProviders';
 import { APP_DESCRIPTION, APP_NAME } from '@/constants/app';
-import { resolveSession } from '@/lib/auth/session';
 import { siteUrl } from '@/env';
 import './globals.css';
 
 /**
- * resolveSession() 在服务端读 httpOnly Cookie，把 { user, expiresAt } 当 bootstrap 注入，首屏即为已登录，省掉一次 /auth/me。
- * AppProviders 是 Client Component，所以这里只传可序列化的纯数据。
+ * 根布局不读 Cookie：一次 resolveSession() 会让首页、广场与全部文档页退出静态渲染。
+ * 控制台的会话由 app/admin/layout.tsx 的 guardPage() 在服务端校验，
+ * AuthProvider 自己在客户端静默补一次 /auth/me（见 hooks/useAuth.tsx 的 bootstrap 分支）。
  */
 
 export const metadata: Metadata = {
@@ -39,10 +39,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await resolveSession();
-  const bootstrap = session ? { user: session.user, expiresAt: session.expiresAt } : null;
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
       <body>
@@ -52,7 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <a className="skip-link" href="#main">
           跳到主要内容
         </a>
-        <AppProviders bootstrap={bootstrap}>{children}</AppProviders>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

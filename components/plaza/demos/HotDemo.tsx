@@ -1,21 +1,20 @@
 'use client';
 /** 平台由 seed 取模得出，首帧 seed=0 恒为微博，SSR 与水合才算得出同一个值。
  *  每平台服务端缓存 60 秒，抬头显示 updatedAt 和「（缓存）」，免得榜单没变被当成点击失效 */
-import { useEffect, useState } from 'react';
-
 import { fetchHotSearch } from '@/lib/api';
-import type { HotSearchItem, HotSearchPlatform, HotSearchResult } from '@/types';
+import type { HotSearchItem, HotSearchPlatform } from '@/types';
 import type { DemoProps } from './types';
+import { DEMO_ROWS, clock, useDemoFetch } from './types';
 
-const SHOW_ROWS = 6;
-
-/** 轮换顺序，与接口文档里的四个平台取值一致 */
-const PLATFORM_ORDER: readonly HotSearchPlatform[] = ['weibo', 'douyin', 'baidu', 'zhihu'];
+/** 轮换顺序，与接口文档里的六个平台取值一致 */
+const PLATFORM_ORDER: readonly HotSearchPlatform[] = ['weibo', 'douyin', 'baidu', 'zhihu', 'bilibili', 'toutiao'];
 const PLATFORM_NAME: Record<HotSearchPlatform, string> = {
   weibo: '微博',
   douyin: '抖音',
   baidu: '百度',
   zhihu: '知乎',
+  bilibili: 'B 站',
+  toutiao: '今日头条',
 };
 
 /** 上游给文案就用原文（知乎「2017 万热度」），给数值就折成万 / 亿 */
@@ -27,36 +26,9 @@ function heatText(item: HotSearchItem): string {
   return String(item.heat);
 }
 
-function clock(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime())
-    ? ''
-    : date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
-
 export function HotDemo({ seed }: DemoProps) {
-  const [board, setBoard] = useState<HotSearchResult | null>(null);
-  const [failed, setFailed] = useState(false);
   const platform = PLATFORM_ORDER[seed % PLATFORM_ORDER.length] as HotSearchPlatform;
-
-  useEffect(() => {
-    // 快速连点时丢弃过期响应，避免后到的旧榜单覆盖新榜单
-    let ignore = false;
-    void (async () => {
-      try {
-        const next = await fetchHotSearch(platform, SHOW_ROWS);
-        if (!ignore) {
-          setBoard(next);
-          setFailed(false);
-        }
-      } catch {
-        if (!ignore) setFailed(true);
-      }
-    })();
-    return () => {
-      ignore = true;
-    };
-  }, [platform, seed]);
+  const { data: board, failed } = useDemoFetch(seed, () => fetchHotSearch(platform, DEMO_ROWS));
 
   return (
     <div className="plaza-demo-ranklist">
@@ -69,7 +41,7 @@ export function HotDemo({ seed }: DemoProps) {
       </div>
 
       {board &&
-        board.items.slice(0, SHOW_ROWS).map((item, index) => (
+        board.items.slice(0, DEMO_ROWS).map((item, index) => (
           <div key={`${item.rank}-${item.title}`} className="plaza-demo-ranklist-row">
             <span className={`plaza-demo-ranklist-rank${index < 2 ? ' plaza-demo-ranklist-rank-top' : ''}`}>
               {item.rank}

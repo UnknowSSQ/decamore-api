@@ -13,8 +13,6 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   json?: unknown;
   /** 默认 15000 */
   timeoutMs?: number;
-  /** 默认 GET 1 次、写请求 0 次 */
-  retry?: number;
   /** 关掉 401 自动续期，登录 / 刷新接口自身必须关 */
   skipAuthRefresh?: boolean;
   /** 不注入鉴权头，公开接口用 */
@@ -186,7 +184,7 @@ async function rawFetch<T>(path: string, options: RequestOptions, isRetry = fals
 
   const traceId = response.headers.get('x-trace-id') ?? payload.meta?.traceId;
 
-  // 公开信封没有 success 字段，改按 statusCode 判定
+  // 公开信封成功与失败同形，没有 success 位，按 statusCode 判定
   if (options.envelope === 'public') {
     const body = payload as unknown as PublicApiEnvelope<T>;
     if (!response.ok || body.statusCode !== ERROR_CODE.OK) {
@@ -194,7 +192,9 @@ async function rawFetch<T>(path: string, options: RequestOptions, isRetry = fals
         status: response.status,
         code: body.statusCode || response.status,
         message: body.message || `请求失败（HTTP ${response.status}）`,
-        traceId,
+        ...(body.description ? { description: body.description } : {}),
+        ...(body.issues ? { issues: body.issues } : {}),
+        traceId: response.headers.get('x-trace-id') ?? body.meta?.requestId ?? undefined,
         url,
       });
     }
@@ -224,7 +224,8 @@ function shouldRetry(method: string, error: unknown, attemptsLeft: number): bool
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = (options.method ?? 'GET').toUpperCase();
-  let attemptsLeft = options.retry ?? (method === 'GET' ? 1 : 0);
+  // 重试次数写死在策略里：GET 一次、写请求不重试（网络错误下重试写可能重复提交）
+  let attemptsLeft = method === 'GET' ? 1 : 0;
 
   for (;;) {
     try {

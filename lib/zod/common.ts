@@ -1,18 +1,17 @@
 /** 校验规则与中文文案只写一次，前端表单复用同一份 schema 做即时校验 */
 import { z } from 'zod';
 
-/** 与 lib/auth/permissions 的 detectAccountKind 各写了一份同样的正则，改一处要同步 */
+import { detectAccountKind } from '@/lib/auth/permissions';
+import { API_CATEGORIES, HTTP_METHODS } from '@/types';
+
+/** 取值规则直接调 detectAccountKind：登录判定与表单校验共用一条口径，不再各写一份正则 */
 export const accountSchema = z
   .string({ required_error: '请输入管理员账号', invalid_type_error: '账号格式不正确' })
   .trim()
   .min(1, '请输入管理员账号')
-  .refine(
-    (value) => {
-      if (value.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
-      return /^[A-Za-z0-9_.-]{3,32}$/.test(value);
-    },
-    { message: '账号需为合法邮箱，或 3–32 位字母、数字、下划线、点' },
-  );
+  .refine((value) => detectAccountKind(value) !== 'invalid', {
+    message: '账号需为合法邮箱，或 3–32 位字母、数字、下划线、点',
+  });
 
 /** 不校验复杂度，强度策略由安全配置下发 */
 export const passwordSchema = z
@@ -33,7 +32,6 @@ export const paginationSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100, '单页最多 100 条').default(12),
 });
 
-/** 取值须与仪表盘的时间 chips 一致 */
 export const rangeSchema = z.enum(['24h', '7d', '30d'], {
   errorMap: () => ({ message: '时间范围仅支持 24h / 7d / 30d' }),
 });
@@ -56,10 +54,9 @@ export const corsOriginSchema = z
   .trim()
   .refine((value) => value === '*' || /^https?:\/\/[\w.-]+(:\d{2,5})?$/.test(value), '来源需为 * 或完整 http(s) 地址');
 
-export const httpMethodSchema = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-
-/** 须与 types/domain 的 ApiCategory 字面量保持一致 */
-export const apiCategorySchema = z.enum(['内容', '图片', '数据']);
+/** 取值直接来自 types/domain 的那两份字面量，联合类型与校验不会再各写一份 */
+export const httpMethodSchema = z.enum(HTTP_METHODS);
+export const apiCategorySchema = z.enum(API_CATEGORIES);
 
 /** 空格换成 T，"YYYY-MM-DD HH:mm:ss" 才解析得了 */
 export const datetimeSchema = z

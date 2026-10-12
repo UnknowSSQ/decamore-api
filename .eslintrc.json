@@ -20,5 +20,11 @@
     "prefer-const": "error",
     "next/no-img-element": "off"
   },
-  "ignorePatterns": ["node_modules/", ".next/", "next-env.d.ts", "*.tsbuildinfo"]
+  "ignorePatterns": ["node_modules/", ".next/", "next-env.d.ts", "*.tsbuildinfo"],
+  "overrides": [
+    {
+      "files": ["scripts/*.ts"],
+      "rules": { "no-console": "off" }
+    }
+  ]
 }

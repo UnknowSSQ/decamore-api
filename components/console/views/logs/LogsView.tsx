@@ -1,15 +1,17 @@
 'use client';
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { Badge, MethodBadge, Button, Icon, Input, Panel, PageHeader, Skeleton, Tooltip } from '@/components/ui';
 import { DataTable, Pagination } from '@/components/ui/DataTable';
 import { Switch } from '@/components/ui/Input';
 import { useListQuery } from '@/hooks/useListQuery';
+import { usePolling } from '@/hooks/useRequest';
 import { useSiteFormat } from '@/hooks/useSiteFormat';
 import { fetchLogs } from '@/lib/api';
-import { formatNumber, formatDuration } from '@/utils/format';
-import type { CallLog, Paged, TableColumn } from '@/types';
+import { CALL_RING_CAPACITY } from '@/constants/app';
+import { formatDuration, formatNumber, formatPercent } from '@/utils/format';
+import type { CallLog, CallLogPage, TableColumn } from '@/types';
 import { StatusBars } from './StatusBars';
 import { LogDetailDrawer } from './LogDetailDrawer';
 
@@ -30,6 +32,11 @@ const METHOD_OPTIONS = [
 /** 复用 fetchLogs 的入参类型，免得 statusFamily / method 退化成裸字符串 */
 type LogQuery = NonNullable<Parameters<typeof fetchLogs>[0]>;
 
+/** 汇总来自服务端按同一批筛选算好的 summary；还没拿到或请求失败时显示「—」而不是 0——
+ *  0 会被读成「一条都没有」，而当时的事实是「还不知道」 */
+const dash = (value: number | undefined, format: (input: number) => string): string =>
+  value === undefined ? '—' : format(value);
+
 export function LogsView() {
   // useSearchParams 需要 Suspense 边界，否则整页退化成客户端渲染
   return (
@@ -42,8 +49,8 @@ export function LogsView() {
 function LogsViewInner() {
   const searchParams = useSearchParams();
   const { fmtDateTime, itemsPerPage } = useSiteFormat();
-  
-  // ?path= 由接口管理的「查看调用日志」带进来，只作初值，之后不再同步回 URL
+
+  // ?keyword= 由接口管理与规则抽屉的「查看调用日志」带进来，只作初值，之后不再同步回 URL
   const [liveMode, setLiveMode] = useState(false);
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
 
@@ -63,10 +70,10 @@ function LogsViewInner() {
     setPage,
     pageSize,
     setPageSize,
-  } = useListQuery<LogQuery, Paged<CallLog>, { statusFamily: string; method: string }>({
+  } = useListQuery<LogQuery, CallLogPage, { statusFamily: string; method: string }>({
     fetcher: fetchLogs,
-    initialKeyword: searchParams.get('path') ?? '',
-    initialFilters: { statusFamily: searchParams.get('status') ?? 'all', method: 'all' },
+    initialKeyword: searchParams.get('keyword') ?? '',
+    initialFilters: { statusFamily: 'all', method: 'all' },
     initialSort: { key: 'time', order: 'desc' },
     initialPageSize: itemsPerPage,
     debounceMs: 300,
@@ -91,18 +98,11 @@ function LogsViewInner() {
   const statusFamily = filters.statusFamily;
   const method = filters.method;
 
-  // 错误数与均值只覆盖当前页 items，total 用服务端总数，两者口径不同
-  const stats = useMemo(() => {
-    if (!data?.items) return { total: 0, errors: 0, blocked: 0, avgLatency: 0, cacheHitRate: 0 };
-    const items = data.items;
-    const total = data.total;
-    const errors = items.filter((log) => log.status >= 400).length;
-    const blocked = items.filter((log) => log.status === 429).length;
-    const avgLatency = items.reduce((sum, log) => sum + log.latencyMs, 0) / items.length;
-    const cacheHits = items.filter((log) => log.cacheHit).length;
-    const cacheHitRate = items.length > 0 ? (cacheHits / items.length) * 100 : 0;
-    return { total, errors, blocked, avgLatency, cacheHitRate };
-  }, [data]);
+  // 「实时追踪」= 每 5 秒拉一次；页面不可见时 usePolling 自己跳过
+  usePolling(refetch, liveMode ? 5_000 : 0);
+
+  // 四个格子与表格同源：summary 由服务端按同一批筛选结果算好，不是当前页的局部值
+  const stats = data?.summary;
 
   const columns: TableColumn<CallLog>[] = [
     {
@@ -165,13 +165,8 @@ function LogsViewInner() {
       key: 'ip',
       title: '来源',
       dataIndex: 'ip',
-      widthClass: 'w-48',
-      render: (log) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-[11.5px] text-ink">{log.ip}</span>
-          <span className="text-[10.5px] text-muted">{log.region}</span>
-        </div>
-      ),
+      widthClass: 'w-40',
+      render: (log) => <span className="font-mono text-[11.5px] text-ink">{log.ip}</span>,
     },
     {
       key: 'caller',
@@ -189,11 +184,14 @@ function LogsViewInner() {
       title: '缓存',
       dataIndex: 'cacheHit',
       widthClass: 'w-20',
-      render: (log) => (
-        <Badge tone={log.cacheHit ? 'ok' : 'neutral'} mono>
-          {log.cacheHit ? 'HIT' : 'MISS'}
-        </Badge>
-      ),
+      render: (log) =>
+        log.cacheHit === undefined ? (
+          <span className="text-[11.5px] text-muted">—</span>
+        ) : (
+          <Badge tone={log.cacheHit ? 'ok' : 'neutral'} mono>
+            {log.cacheHit ? 'HIT' : 'MISS'}
+          </Badge>
+        ),
     },
     {
       key: 'ua',
@@ -212,7 +210,7 @@ function LogsViewInner() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="调用日志"
-        description="全站请求明细 · 保留 30 天 · 支持实时追踪与 CSV 导出"
+        description={`本进程记录的请求明细 · 环形缓冲保留最近 ${CALL_RING_CAPACITY} 条 · 可开启实时追踪`}
         actions={
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 text-[12px] text-muted">
@@ -223,29 +221,28 @@ function LogsViewInner() {
               <Icon name="refresh" size={13} />
               刷新
             </Button>
-            <Button variant="primary" size="sm" trailing="↗">
-              导出 CSV
-            </Button>
           </div>
         }
       />
 
       <div className="grid grid-cols-4 gap-4">
         <div className="rounded-lg border border-line bg-surface p-4">
-          <div className="text-[22px] font-semibold text-ink">{formatNumber(stats.total)}</div>
+          <div className="text-[22px] font-semibold text-ink">{dash(stats?.total, formatNumber)}</div>
           <div className="text-[11px] text-muted">当前筛选 · 记录数</div>
         </div>
         <div className="rounded-lg border border-warn/30 bg-warn-soft p-4">
-          <div className="text-[22px] font-semibold text-warn">{formatNumber(stats.errors)}</div>
+          <div className="text-[22px] font-semibold text-warn">{dash(stats?.errors, formatNumber)}</div>
           <div className="text-[11px] text-muted">4xx / 5xx 错误</div>
         </div>
         <div className="rounded-lg border border-danger/30 bg-danger-soft p-4">
-          <div className="text-[22px] font-semibold text-danger">{formatNumber(stats.blocked)}</div>
+          <div className="text-[22px] font-semibold text-danger">{dash(stats?.blocked, formatNumber)}</div>
           <div className="text-[11px] text-muted">限流拦截 · 429</div>
         </div>
         <div className="rounded-lg border border-line bg-surface p-4">
-          <div className="text-[22px] font-semibold text-ink">{formatDuration(stats.avgLatency)}</div>
-          <div className="text-[11px] text-muted">平均延迟</div>
+          <div className="text-[22px] font-semibold text-ink">{dash(stats?.avgLatencyMs, formatDuration)}</div>
+          <div className="text-[11px] text-muted">
+            平均延迟 · 缓存命中 {dash(stats?.cacheHitRate, formatPercent)}
+          </div>
         </div>
       </div>
 
@@ -274,6 +271,7 @@ function LogsViewInner() {
           ))}
         </div>
         <select
+          aria-label="按请求方法筛选"
           value={method}
           onChange={(e) => setFilter('method', e.target.value)}
           className="h-8 rounded-full border border-line bg-surface px-3 text-[11.5px] text-ink"

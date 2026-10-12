@@ -907,6 +907,146 @@
     color: rgb(var(--c-muted));
   }
 
+  /* 诗卡：题目 + 两句填字 + 诗人署名，答对开格并自动换首；名句本身即答案，不整句呈现 */
+  .plaza-demo-poetry {
+    display: flex;
+    width: 100%;
+    max-width: 340px;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    text-align: center;
+  }
+  .plaza-demo-poetry-head {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: rgb(var(--c-text));
+  }
+  .plaza-demo-poetry-muted {
+    margin: 0;
+    font-size: 11.5px;
+    color: rgb(var(--c-muted));
+  }
+  .plaza-demo-poetry-label {
+    margin: 4px 0 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: #9aa49b;
+  }
+  /* 两句是一整行连排（长联会自己折行），行高留足以免下划线空位压着上一行 */
+  .plaza-demo-poetry-prompt {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.9;
+    letter-spacing: 0.04em;
+    color: #3d453e;
+  }
+  /* 空位始终占满一个字宽，开格时不会顶动整行 */
+  .plaza-demo-poetry-prompt span {
+    display: inline-block;
+    min-width: 1.1em;
+    border-bottom: 1.5px solid rgba(54, 91, 73, 0.45);
+    color: rgb(var(--c-primary));
+    font-weight: 700;
+  }
+  /* 署名行与一言卡同形制（10.5px 灰字），两句下面署「—— 诗人 · 朝代」 */
+  .plaza-demo-poetry-author {
+    margin: 0;
+    font-size: 10.5px;
+    color: rgb(var(--c-muted));
+  }
+  .plaza-demo-poetry-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  .plaza-demo-poetry-option {
+    min-width: 30px;
+    height: 28px;
+    border: 1px solid rgba(54, 91, 73, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 254, 250, 0.8);
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: #3d453e;
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
+  }
+  .plaza-demo-poetry-option:hover:enabled {
+    border-color: rgb(var(--c-primary));
+    color: rgb(var(--c-primary));
+  }
+  /* 选错的一个字灰掉，不判满盘，还能再试 */
+  .plaza-demo-poetry-option.is-wrong {
+    opacity: 0.35;
+    text-decoration: line-through;
+  }
+  .plaza-demo-poetry-option.is-right {
+    border-color: transparent;
+    background: rgb(var(--c-primary));
+    color: #f7f6f2;
+  }
+
+  /* 成语卡：一片词签 */
+  .plaza-demo-idioms {
+    display: flex;
+    width: 100%;
+    max-width: 330px;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .plaza-demo-idioms-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 7px;
+  }
+  .plaza-demo-idioms-chip {
+    padding: 5px 10px;
+    border: 1px solid rgba(54, 91, 73, 0.16);
+    border-radius: 9px;
+    background: rgba(255, 254, 250, 0.85);
+    box-shadow: 0 2px 6px rgba(37, 50, 41, 0.05);
+    font-family: var(--font-serif);
+    font-size: 13.5px;
+    letter-spacing: 0.06em;
+    color: #3d453e;
+  }
+  .plaza-demo-idioms-empty {
+    font-size: 11px;
+    color: rgb(var(--c-muted));
+  }
+
+  /* kfc 卡：长段落走文本面板（毒鸡汤已改成一言那套引号排版） */
+  .plaza-demo-text {
+    width: 100%;
+    max-width: 330px;
+    padding: 16px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 14px;
+    background: rgba(255, 254, 250, 0.78);
+    box-shadow: 0 18px 50px rgba(37, 50, 41, 0.08);
+    backdrop-filter: blur(8px);
+  }
+  .plaza-demo-text-body {
+    margin: 0;
+    /* kfc 文案自带 \n 换行，默认会被折叠掉；pre-line 保留换行、不保留首行缩进 */
+    white-space: pre-line;
+    font-size: 11.5px;
+    line-height: 1.9;
+    text-align: justify;
+    color: #3d453e;
+  }
   @keyframes plaza-cardFlash {
     0%,
     100% {

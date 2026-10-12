@@ -5,6 +5,7 @@ import { hotplayQuerySchema } from '@/lib/zod/public.schema';
 export const GET = defineRoute(
   {
     auth: false,
+    envelope: 'public',
     query: hotplayQuerySchema,
     route: '/api/v1/hotplay',
   },

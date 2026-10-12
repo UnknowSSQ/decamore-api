@@ -21,7 +21,7 @@ export interface AccessTokenClaims {
   jti: string;
 }
 
-export interface RefreshTokenClaims extends Omit<AccessTokenClaims, 'typ'> {
+interface RefreshTokenClaims extends Omit<AccessTokenClaims, 'typ'> {
   typ: 'refresh';
 }
 
@@ -55,7 +55,7 @@ export async function issueToken({ sub, name, role, type, ttlSec }: IssueOptions
 }
 
 /** 不抛异常，失败原因交给调用方映射响应码 */
-export type VerifyResult =
+type VerifyResult =
   | { ok: true; claims: AccessTokenClaims | RefreshTokenClaims }
   | { ok: false; reason: 'malformed' | 'expired' | 'invalid' | 'wrong_type' };
 

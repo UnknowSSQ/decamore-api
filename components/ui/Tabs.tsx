@@ -8,17 +8,15 @@ export function Segmented<T extends string>({
   options,
   value,
   onChange,
-  className,
   ariaLabel,
 }: {
   options: readonly { value: T; label: ReactNode }[];
   value: T;
   onChange: (value: T) => void;
-  className?: string;
   ariaLabel?: string;
 }) {
   return (
-    <div role="group" aria-label={ariaLabel} className={cn('inline-flex items-center gap-1 rounded-full border border-line bg-bg-soft p-1', className)}>
+    <div role="group" aria-label={ariaLabel} className="inline-flex items-center gap-1 rounded-full border border-line bg-bg-soft p-1">
       {options.map((option) => {
         const selected = option.value === value;
         return (

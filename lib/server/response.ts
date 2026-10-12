@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 
 import {
   ERROR_CODE,
-  isFailure,
   type ApiFailure,
   type ApiSuccess,
   type ErrorCode,
@@ -17,7 +16,7 @@ import { APP_NAME } from '@/constants/app';
 import { createTraceId, getTraceId } from './trace';
 
 /** 手抄 NextResponse.cookies.set 的 options，避免 import next 内部类型 */
-export interface SetCookieDescriptor {
+interface SetCookieDescriptor {
   name: string;
   value: string;
   httpOnly?: boolean;
@@ -48,7 +47,7 @@ function buildMeta(): ResponseMeta {
   return { timestamp: Date.now(), traceId: resolveTraceId() };
 }
 
-export function buildSuccess<T>(data: T, message = 'success'): ApiSuccess<T> {
+function buildSuccess<T>(data: T, message = 'success'): ApiSuccess<T> {
   return {
     statusCode: ERROR_CODE.OK,
     success: true,
@@ -101,17 +100,36 @@ export function publicOk<T>(
   data: T,
   options?: { message?: string } & BuildOptions,
 ): NextResponse<PublicApiEnvelope<T>> {
-  const body: PublicApiEnvelope<T> = {
-    statusCode: ERROR_CODE.OK,
-    message: options?.message ?? 'success',
-    data,
+  return json(
+    buildPublicBody({ statusCode: ERROR_CODE.OK, message: options?.message ?? 'success', data }),
+    200,
+    options,
+  );
+}
+
+/**
+ * 公开信封的唯一构造点：成功与失败同形，失败时 data 为 null、statusCode 即 HTTP 码。
+ * description / issues 只在失败时出现，调用方据此定位是哪个参数不对。
+ */
+export function buildPublicBody<T>(params: {
+  statusCode: number;
+  message: string;
+  data: T;
+  description?: string;
+  issues?: FieldIssue[];
+}): PublicApiEnvelope<T> {
+  return {
+    statusCode: params.statusCode,
+    message: params.message,
+    data: params.data,
     meta: {
       requestId: resolveTraceId(),
       serverTime: new Date().toISOString(),
       site: APP_NAME,
     },
+    ...(params.description ? { description: params.description } : {}),
+    ...(params.issues?.length ? { issues: params.issues } : {}),
   };
-  return json(body, 200, options);
 }
 
 /** page 从 1 开始 */
@@ -149,5 +167,3 @@ function json<T>(body: T, status: number, options?: BuildOptions): NextResponse<
   });
   return res;
 }
-
-export { isFailure };

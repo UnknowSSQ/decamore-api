@@ -7,8 +7,6 @@ import type { CreateApiInput } from '@/lib/zod/admin.schema';
 import { routeCallStats } from './stats';
 
 interface CatalogRecord extends ApiCatalogItem {
-  authRequired: boolean;
-  rateLimited: boolean;
   status: ManagedApi['status'];
   updatedAt: string;
 }
@@ -22,21 +20,19 @@ const globalStore = globalThis as typeof globalThis & {
 };
 
 /** 静态目录内容变更时递增这一版本触发重新播种，进程内的编辑结果会被覆盖 */
-const SEED_VERSION = '2026-10-09.real-route-metrics';
+const SEED_VERSION = '2026-10-11.route-renames';
 
 /** id 指纹能活过 dev 热重载：新增接口时变化并重播种，后台只改名称/描述则不会冲掉编辑结果 */
 const seedSignature = `${SEED_VERSION}|${API_CATALOG.map((item) => item.id).join('|')}`;
 
 /**
- * 10 个公开接口一律免鉴权、都受频控，种子值必须与 /docs 与 README 的口径一致；
- * 之前按 index 取模生成 authRequired/status 会让后台显示「需鉴权」「已降级」，而线上根本不是那样。
+ * 种子只带 status：10 个公开接口一律免鉴权、都受频控，这些是路由自己的声明，
+ * 目录里再存一份「需不需要鉴权」就一定会和线上口径漂移。
  */
 function seedRecords(): CatalogRecord[] {
   const seededAt = nowIso();
   return API_CATALOG.map((item) => ({
     ...item,
-    authRequired: false,
-    rateLimited: true,
     status: 'online',
     updatedAt: seededAt,
   }));
@@ -75,8 +71,6 @@ function toManaged(record: CatalogRecord, stats: CallStats): ManagedApi {
     method: record.method,
     category: record.cat,
     status: record.status,
-    authRequired: record.authRequired,
-    rateLimited: record.rateLimited,
     updatedAt: record.updatedAt,
     ...metrics(record.path, stats),
   };
@@ -111,14 +105,12 @@ export function findManagedApi(id: string): ManagedApi | undefined {
   return index < 0 ? undefined : toManaged(records[index]!, routeCallStats());
 }
 
-export interface CatalogPatch {
+interface CatalogPatch {
   name?: string;
   path?: string;
   method?: HttpMethod;
   category?: ApiCatalogItem['cat'];
   description?: string;
-  authRequired?: boolean;
-  rateLimited?: boolean;
   status?: ManagedApi['status'];
 }
 
@@ -133,8 +125,6 @@ export function patchCatalogItem(id: string, patch: CatalogPatch): ManagedApi | 
   if (patch.method !== undefined) record.method = patch.method;
   if (patch.category !== undefined) record.cat = patch.category;
   if (patch.description !== undefined) record.desc = patch.description;
-  if (patch.authRequired !== undefined) record.authRequired = patch.authRequired;
-  if (patch.rateLimited !== undefined) record.rateLimited = patch.rateLimited;
   if (patch.status !== undefined) record.status = patch.status;
   record.updatedAt = nowIso();
 
@@ -163,8 +153,6 @@ export function createCatalogItem(input: CreateApiInput): ManagedApi {
     kw: '',
     hint: '点击刷新 ↻',
     demo: null,
-    authRequired: input.authRequired,
-    rateLimited: input.rateLimited,
     status: input.status,
     updatedAt: nowIso(),
   };

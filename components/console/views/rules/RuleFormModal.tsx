@@ -1,21 +1,18 @@
 'use client';
 import { Button, Field, Input, Modal, Select, Switch } from '@/components/ui';
 import { useModalForm } from '@/hooks/useModalForm';
-import { createRule, updateRule } from '@/lib/api';
+import { createRule } from '@/lib/api';
 import { createRuleSchema, type CreateRuleInput } from '@/lib/zod/admin.schema';
-import type { AccessRule } from '@/types';
 
 export interface RuleFormModalProps {
   open: boolean;
   onClose: () => void;
-  editingRule: AccessRule | null;
   onSuccess: () => void;
 }
 
 const ACTION_OPTIONS = [
   { value: '429', label: '限流 · 429' },
   { value: 'reject', label: '拦截 · reject' },
-  { value: 'captcha', label: '缓存 · captcha' },
   { value: 'log', label: '日志 · log' },
 ] as const;
 
@@ -32,19 +29,14 @@ interface RuleFormValues {
 
 const BLANK: RuleFormValues = { name: '', scope: '', limit: 3000, periodSec: 60, action: '429', enabled: true };
 
-/** 只取表单认识的字段：AccessRule 还带 id / hitsToday / updatedAt，整表铺开会被 strict() 判成非法入参 */
-const initialValues = (editing: AccessRule | null): RuleFormValues =>
-  editing ? { name: editing.name, scope: editing.scope, limit: editing.limit, periodSec: editing.periodSec, action: editing.action, enabled: editing.enabled } : BLANK;
-
-export function RuleFormModal({ open, onClose, editingRule, onSuccess }: RuleFormModalProps) {
+export function RuleFormModal({ open, onClose, onSuccess }: RuleFormModalProps) {
   const { values, setValue, errors, pending, handleSubmit } = useModalForm<RuleFormValues, CreateRuleInput>({
     open,
-    editing: editingRule,
-    initial: () => initialValues(editingRule),
+    initial: () => BLANK,
     schema: createRuleSchema,
-    submit: (value) => (editingRule ? updateRule(editingRule.id, value) : createRule(value)),
-    successMessage: (isEdit) => (isEdit ? '规则已更新' : '规则已创建'),
-    failureMessage: (isEdit) => (isEdit ? '更新失败' : '创建失败'),
+    submit: (value) => createRule(value),
+    successMessage: '规则已创建',
+    failureMessage: '创建失败',
     onSaved: () => {
       onSuccess();
       onClose();
@@ -55,8 +47,8 @@ export function RuleFormModal({ open, onClose, editingRule, onSuccess }: RuleFor
     <Modal
       open={open}
       onClose={onClose}
-      title={editingRule ? '编辑规则' : '新建规则'}
-      description={editingRule ? `正在编辑 ${editingRule.name}` : '配置流量治理规则'}
+      title="新建规则"
+      description="配置流量治理规则"
       width="max-w-[520px]"
       footer={
         <div className="flex gap-2">
@@ -64,7 +56,7 @@ export function RuleFormModal({ open, onClose, editingRule, onSuccess }: RuleFor
             取消
           </Button>
           <Button variant="primary" onClick={() => void handleSubmit()} loading={pending}>
-            {editingRule ? '保存' : '创建'}
+            创建
           </Button>
         </div>
       }

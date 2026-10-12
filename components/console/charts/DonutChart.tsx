@@ -8,7 +8,7 @@ export interface DonutSegment {
   color: string;
 }
 
-export interface DonutChartProps {
+interface DonutChartProps {
   segments: DonutSegment[];
 }
 

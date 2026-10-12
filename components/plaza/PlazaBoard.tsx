@@ -1,7 +1,8 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { API_CATALOG, API_CATEGORIES, categoryCounts } from '@/constants/api-catalog';
-import { PLAZA_CARD_DEFAULT_SPAN, cardSpan } from '@/constants/card-layout';
+import { categoryCounts } from '@/constants/api-catalog';
+import { API_CATEGORIES } from '@/types';
+import { PLAZA_CARD_DEFAULT_SPAN, cardSpan, layoutOrder } from '@/constants/card-layout';
 import { rankCatalog } from '@/utils/search';
 import { useDebouncedValue, useHotkey } from '@/hooks/useUi';
 import { PlazaCard } from './PlazaCard';
@@ -12,25 +13,32 @@ import type { ApiCatalogItem, CardSpan } from '@/types';
 interface PlazaBoardProps {
   /** 由上层 Server Component 传进来，首屏文案留在服务端 HTML 里 */
   hero?: ReactNode;
-  /** 默认兜到静态目录，没传数据也能渲染（单测、旧调用点） */
-  items?: readonly ApiCatalogItem[];
-  /** 按 id 匹配而不是按顺序，所以筛选改变可见集合也不会串位 */
+  /** 由页面把运行时目录传进来：后台新建或删除的接口要立刻反映在数量与卡片上 */
+  items: readonly ApiCatalogItem[];
+  /** 数组顺序即广场默认顺序，跨度按 id 匹配；车单新增的接口排在最后 */
   layout?: readonly CardSpan[];
 }
 
-export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoardProps) {
+export function PlazaBoard({ hero, items, layout = [] }: PlazaBoardProps) {
   const [keyword, setKeyword] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [seeds, setSeeds] = useState<Record<string, number>>({});
   const [flashId, setFlashId] = useState<string | null>(null);
   
-  const debouncedKeyword = useDebouncedValue(keyword, 180);
+  const debouncedKeyword = useDebouncedValue(keyword);
   const searchRef = useRef<HTMLInputElement>(null);
   const counts = useMemo(() => categoryCounts(items), [items]);
-  
+
+  // 后台那个顺序先落到 items 上：无关键词时 rankCatalog 原序返回，同分时也按它排，
+  // 所以搜索命中仍是相关性优先，只有并列才受布局顺序影响。
+  const ordered = useMemo(() => {
+    const at = new Map(layoutOrder(layout, items.map((item) => item.id)).map((id, index) => [id, index]));
+    return [...items].sort((a, b) => (at.get(a.id) ?? 0) - (at.get(b.id) ?? 0));
+  }, [items, layout]);
+
   const ranked = useMemo(
-    () => rankCatalog(items, debouncedKeyword, category ?? undefined),
-    [items, debouncedKeyword, category]
+    () => rankCatalog(ordered, debouncedKeyword, category ?? undefined),
+    [ordered, debouncedKeyword, category]
   );
   
   useHotkey('/', (e) => {
@@ -130,7 +138,7 @@ export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoar
               aria-pressed={!category}
             >
               全部
-              <span className="ml-1.5 font-mono text-[10px] opacity-60">{API_CATALOG.length}</span>
+              <span className="ml-1.5 font-mono text-[10px] opacity-60">{items.length}</span>
             </button>
             {API_CATEGORIES.map((cat) => (
               <button
@@ -168,17 +176,16 @@ export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoar
               </>
             ) : (
               <span>
-                共 <strong className="font-semibold text-ink">{API_CATALOG.length}</strong> 个接口 · 全部免费，无需鉴权
+                共 <strong className="font-semibold text-ink">{items.length}</strong> 个接口 · 全部免费，无需鉴权
               </span>
             )}
           </p>
           </Reveal>
         </div>
       </section>
-      
+
       <section
         className="bg-bg-soft pt-dsp-6 pb-dsp-7 max-[760px]:pt-[44px] max-[760px]:pb-[70px]"
-        id="plaza"
         aria-labelledby="plaza-title"
       >
         <div className="wrap">
@@ -189,7 +196,7 @@ export function PlazaBoard({ hero, items = API_CATALOG, layout = [] }: PlazaBoar
               description={
                 <>
                   换个关键词试试，例如「热搜」「壁纸」「榜单」，或直接搜索路径片段{' '}
-                  <code className="rounded bg-bg-soft px-1 py-0.5 font-mono text-[11px]">uuid</code>。
+                  <code className="rounded bg-bg-soft px-1 py-0.5 font-mono text-[11px]">hotsearch</code>。
                 </>
               }
               action={

@@ -1,10 +1,28 @@
 /** 接口文档内容；字段行为与数字均为 2026-10-08 实测 */
+import { API } from '@/lib/api/endpoints';
 import { frag, para, text } from '../fragments';
 import { apiUrl } from '../url';
-import { RATE_LIMIT_ROW, headersSection, requestSection } from '../commonSections';
+import {
+  METHOD_NOT_SUPPORTED_ROW,
+  RATE_LIMIT_ROW,
+  SERVER_ERROR_SUGGESTION,
+  TIMEOUT_LIMIT_ROW,
+  changelogSection,
+  envelopeOverview,
+  errorsSection,
+  failurePane,
+  headersSection,
+  limitsSection,
+  paramsSection,
+  rateLimitText,
+  rateLimitedRow,
+  requestSection,
+  responseSection,
+  successPane,
+} from '../commonSections';
 import type { AuthoredApiDoc, CodePaneData, DocSection } from '../types';
 
-const path = '/api/v1/hitokoto';
+const path = API.publicApi.hitokoto;
 const url = apiUrl(path);
 
 const sections: DocSection[] = [
@@ -15,209 +33,75 @@ const sections: DocSection[] = [
       para(
         ...text('动漫也好、小说也好、网络也好，不论在哪里，我们总会看到有那么一两个句子能穿透你的心。'),
       ),
-      para(
-        ...frag`对外接口返回单层信封 ${'{ statusCode, message, data, meta }'}：${'data'} 即业务数据，${'meta'} 收敛调用元信息（${'requestId'} / ${'serverTime'} / ${'site'}）。其中 ${'requestId'} 与响应头 ${'x-trace-id'} 同值，反馈问题时提供它即可定位到服务端日志。`,
-      ),
+      envelopeOverview('即业务数据'),
     ],
   },
-  requestSection({ path, lead:   para(
-    ...frag` ${'GET'} 请求，无请求参数、无请求体、无需鉴权。字符编码统一为 UTF-8，响应为 ${'application/json; charset=utf-8'}。`,
-) }),
-  {
-    id: 'params',
-    title: '请求参数',
-    content: [
-      para(...text('')),
-      {
-        kind: 'table',
-        variant: 'params',
-        rows: [
-          {
-            name: '/',
-            type: '/',
-            defaultValue: '/',
-            description: text('/'),
-          },
-        ],
-      },
+  requestSection({
+    path,
+    lead: para(
+      ...frag` ${'GET'} 请求，无请求参数、无请求体、无需鉴权。字符编码统一为 UTF-8，响应为 ${'application/json; charset=utf-8'}。`,
+    ),
+  }),
+  paramsSection(),
+  responseSection(
+    '一条短句对象，字段见下方子行。',
+    [
+      { name: 'content', type: 'string', description: text('句子正文，标点按语料原文保留'), isChild: true },
+      { name: 'creator', type: 'string', description: text('作者或角色名。'), isChild: true },
+      { name: 'source', type: 'string', description: text('出处（书名 / 篇名等）'), isChild: true },
     ],
-  },
-  {
-    id: 'response',
-    title: '返回参数',
-    content: [
-      para(...text('响应体为 UTF-8 编码的统一 JSON 对象，单层信封，字段结构如下。')),
-      {
-        kind: 'table',
-        variant: 'response',
-        rows: [
-          {
-            name: 'statusCode',
-            type: 'integer',
-            description: [
-              { type: 'text', value: '业务状态码，成功固定为 ' },
-              { type: 'code', value: '200' },
-              { type: 'text', value: '；失败响应结构见「错误码」。' },
-            ],
-          },
-          { name: 'message', type: 'string', description: text('结果描述，成功时为 success。') },
-          { name: 'data', type: 'object', description: text('一条短句对象，字段见下方子行。') },
-          {
-            name: 'content',
-            type: 'string',
-            description: [
-              { type: 'text', value: '句子正文, 内容分类随机' },
-            ],
-            isChild: true,
-          },
-          { name: 'creator', 
-            type: 'string', 
-            description: text('作者或角色名。'), 
-            isChild: true },
-          {
-            name: 'source',
-            type: 'string',
-            description: [
-              { type: 'text', value: '出处（书名 / 篇名等）' },
-            ],
-            isChild: true,
-          },
-          { name: 'meta', type: 'object', description: text('调用元信息，用于日志检索与时序判断。') },
-          {
-            name: 'requestId',
-            type: 'string',
-            description: [
-              { type: 'text', value: '请求追踪 ID，与响应头 ' },
-              { type: 'code', value: 'x-trace-id' },
-              { type: 'text', value: ' 同值，反馈问题时请一并提供。' },
-            ],
-            isChild: true,
-          },
-          {
-            name: 'serverTime',
-            type: 'string',
-            description: [
-              { type: 'text', value: '服务端生成响应的 ISO 8601 时间（UTC）' },
-            ],
-            isChild: true,
-          },
-          {
-            name: 'site',
-            type: 'string',
-            description: text('站点名称'),
-            isChild: true,
-          },
-        ],
-      },
-    ],
-  },
+    undefined,
+    para(...text('响应体为 UTF-8 编码的统一 JSON 对象，单层信封，字段结构如下。')),
+  ),
   headersSection({
     cache: text('随机接口默认不缓存；「同参数组合缓存 60 秒」为规划能力。'),
     traceId: 'muy8epbv-1e4189a2',
   }),
-  {
-    id: 'errors',
-    title: '错误码',
-    content: [
-      para(
-        ...frag`失败响应使用控制台的错误信封 ${'{ statusCode, success:false, message, description?, data: null, meta:{ timestamp, traceId } }'}`,
-      ),
+  errorsSection(
+    [
+      METHOD_NOT_SUPPORTED_ROW,
+      rateLimitedRow(text('按 Retry-After 退避，并对结果做本地缓存。')),
       {
-        kind: 'table',
-        variant: 'errors',
-        rows: [
-          {
-            http: '405',
-            statusCode: '—',
-            label: '方法不支持',
-            description: text('由框架直接返回，响应体为空'),
-            suggestion: text('使用 GET 请求。'),
-          },
-          {
-            http: '429',
-            statusCode: '429',
-            label: '频率限制',
-            description: [
-              { type: 'text', value: 'message 为「请求过于频繁」，description 为「请在 N 秒后重试」，并带 ' },
-              { type: 'code', value: 'Retry-After' },
-              { type: 'text', value: ' 头。窗口固定 60 秒。' },
-            ],
-            suggestion: text('按 Retry-After 退避，并对结果做本地缓存。'),
-          },
-          {
-            http: '500',
-            statusCode: '500',
-            label: '服务端内部错误',
-            description: text('数据库异常'),
-            suggestion: [
-              { type: 'text', value: '重试 1 次；仍失败请携带 ' },
-              { type: 'code', value: 'traceId' },
-              { type: 'text', value: ' 反馈。' },
-            ],
-          },
-        ],
+        http: '500',
+        statusCode: '500',
+        label: '服务端内部错误',
+        description: text('语料文件 public/assets/json/hitokoto.json 缺失、内容为空或读不出来'),
+        suggestion: SERVER_ERROR_SUGGESTION,
       },
-      {
+    ],
+    {
+      hasValidation: false,
+      callout: {
         kind: 'callout',
         tone: 'info',
         mark: 'i',
         strong: '没有 400 / 404 / 422。',
         fragments: text('接口无参数，因此不存在取值非法、区间无解、校验失败这类分支；传入多余参数会被忽略。'),
       },
-    ],
-  },
-  {
-    id: 'limits',
-    title: '速率与缓存',
-    content: [
-      {
-        kind: 'table',
-        variant: 'limits',
-        rows: [
-          RATE_LIMIT_ROW,
-          {
-            item: '并发建议',
-            limit: '≤ 2 QPS',
-            description: text('批量场景请串行或合并请求，与默认阈值保持余量。'),
-          },
-          {
-            item: '服务端缓存',
-            limit: '未实现',
-            description: text('响应本身不缓存，Cache-Control 为 no-store，也不下发 X-Cache。'),
-          },
-          { item: '客户端建议', limit: '≥ 30 s', description: text('避免高频抖动与重复请求。') },
-          {
-            item: '超时与重试',
-            limit: '建议 3 s / 1 次',
-            description: [
-              { type: 'text', value: '仅对 ' },
-              { type: 'code', value: '5xx' },
-              { type: 'text', value: ' 与网络错误重试，' },
-              { type: 'code', value: '4xx' },
-              { type: 'text', value: ' 不重试。' },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'changelog',
-    title: '更新日志',
-    content: [
-      {
-        kind: 'table',
-        variant: 'changelog',
-        rows: [
-          {
-            date: '2026-10-07',
-            version: 'v1.0',
-            description: text('一言接口上线。'),
-          },
-        ],
-      },
-    ],
-  },
+    },
+  ),
+  limitsSection([
+    RATE_LIMIT_ROW,
+    {
+      item: '并发建议',
+      limit: '≤ 2 QPS',
+      description: text('批量场景请串行或合并请求，与默认阈值保持余量。'),
+    },
+    {
+      item: '服务端缓存',
+      limit: '未实现',
+      description: text('响应本身不缓存，Cache-Control 为 no-store，也不下发 X-Cache。'),
+    },
+    { item: '客户端建议', limit: '≥ 30 s', description: text('避免高频抖动与重复请求。') },
+    TIMEOUT_LIMIT_ROW,
+  ]),
+  changelogSection([
+    {
+      date: '2026-10-07',
+      version: 'v1.0',
+      description: text('一言接口上线。'),
+    },
+  ]),
 ];
 
 
@@ -256,55 +140,34 @@ print(data["content"], "—", data["creator"], "·", data["source"], meta["reque
 ];
 
 const responsePanes: CodePaneData[] = [
-  {
-    value: 'ok',
+  successPane({
     label: '200 OK',
-    lang: 'json',
-    code: `{
-  "statusCode": 200,
-  "message": "success",
-  "data": {
-    "content": "最是人间留不住,朱颜辞镜花辞树",
+    requestId: 'muy8epbv-1e4189a2',
+    serverTime: '2026-10-07T14:57:33.433Z',
+    dataJson: `{
+    "content": "最是人间留不住，朱颜辞镜花辞树。",
     "creator": "王国维",
-    "source": "蝶恋花"
-  },
-  "meta": {
-    "requestId": "muy8epbv-1e4189a2",
-    "serverTime": "2026-10-07T14:57:33.433Z",
-    "site": "Decamore API"
-  }
-}`,
-  },
-  {
+    "source": "蝶恋花·阅尽天涯离别苦"
+  }`,
+  }),
+  failurePane({
+    statusCode: 429,
+    message: '请求过于频繁',
+    requestId: 'muy8epbv-1e4189a2',
+    serverTime: '2026-10-07T14:41:04.645Z',
+    description: '请在 16 秒后重试',
     value: 'limit',
-    label: '429',
-    lang: 'json',
-    code: `{
-  "statusCode": 429,
-  "success": false,
-  "message": "请求过于频繁",
-  "description": "请在 16 秒后重试",
-  "data": null,
-  "meta": {
-    "timestamp": 1791384064645,
-    "traceId": "muy8epbv-1e4189a2"
-  }
-}
-
-// 同时带响应头 Retry-After: 16`,
-  },
+    trailingComment: '同时带响应头 Retry-After: 16（16 是这一窗口剩下的秒数，窗口本身 60 秒）',
+  }),
 ];
 
 export const hitokotoDoc: AuthoredApiDoc = {
   eyebrow: 'Content API · v1',
   lede: '动漫也好、小说也好、网络也好，不论在哪里，我们总会看到有那么一两个句子能穿透你的心。',
-  facts: ['限频 120 次 / 分钟 / IP'],
+  facts: [`限频 ${rateLimitText}`],
   metaRows: [
     { label: '当前版本', value: 'v1.0' },
     { label: '首版发布', value: '2026-10-07' },
-    { label: '服务可用性', value: '99.9%' },
-    { label: '平均响应', value: '< 80ms' },
-    { label: '限频', value: '120 次 / 分钟 / IP' },
   ],
   sections,
   requestPanes,

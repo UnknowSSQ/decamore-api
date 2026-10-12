@@ -1,9 +1,9 @@
 /** 全部为纯函数、不碰浏览器 API，服务端组件可直接用 */
 
-export function formatNumber(value: number, fractionDigits = 0): string {
+export function formatNumber(value: number): string {
   return value.toLocaleString('en-US', {
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
 }
 
@@ -14,10 +14,9 @@ export function formatCompactCn(value: number): string {
   return `${(value / 100_000_000).toFixed(2)}亿`;
 }
 
-/** 传入已是百分数（12.4）时用默认的 fromRatio=false */
-export function formatPercent(value: number, digits = 1, fromRatio = false): string {
-  const pct = fromRatio ? value * 100 : value;
-  return `${pct.toFixed(digits)}%`;
+/** 传入的必须已经是百分数（12.4 表示 12.4%） */
+export function formatPercent(value: number, digits = 1): string {
+  return `${value.toFixed(digits)}%`;
 }
 
 /** 1 秒内取整到 ms，否则两位小数秒 */

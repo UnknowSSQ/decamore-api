@@ -2,24 +2,8 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/utils/cn';
 
-export function Panel({
-  children,
-  className,
-  as: Tag = 'div',
-  padded = true,
-}: {
-  children: ReactNode;
-  className?: string;
-  as?: 'div' | 'section' | 'article' | 'aside' | 'li';
-  padded?: boolean;
-}) {
-  return (
-    <Tag className={cn('panel', padded && 'p-dsp-4', className)}>{children}</Tag>
-  );
-}
-
-export function Kicker({ children, line = true, className }: { children: ReactNode; line?: boolean; className?: string }) {
-  return <p className={cn('kicker', line && 'kicker--line', className)}>{children}</p>;
+export function Panel({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn('panel p-dsp-4', className)}>{children}</div>;
 }
 
 export function PageHeader({

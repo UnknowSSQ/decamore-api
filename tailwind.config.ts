@@ -49,7 +49,6 @@ const config: Config = {
         'dsp-5': '48px',
         'dsp-6': '72px',
         'dsp-7': '104px',
-        side: '252px',
         topbar: '64px',
       },
       borderRadius: {
@@ -65,13 +64,7 @@ const config: Config = {
         pop: '0 22px 60px rgba(37, 50, 41, 0.16)',
       },
       maxWidth: {
-        content: '1160px',
         docs: '1400px',
-      },
-      transitionDuration: {
-        // 组件实际用到 0.4s / 0.6s，Tailwind 默认刻度（300/500）取不到
-        '400': '400ms',
-        '600': '600ms',
       },
       transitionTimingFunction: {
         dec: 'cubic-bezier(0.22, 0.61, 0.36, 1)',

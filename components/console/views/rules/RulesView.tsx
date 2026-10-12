@@ -7,6 +7,7 @@ import {
   Callout,
   ConfirmModal,
   DataTable,
+  Pagination,
   Icon,
   Input,
   Kbd,
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui';
 import { useCan } from '@/hooks/usePermission';
 import { useListQuery } from '@/hooks/useListQuery';
+import { useOptimisticToggle } from '@/hooks/useOptimisticToggle';
 import { useSiteFormat } from '@/hooks/useSiteFormat';
 import { useToast } from '@/hooks/useToast';
 import { deleteRule, fetchRules, updateRule } from '@/lib/api';
@@ -27,27 +29,20 @@ import type { AccessRule, Paged, TableColumn } from '@/types';
  */
 const RuleDetailDrawer = dynamic(() => import('./RuleDetailDrawer').then((m) => m.RuleDetailDrawer), { ssr: false });
 const RuleFormModal = dynamic(() => import('./RuleFormModal').then((m) => m.RuleFormModal), { ssr: false });
-const TYPE_FILTERS = [
+const ACTION_FILTERS = [
   { value: '', label: '全部' },
-  { value: 'rate', label: '限流' },
-  { value: 'cache', label: '缓存' },
-  { value: 'block', label: '拦截' },
+  { value: '429', label: '限流 429' },
+  { value: 'reject', label: '拦截' },
+  { value: 'log', label: '仅记录' },
 ] as const;
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
   { value: 'enabled', label: '启用' },
   { value: 'disabled', label: '停用' },
 ] as const;
-/** 存储按 action，展示归成三类；log 也按限流算 */
-function actionToType(action: string): string {
-  if (action === '429' || action === 'log') return 'rate';
-  if (action === 'reject') return 'block';
-  return 'cache';
-}
-const ACTION_META: Record<string, { label: string; tone: 'ok' | 'warn' | 'danger' | 'neutral' | 'brand' }> = {
+const ACTION_META: Record<string, { label: string; tone: 'warn' | 'danger' | 'neutral' }> = {
   '429': { label: '429', tone: 'warn' },
   reject: { label: 'reject', tone: 'danger' },
-  captcha: { label: 'captcha', tone: 'brand' },
   log: { label: 'log', tone: 'neutral' },
 };
 export function RulesView() {
@@ -66,67 +61,39 @@ export function RulesView() {
     setFilter,
     sort,
     setSort,
-  } = useListQuery<RuleListQuery, Paged<AccessRule>, { status: string }>({
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+  } = useListQuery<RuleListQuery, Paged<AccessRule>, { status: string; action: string }>({
     fetcher: fetchRules,
-    initialFilters: { status: '' },
+    initialFilters: { status: '', action: '' },
     initialSort: { key: 'hitsToday', order: 'desc' },
     initialPageSize: itemsPerPage,
     // 空串是「不限」，必须转成 undefined，否则会被当成 enabled=false
     build: ({ keyword, filters, sort, page, pageSize }) => ({
       keyword: keyword || undefined,
       enabled: filters.status === 'enabled' ? true : filters.status === 'disabled' ? false : undefined,
+      action: filters.action === '' ? undefined : (filters.action as RuleListQuery['action']),
       page,
       pageSize,
       sort: sort.key === 'limit' || sort.key === 'updatedAt' ? sort.key : 'hitsToday',
       order: sort.order,
     }),
   });
-  // type 归类只作用于当前页（服务端按 action 收，rate 组跨 429/log 两个 action）
-  const [typeFilter, setTypeFilter] = useState('');
-  const [drawerRule, setDrawerRule] = useState<AccessRule | null>(null);
+  const [drawerId, setDrawerId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSeen, setDrawerSeen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSeen, setModalSeen] = useState(false);
-  const [editingRule, setEditingRule] = useState<AccessRule | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AccessRule | null>(null);
   const [deletePending, setDeletePending] = useState(false);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
-  const handleStatusToggle = useCallback(
-    async (rule: AccessRule, next: boolean) => {
-      setTogglingId(rule.id);
-      const prev = rule.enabled;
-      // 先落本地，Switch 不等 RTT
-      setData((d) => {
-        if (!d) return d;
-        return {
-          ...d,
-          items: d.items.map((item) =>
-            item.id === rule.id ? { ...item, enabled: next } : item,
-          ),
-        };
-      });
-      try {
-        await updateRule(rule.id, { enabled: next });
-        toast.success(`规则「${rule.name}」已${next ? '启用' : '停用'}`);
-      } catch {
-        // 失败就退回 prev
-        setData((d) => {
-          if (!d) return d;
-          return {
-            ...d,
-            items: d.items.map((item) =>
-              item.id === rule.id ? { ...item, enabled: prev } : item,
-            ),
-          };
-        });
-        toast.error('状态更新失败');
-      } finally {
-        setTogglingId(null);
-      }
-    },
-    [setData, toast],
-  );
+  const { togglingId, toggle: handleStatusToggle } = useOptimisticToggle<AccessRule>({
+    setData,
+    toPatch: (next) => ({ enabled: next }),
+    persist: (id, patch) => updateRule(id, patch),
+    successMessage: (rule, next) => `规则「${rule.name}」已${next ? '启用' : '停用'}`,
+  });
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeletePending(true);
@@ -141,13 +108,17 @@ export function RulesView() {
       setDeletePending(false);
     }
   };
+  // 抽屉那一行从 data 里取而不是存副本：存副本会在列表刷新或行内开关切换后停在打开那一刻的形状上
+  const drawerRule = useMemo(
+    () => data?.items.find((item) => item.id === drawerId) ?? null,
+    [data, drawerId],
+  );
   const openDetail = useCallback((rule: AccessRule) => {
-    setDrawerRule(rule);
+    setDrawerId(rule.id);
     setDrawerSeen(true);
     setDrawerOpen(true);
   }, []);
   const handleCreate = () => {
-    setEditingRule(null);
     setModalSeen(true);
     setModalOpen(true);
   };
@@ -163,15 +134,7 @@ export function RulesView() {
     if (!data?.items) return 0;
     return data.items.reduce((sum, r) => sum + r.hitsToday, 0);
   }, [data]);
-  // type 服务端不认，只对当前页二次过滤，和分页口径不一致
-  const filteredRows = useMemo(() => {
-    if (!data?.items) return [];
-    let rows = data.items;
-    if (typeFilter) {
-      rows = rows.filter((r) => actionToType(r.action) === typeFilter);
-    }
-    return rows;
-  }, [data?.items, typeFilter]);
+  const rows = data?.items ?? [];
   const columns: TableColumn<AccessRule>[] = useMemo(
     () => [
       {
@@ -277,7 +240,7 @@ export function RulesView() {
         }
         description={
           <span className="inline-flex items-center gap-1.5">
-            免密钥架构下的流量治理层 · {total} 条规则，{activeCount} 条生效 · 24h 累计命中{' '}
+            免密钥架构下的流量治理层 · 共 {total} 条规则；本页 {rows.length} 条中 {activeCount} 条生效、今日命中{' '}
             {formatCompactCn(totalHits)} 次
           </span>
         }
@@ -308,22 +271,23 @@ export function RulesView() {
           />
         </div>
         <div className="chips flex items-center gap-1.5">
-          {TYPE_FILTERS.map((t) => (
+          {ACTION_FILTERS.map((t) => (
             <button
               key={t.value}
               type="button"
               className={`chip rounded-full border px-3 py-1 text-[12px] transition-colors ${
-                typeFilter === t.value
+                filters.action === t.value
                   ? 'border-primary bg-primary/10 font-semibold text-primary'
                   : 'border-line text-muted hover:border-primary/40 hover:text-ink'
               }`}
-              onClick={() => setTypeFilter(t.value)}
+              onClick={() => setFilter('action', t.value)}
             >
               {t.label}
             </button>
           ))}
         </div>
         <select
+          aria-label="按规则启用状态筛选"
           value={filters.status}
           onChange={(e) => setFilter('status', e.target.value)}
           className="h-[36px] rounded-full border border-line bg-surface px-3 text-[12px] text-ink"
@@ -335,17 +299,16 @@ export function RulesView() {
           ))}
         </select>
         <span className="ml-auto text-[12px] text-muted">
-          显示 {filteredRows.length} / {total} 条
+          第 {page} 页 · 本页 {rows.length} / 共 {total} 条
         </span>
       </div>
       <DataTable<AccessRule>
         columns={columns}
-        rows={filteredRows}
+        rows={rows}
         rowKey="id"
         sort={sort}
         onSortChange={setSort}
         loading={loading}
-        skeletonRows={6}
         error={error}
         errorDescription="规则列表请求失败，请重试"
         onRetry={() => void reload()}
@@ -360,6 +323,15 @@ export function RulesView() {
           ) : undefined
         }
       />
+      <div className="mt-4">
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      </div>
       {drawerSeen && (
         <RuleDetailDrawer
           rule={drawerRule}
@@ -372,7 +344,6 @@ export function RulesView() {
         <RuleFormModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
-          editingRule={editingRule}
           onSuccess={handleFormSuccess}
         />
       )}

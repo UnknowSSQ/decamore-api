@@ -57,15 +57,7 @@ try {
   process.exit(1);
 }
 
-const notes: string[] = [];
-// 占位 JWT_SECRET 在 loadEnv 里就拦下了，走不到这里
-if (!env.API_STATS_PERSIST) notes.push('API_STATS_PERSIST=false：调用统计只进内存环形缓冲 + 日志');
-
 console.log('\n✓ 环境变量校验通过');
 console.log(`  NODE_ENV=${env.NODE_ENV}  JWT_ACCESS_TTL_SEC=${env.JWT_ACCESS_TTL_SEC}  JWT_REFRESH_TTL_SEC=${env.JWT_REFRESH_TTL_SEC}`);
 console.log(`  RATE_LIMIT_PER_MIN=${env.RATE_LIMIT_PER_MIN}  LOG_LEVEL=${env.LOG_LEVEL}`);
 console.log(`  NEXT_PUBLIC_SITE_URL=${env.NEXT_PUBLIC_SITE_URL ?? '(未设置)'}`);
-if (notes.length > 0) {
-  console.log('\n提示（不阻断）：');
-  notes.forEach((line) => console.log(`  · ${line}`));
-}

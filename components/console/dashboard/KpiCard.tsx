@@ -8,13 +8,18 @@ import { cn } from '@/utils/cn';
 export interface KpiCardProps {
   label: string;
   value: number;
-  delta: number;
-  deltaLabel: string;
+  /** 与前一等长区间的差；没有可比口径就不传，卡片不编一个箭头出来 */
+  delta?: number;
+  deltaLabel?: string;
   footnote: string;
-  sparkColor: string;
-  sparkSeed: number;
+  /** 迷你折线的真实序列，缺省则不画 */
+  series?: number[];
+  /** 越低越好的指标（错误率、延迟）传 true，箭头颜色才不反着来 */
+  lowerIsBetter?: boolean;
   format?: 'number' | 'percent' | 'ms';
 }
+
+const COLORS = { ink: 'text-ink', ok: 'text-ok', danger: 'text-danger', muted: 'text-muted' } as const;
 
 export function KpiCard({
   label,
@@ -22,8 +27,8 @@ export function KpiCard({
   delta,
   deltaLabel,
   footnote,
-  sparkColor,
-  sparkSeed,
+  series,
+  lowerIsBetter = false,
   format = 'number',
 }: KpiCardProps) {
   const animatedValue = useCountUp(value, 950);
@@ -34,34 +39,33 @@ export function KpiCard({
     return formatNumber(v);
   };
 
-  // 方向由 label 文案决定：错误率/延迟下降才算好转
-  const isGoodDown = label.includes('错误率') || label.includes('延迟');
-  const deltaIsGood = (delta < 0 && isGoodDown) || (delta > 0 && !isGoodDown);
+  // 0 视为持平：既不是 ▲ 也不该标红
+  const direction = delta === undefined || delta === 0 ? 'flat' : delta > 0 ? 'up' : 'down';
+  const improved = direction === 'flat' ? undefined : (direction === 'up') !== lowerIsBetter;
+
+  const tone = improved === undefined ? COLORS.muted : improved ? COLORS.ok : COLORS.danger;
 
   return (
     <Panel className="relative overflow-hidden">
       <div className="flex flex-col gap-2">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
-        <p className="font-mono text-[clamp(24px,2.4vw,30px)] font-bold text-ink">
-          {formatValue(animatedValue)}
-        </p>
-        <div className="flex items-center gap-2 text-[11.5px]">
-          <span
-            className={cn(
-              'font-semibold',
-              deltaIsGood ? 'text-ok' : 'text-danger',
-            )}
-          >
-            {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(2)}
-            {format === 'percent' ? 'pt' : '%'}
-          </span>
-          <span className="text-muted">{deltaLabel}</span>
-        </div>
+        <p className="font-mono text-[clamp(24px,2.4vw,30px)] font-bold text-ink">{formatValue(animatedValue)}</p>
+        {delta !== undefined && (
+          <div className="flex items-center gap-2 text-[11.5px]">
+            <span className={cn('font-semibold', tone)}>
+              {direction === 'flat' ? '—' : direction === 'up' ? '▲' : '▼'} {Math.abs(delta).toFixed(2)}
+              {format === 'percent' ? 'pt' : '%'}
+            </span>
+            {deltaLabel && <span className="text-muted">{deltaLabel}</span>}
+          </div>
+        )}
         <p className="text-[10.5px] text-muted">{footnote}</p>
       </div>
-      <div className="absolute bottom-3 right-3">
-        <Sparkline color={sparkColor} seed={sparkSeed} />
-      </div>
+      {series && series.length > 1 && (
+        <div className="absolute bottom-3 right-3">
+          <Sparkline values={series} />
+        </div>
+      )}
     </Panel>
   );
 }

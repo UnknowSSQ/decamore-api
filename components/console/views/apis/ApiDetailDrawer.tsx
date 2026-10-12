@@ -63,7 +63,7 @@ export function ApiDetailDrawer({ api, open, onClose, onRefresh }: ApiDetailDraw
   const handleViewLogs = () => {
     if (!api) return;
     onClose();
-    window.location.href = `/admin/logs?path=${encodeURIComponent(api.path)}`;
+    window.location.href = `/admin/logs?keyword=${encodeURIComponent(api.path)}`;
   };
 
   if (!api) return null;
@@ -96,7 +96,7 @@ export function ApiDetailDrawer({ api, open, onClose, onRefresh }: ApiDetailDraw
               variant="primary"
               size="sm"
               trailing="↗"
-              onClick={() => window.open(docApiHref(api.path.split('/').pop() ?? ''), '_blank')}
+              onClick={() => window.open(docApiHref(api.id), '_blank')}
             >
               接口文档
             </Button>
@@ -109,7 +109,7 @@ export function ApiDetailDrawer({ api, open, onClose, onRefresh }: ApiDetailDraw
           <Metric label="调用 24h" value={formatNumber(api.calls24h)} />
           <Metric label="平均耗时" value={`${api.avgLatencyMs}ms`} />
           <Metric label="错误率" value={formatPercent(api.errorRate, 2)} />
-          {/* 数字来自本进程的调用环形缓冲（24h 窗口、最多 500 条），没有记录就是 0，不是估算 */}
+          {/* 数字来自本进程的调用环形缓冲（24h 窗口、上限 constants/app.ts 的 CALL_RING_CAPACITY），没有记录就是 0，不是估算 */}
           <Metric label="采样范围" value="本进程 24h" />
         </div>
 

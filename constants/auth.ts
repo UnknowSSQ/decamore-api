@@ -29,10 +29,7 @@ export const TOKEN_TYPE = {
 export type TokenType = (typeof TOKEN_TYPE)[keyof typeof TOKEN_TYPE];
 
 /** 刻意只保留 admin 一种角色 */
-export const ROLES = {
-  admin: 'admin',
-} as const;
-export type Role = (typeof ROLES)[keyof typeof ROLES];
+export type Role = 'admin';
 
 /** 后端 requirePermission 与前端 usePermission 共用同一套字符串 */
 export const PERMISSIONS = {
@@ -46,21 +43,6 @@ export const PERMISSIONS = {
   statsRead: 'stats:read',
 } as const;
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
-
-export const PERMISSION_LABELS: Record<Permission, string> = {
-  [PERMISSIONS.apiRead]: '查看接口',
-  [PERMISSIONS.apiWrite]: '编辑接口',
-  [PERMISSIONS.ruleRead]: '查看规则',
-  [PERMISSIONS.ruleWrite]: '编辑规则',
-  [PERMISSIONS.logRead]: '查看日志',
-  [PERMISSIONS.securityWrite]: '安全配置',
-  [PERMISSIONS.settingsWrite]: '网站设置',
-  [PERMISSIONS.statsRead]: '查看统计',
-};
-
-export const ROLE_LABELS: Record<Role, string> = {
-  admin: '超级管理员',
-};
 
 /** 单一来源：前端控制菜单/按钮显隐、后端做接口门禁都读这里，避免两端判断不一致 */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {

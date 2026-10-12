@@ -4,6 +4,7 @@ import { randomHitokoto } from '@/lib/server/hitokoto';
 export const GET = defineRoute(
   {
     auth: false,
+    envelope: 'public',
     route: '/api/v1/hitokoto',
   },
   async () => publicOk(await randomHitokoto()),

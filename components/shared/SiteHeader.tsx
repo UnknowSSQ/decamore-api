@@ -11,7 +11,7 @@ import { cn } from '@/utils/cn';
 import { useClickOutside, useScrolled } from '@/hooks/useUi';
 
 export function SiteHeader() {
-  const scrolled = useScrolled(40);
+  const scrolled = useScrolled();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);

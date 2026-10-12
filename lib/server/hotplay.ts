@@ -3,8 +3,8 @@ import 'server-only';
 
 import { asArray, asRecord, getUpstreamJson, num, str } from './upstream';
 import { createBoardCache } from './board-cache';
-import { ERROR_CODE, type HotPlayItem, type HotPlayType, type HotPlayResult } from '@/types';
-import { ApiError } from './errors';
+import { type HotPlayItem, type HotPlayType, type HotPlayResult } from '@/types';
+import { UpstreamUnavailableError } from './errors';
 
 export const HOT_PLAY_CACHE_TTL_MS = 10 * 60_000;
 export const DEFAULT_HOT_PLAY_TYPE: HotPlayType = 'tv';
@@ -15,12 +15,6 @@ const REFERER = 'https://bigdata.huan.tv/realtime/live';
 /** channel_type 4 及以上实测为空，故对外只有这三类 */
 const TYPE_CHANNEL: Record<HotPlayType, number> = { tv: 1, variety: 2, movie: 3 };
 const TYPE_LABEL: Record<HotPlayType, string> = { tv: '电视剧', movie: '电影', variety: '综艺' };
-
-function unavailable(type: HotPlayType, reason: string): ApiError {
-  return new ApiError(503, ERROR_CODE.SERVICE_UNAVAILABLE, `${TYPE_LABEL[type]}热播榜暂时取不到`, {
-    description: reason,
-  });
-}
 
 /** 用本地日期：上游按东八区出榜，部署与访问都在国内 */
 function ymd(date: Date): string {
@@ -106,9 +100,9 @@ const resolveHotPlay = createBoardCache<HotPlayType, Board, HotPlayResult>({
         boardDate = first.lastTime;
       }
     } catch (error) {
-      throw unavailable(type, error instanceof Error ? error.message : String(error));
+      throw new UpstreamUnavailableError(`${TYPE_LABEL[type]}热播榜`, error instanceof Error ? error.message : String(error));
     }
-    if (items.length === 0) throw unavailable(type, `上游 ${today} 与 last_time 都没有榜单数据`);
+    if (items.length === 0) throw new UpstreamUnavailableError(`${TYPE_LABEL[type]}热播榜`, `上游 ${today} 与 last_time 都没有榜单数据`);
     return { boardDate, items };
   },
   toResult,

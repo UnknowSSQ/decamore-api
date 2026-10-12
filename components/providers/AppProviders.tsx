@@ -5,19 +5,15 @@
  */
 import { useContext, type ReactNode } from 'react';
 
-import { AuthProvider, type BootstrapSession } from '@/hooks/useAuth';
+import { AuthProvider } from '@/hooks/useAuth';
 import { ToastContext, useToastState, type ToastApi } from '@/hooks/useToast';
 import { ToastViewport } from '@/components/ui/Toast';
 
 const NoopToast: ToastApi = {
   toasts: [],
-  show: () => '',
   success: () => '',
   error: () => '',
-  warning: () => '',
-  info: () => '',
   dismiss: () => undefined,
-  clear: () => undefined,
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -30,10 +26,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function AppProviders({ bootstrap, children }: { bootstrap: BootstrapSession | null; children: ReactNode }) {
+export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ToastProvider>
-      <AuthProvider bootstrap={bootstrap}>{children}</AuthProvider>
+      <AuthProvider>{children}</AuthProvider>
     </ToastProvider>
   );
 }

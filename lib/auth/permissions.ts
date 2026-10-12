@@ -1,7 +1,7 @@
 /** 鉴权判断的唯一真值，零运行时依赖（只有 type 导入）：前端 usePermission 与后端 withAuth 都调这里 */
 import type { Route } from 'next';
 
-import { PERMISSIONS, ROLE_PERMISSIONS, type Permission, type Role } from '@/constants/auth';
+import { ROLE_PERMISSIONS, type Permission, type Role } from '@/constants/auth';
 
 export function permissionsOf(role: Role | undefined): Permission[] {
   if (!role) return [];
@@ -10,10 +10,6 @@ export function permissionsOf(role: Role | undefined): Permission[] {
 
 export function hasPermission(permissions: readonly Permission[], permission: Permission): boolean {
   return permissions.includes(permission);
-}
-
-export function hasAnyPermission(permissions: readonly Permission[], list: readonly Permission[]): boolean {
-  return list.some((p) => permissions.includes(p));
 }
 
 export function hasAllPermissions(permissions: readonly Permission[], list: readonly Permission[]): boolean {
@@ -30,7 +26,7 @@ export function resolveSafeRedirect(raw: string | null | undefined, fallback: Ro
 }
 
 /** 用户名长度规则与 Zod schema 保持一致 */
-export type AccountKind = 'email' | 'username' | 'invalid';
+type AccountKind = 'email' | 'username' | 'invalid';
 
 export function detectAccountKind(account: string): AccountKind {
   const value = account.trim();
@@ -40,19 +36,3 @@ export function detectAccountKind(account: string): AccountKind {
   }
   return /^[A-Za-z0-9_.-]{3,32}$/.test(value) ? 'username' : 'invalid';
 }
-
-/** UI 展示用；与 constants/auth 的同名表是两份 */
-export const PERMISSION_LABELS: Record<Permission, string> = {
-  [PERMISSIONS.apiRead]: '查看接口',
-  [PERMISSIONS.apiWrite]: '管理接口',
-  [PERMISSIONS.ruleRead]: '查看规则',
-  [PERMISSIONS.ruleWrite]: '管理规则',
-  [PERMISSIONS.logRead]: '查看日志',
-  [PERMISSIONS.securityWrite]: '安全配置',
-  [PERMISSIONS.settingsWrite]: '站点设置',
-  [PERMISSIONS.statsRead]: '查看统计',
-};
-
-export const ROLE_LABELS: Record<Role, string> = {
-  admin: '超级管理员',
-};

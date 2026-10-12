@@ -8,8 +8,6 @@ import { useContext } from 'react';
 const TONE_STYLE: Record<ToastTone, { bar: string; icon: string; mark: string }> = {
   success: { bar: 'bg-ok', icon: 'text-ok', mark: '✓' },
   error: { bar: 'bg-danger', icon: 'text-danger', mark: '!' },
-  warning: { bar: 'bg-warn', icon: 'text-warn', mark: '⚠' },
-  info: { bar: 'bg-primary', icon: 'text-primary', mark: 'i' },
 };
 
 export function ToastViewport() {

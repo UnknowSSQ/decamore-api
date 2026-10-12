@@ -3,7 +3,7 @@
  *  按钮 className 由调用方用 buttonVariants() 生成；用 useToastSafe 免得缺 Provider 时抛错 */
 import { useCallback, useState, type ReactNode } from 'react';
 
-import { CONTACT_EMAIL, mailtoWithSubject } from '@/constants/app';
+import { mailtoWithSubject } from '@/constants/app';
 import { useCopyToClipboard } from '@/hooks/useUi';
 import { useToastSafe } from '@/components/providers/AppProviders';
 import { Modal } from '@/components/ui/Overlay';
@@ -15,12 +15,15 @@ interface ContactCtaProps {
   title: string;
   description: string;
   subject: string;
+  /** 由服务端把后台设置的联系邮箱传进来，组件自己不留第二份地址 */
+  email: string;
   children: ReactNode;
   className?: string;
-  trailing?: ReactNode;
+  /** 与 `Button` 的 trailing 同形状：调用方只给字符，包裹它的 span 由这里生成 */
+  trailing?: string;
 }
 
-export function ContactCta({ title, description, subject, children, className, trailing }: ContactCtaProps) {
+export function ContactCta({ title, description, subject, email, children, className, trailing }: ContactCtaProps) {
   const [open, setOpen] = useState(false);
   const { copied, copy } = useCopyToClipboard();
   const toast = useToastSafe();
@@ -28,10 +31,10 @@ export function ContactCta({ title, description, subject, children, className, t
   const close = useCallback(() => setOpen(false), []);
 
   const onCopy = useCallback(async () => {
-    const ok = await copy(CONTACT_EMAIL);
-    if (ok) toast.success('邮箱已复制', `${CONTACT_EMAIL} 已粘贴到剪贴板`);
+    const ok = await copy(email);
+    if (ok) toast.success('邮箱已复制', `${email} 已粘贴到剪贴板`);
     else toast.error('复制失败', '请手动选择邮箱文本复制');
-  }, [copy, toast]);
+  }, [copy, toast, email]);
 
   return (
     <>
@@ -42,7 +45,11 @@ export function ContactCta({ title, description, subject, children, className, t
         className={cn('inline-flex shrink-0 items-center justify-center', className)}
       >
         {children}
-        {trailing}
+        {trailing && (
+          <span aria-hidden className="text-[17px]">
+            {trailing}
+          </span>
+        )}
       </button>
 
       <Modal
@@ -56,7 +63,7 @@ export function ContactCta({ title, description, subject, children, className, t
             {/* 仍保留直达邮件客户端的入口，只是不再是唯一路径。
                 这里必须用 buttonVariants：裸 <a> 上没有 inline-flex，h-8/px-3 这类
                 尺寸类对非替换行内元素不生效，按钮会塌成一串普通文字。 */}
-            <a href={mailtoWithSubject(subject)} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}>
+            <a href={mailtoWithSubject(subject, email)} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}>
               <Icon name="mail" size={13} />
               打开邮件客户端
             </a>
@@ -94,7 +101,7 @@ export function ContactCta({ title, description, subject, children, className, t
             }}
             className="cursor-text select-all rounded-xl border border-dashed border-primary/30 bg-sage/40 px-4 py-3.5 text-center text-[16px] font-semibold tracking-[0.01em] text-ink transition-colors hover:border-primary/55"
           >
-            {CONTACT_EMAIL}
+            {email}
           </div>
 
           <div className="flex flex-wrap gap-1.5">

@@ -4,6 +4,7 @@ import { randomAnswer } from '@/lib/server/answerbook';
 export const GET = defineRoute(
   {
     auth: false,
+    envelope: 'public',
     route: '/api/v1/answerbook',
   },
   async () => publicOk(await randomAnswer()),

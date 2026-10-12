@@ -5,14 +5,15 @@ import { issueSessionTokens, writeSessionCookies } from '@/lib/auth/session';
 import { generateCsrfToken } from '@/lib/auth/jwt';
 import { permissionsOf, resolveSafeRedirect } from '@/lib/auth/permissions';
 import { ROUTES } from '@/constants/app';
-import { findUserByAccount } from '@/lib/server/mock/users';
+import { API } from '@/lib/api/endpoints';
+import { findUserByAccount, verifyPassword } from '@/lib/server/store/users';
 import type { LoginResult } from '@/types';
 
 export const POST = defineRoute(
   {
     auth: false,
     body: loginSchema,
-    route: '/api/v1/auth/login',
+    route: API.auth.login,
     // 比默认 120 次/分收紧，压制单 IP 口令爆破
     rateLimitPerMin: 10,
   },
@@ -20,7 +21,7 @@ export const POST = defineRoute(
     const { account, password, remember, redirect } = body!;
 
     const user = findUserByAccount(account);
-    if (!user || user.password !== password) {
+    if (!user || !verifyPassword(user.passwordHash, password)) {
       throw new UnauthorizedError('账号或密码错误', '请检查输入后重试');
     }
 

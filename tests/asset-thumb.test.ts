@@ -1,4 +1,3 @@
-import './setup';
 import assert from 'node:assert/strict';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';

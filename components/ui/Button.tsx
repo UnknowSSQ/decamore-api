@@ -6,7 +6,7 @@ import { cn } from '@/utils/cn';
 // 样式工厂必须从 button-variants.ts 取，见该文件头注释
 import { buttonVariants } from './button-variants';
 
-export interface ButtonProps
+interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   loading?: boolean;

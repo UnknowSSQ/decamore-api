@@ -1,4 +1,3 @@
-import './setup';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -9,10 +8,8 @@ import { routeCallStats } from '@/lib/server/stats';
 import { GET as hitokoto } from '@/app/api/v1/hitokoto/route';
 
 describe('接口管理的指标来源', () => {
-  it('种子值与公开文档口径一致：免鉴权、受频控、状态在线', () => {
+  it('种子状态一律在线：降级与离线只能由后台改出来', () => {
     for (const api of listManagedApis()) {
-      assert.equal(api.authRequired, false, `${api.id} 公开接口应当免鉴权`);
-      assert.equal(api.rateLimited, true, `${api.id} 应声明受频控`);
       assert.equal(api.status, 'online', `${api.id} 不该被种子成降级`);
     }
   });

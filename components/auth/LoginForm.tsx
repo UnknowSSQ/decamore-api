@@ -7,13 +7,25 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import { loginSchema, type LoginInput } from '@/lib/zod/auth.schema';
 import { validateSoft } from '@/lib/zod/validate-shared';
+import { RequestError } from '@/lib/api/error';
 import { resolveSafeRedirect } from '@/lib/auth/permissions';
 import { tokenStorage } from '@/lib/auth/token-store';
 import { ROUTES } from '@/constants/app';
+import type { FieldIssue } from '@/types';
 
 import { Button } from '@/components/ui/Button';
 import { Field, Input, PasswordField, Checkbox } from '@/components/ui';
 import { Callout } from '@/components/ui/Callout';
+
+/** 本地 Zod 与服务端 issues 是同一个形状，两处映射共用一份 */
+function toLoginFieldErrors(issues: readonly FieldIssue[]): { account?: string; password?: string } {
+  const fieldErrors: { account?: string; password?: string } = {};
+  for (const issue of issues) {
+    if (issue.field !== 'account' && issue.field !== 'password') continue;
+    fieldErrors[issue.field] ??= issue.message;
+  }
+  return fieldErrors;
+}
 
 export function LoginForm() {
   const router = useRouter();
@@ -45,11 +57,7 @@ export function LoginForm() {
   const validate = (): boolean => {
     const result = validateSoft(loginSchema, { account, password, remember });
     if (!result.ok) {
-      const fieldErrors: { account?: string; password?: string } = {};
-      for (const issue of result.issues) {
-        if (issue.field === 'account' && !fieldErrors.account) fieldErrors.account = issue.message;
-        if (issue.field === 'password' && !fieldErrors.password) fieldErrors.password = issue.message;
-      }
+      const fieldErrors = toLoginFieldErrors(result.issues);
       setErrors(fieldErrors);
 
       if (fieldErrors.account) {
@@ -82,20 +90,9 @@ export function LoginForm() {
         router.refresh();
       }, 600);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '登录失败，请重试';
-      toast.error('登录失败', message);
-
-      if (error && typeof error === 'object' && 'issues' in error) {
-        const issues = (error as { issues?: Array<{ field: string; message: string }> }).issues;
-        if (issues) {
-          const fieldErrors: { account?: string; password?: string } = {};
-          for (const issue of issues) {
-            if (issue.field === 'account' && !fieldErrors.account) fieldErrors.account = issue.message;
-            if (issue.field === 'password' && !fieldErrors.password) fieldErrors.password = issue.message;
-          }
-          setErrors(fieldErrors);
-        }
-      }
+      toast.error('登录失败', error instanceof Error ? error.message : '请重试');
+      const issues = error instanceof RequestError ? error.issues : undefined;
+      if (issues?.length) setErrors(toLoginFieldErrors(issues));
     } finally {
       setSubmitting(false);
     }
@@ -158,7 +155,7 @@ export function LoginForm() {
 
       <Callout tone="info" size="sm" className="mt-4">
         <p className="text-[11px] leading-[1.7]">
-          <strong>演示账号：</strong>admin，口令见 <code className="font-mono">lib/server/mock/users.ts</code>（仅本地登录用）。
+          <strong>本地登录：</strong>账号与口令取 <code className="font-mono">lib/server/store/users.ts</code> 的种子，改了要重启进程。
         </p>
       </Callout>
     </form>

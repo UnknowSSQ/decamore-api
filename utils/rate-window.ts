@@ -1,45 +1,35 @@
-/** 固定窗口计数：限流与访问规则共用一套桶，纯实现便于测试 */
-export interface WindowDecision {
+/**
+ * 固定窗口计数：限流与访问规则共用一套桶。
+ * 只有一种实现——窗口键走 KvStore，所以限额不再被实例数或 route chunk 数量放大。
+ */
+interface WindowDecision {
   allowed: boolean;
   /** 拒绝时距窗口重置的秒数 */
   retryAfterSec: number;
 }
 
 export interface WindowStore {
-  tryConsume(key: string, limit: number, windowMs: number, nowMs: number): WindowDecision;
-  size(): number;
-  reset(): void;
+  tryConsume(key: string, limit: number, windowMs: number, nowMs: number): Promise<WindowDecision>;
 }
 
-interface Bucket {
-  count: number;
-  resetAt: number;
-}
-
-/** buckets 可由调用方注入：route handler 会被分成多个 chunk，只有把 Map 挂在 globalThis 上限额才不会被 chunk 数量放大 */
-export function createWindowStore(capacity = 5000, buckets: Map<string, Bucket> = new Map()): WindowStore {
-  /** 桶只增不减会顶满内存，超过容量时顺带清掉已过期的键 */
-  const purgeExpired = (nowMs: number): void => {
-    for (const [key, value] of buckets) if (value.resetAt <= nowMs) buckets.delete(key);
-  };
-
+/**
+ * 窗口起点 = floor(now/windowMs)，每个窗口一个计数键，首次自增时由 KvStore 写入 windowMs 的过期，
+ * 之后的命中不再改过期。多实例共享同一份计数键。
+ */
+export function createKvWindowStore(kv: {
+  incr(key: string, ttlMs?: number): Promise<number>;
+}): WindowStore {
   return {
-    tryConsume(key, limit, windowMs, nowMs) {
-      const bucket = buckets.get(key);
+    async tryConsume(key, limit, windowMs, nowMs) {
+      const windowStart = Math.floor(nowMs / windowMs);
+      const bucketKey = `rl:${key}:${windowStart}`;
+      const count = await kv.incr(bucketKey, windowMs);
 
-      if (!bucket || bucket.resetAt <= nowMs) {
-        buckets.set(key, { count: 1, resetAt: nowMs + windowMs });
-      } else {
-        bucket.count += 1;
-        if (bucket.count > limit) {
-          return { allowed: false, retryAfterSec: Math.max(1, Math.ceil((bucket.resetAt - nowMs) / 1000)) };
-        }
+      if (count > limit) {
+        const resetAt = (windowStart + 1) * windowMs;
+        return { allowed: false, retryAfterSec: Math.max(1, Math.ceil((resetAt - nowMs) / 1000)) };
       }
-
-      if (buckets.size > capacity) purgeExpired(nowMs);
       return { allowed: true, retryAfterSec: 0 };
     },
-    size: () => buckets.size,
-    reset: () => buckets.clear(),
   };
 }

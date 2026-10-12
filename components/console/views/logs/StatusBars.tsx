@@ -1,5 +1,7 @@
 'use client';
-/** 2xx/4xx/5xx/429 四档；429 先判，因此不再重复计入 4xx */
+/** 2xx/4xx/5xx/429 四档；429 先判，因此不再重复计入 4xx。
+ *  数的是传进来的那一页，不是整个筛选区间——标题里写清楚，别和上方按筛选算的汇总卡混读 */
+import { STATUS_FAMILY_COLORS } from '@/constants/app';
 import type { CallLog } from '@/types';
 
 export function StatusBars({ logs }: { logs: CallLog[] }) {
@@ -21,15 +23,15 @@ export function StatusBars({ logs }: { logs: CallLog[] }) {
   const maxCount = Math.max(counts.r2xx, counts.r4xx, counts.r5xx, counts.r429, 1);
 
   const bars = [
-    { label: '2xx', count: counts.r2xx, color: '#2f7a4f' },
-    { label: '4xx', count: counts.r4xx, color: '#c2703f' },
-    { label: '5xx', count: counts.r5xx, color: '#b3512f' },
-    { label: '429', count: counts.r429, color: '#8a5a2d' },
+    { label: '2xx', count: counts.r2xx, color: STATUS_FAMILY_COLORS['2xx'] },
+    { label: '4xx', count: counts.r4xx, color: STATUS_FAMILY_COLORS['4xx'] },
+    { label: '5xx', count: counts.r5xx, color: STATUS_FAMILY_COLORS['5xx'] },
+    { label: '429', count: counts.r429, color: STATUS_FAMILY_COLORS['429'] },
   ];
 
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
-      <div className="mb-3 text-[12px] font-semibold text-ink">状态码分布</div>
+      <div className="mb-3 text-[12px] font-semibold text-ink">本页状态码分布</div>
       <div className="flex items-end gap-3" style={{ height: 80 }}>
         {bars.map((bar) => {
           const height = (bar.count / maxCount) * 100;

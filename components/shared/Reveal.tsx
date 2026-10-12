@@ -11,14 +11,13 @@ interface RevealProps {
   /** 单位是秒，不是毫秒 */
   delay?: number;
   className?: string;
-  threshold?: number;
   id?: string;
   /** Reveal 自己就是 grid item 时，布局跨度那类 CSS 变量只能挂这里，写进内层卡片不生效 */
   style?: CSSProperties;
 }
 
-export function Reveal({ children, as = 'div', delay = 0, className, threshold, id, style }: RevealProps) {
-  const { ref, visible } = useReveal<HTMLElement>({ threshold });
+export function Reveal({ children, as = 'div', delay = 0, className, id, style }: RevealProps) {
+  const { ref, visible } = useReveal<HTMLElement>();
 
   // React 的类型没收录 --* 自定义属性，只能断言
   const delayVars: CSSProperties =

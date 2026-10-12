@@ -8,7 +8,7 @@ type Level = 'debug' | 'info' | 'warn' | 'error';
 
 const LEVEL_WEIGHT: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
 
-export interface LogFields {
+interface LogFields {
   /** 事件名，用于检索，例如 api.request / auth.login */
   event: string;
   message?: string;

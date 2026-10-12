@@ -2,6 +2,7 @@
  * 静态种子：运行时真值是 lib/server/catalog.ts 的进程内车单（后台可编辑），这里只负责播种与广场首屏兜底。
  * 只登记已有服务端路由的接口，未实现的进货单会让广场出现点不开的死路。
  */
+import { API } from '@/lib/api/endpoints';
 import type { ApiCatalogItem } from '@/types';
 
 export const API_CATALOG: readonly ApiCatalogItem[] = [
@@ -9,7 +10,7 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'hitokoto',
     name: '一言',
     en: 'Hitokoto',
-    path: '/api/v1/hitokoto',
+    path: API.publicApi.hitokoto,
     cat: '内容',
     method: 'GET',
     desc: '随机返回一句中文短句，附带出处与作者。',
@@ -21,7 +22,7 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'answerbook',
     name: '答案之书',
     en: 'Answer Book',
-    path: '/api/v1/answerbook',
+    path: API.publicApi.answerbook,
     cat: '内容',
     method: 'GET',
     desc: '写下疑问后翻开封页，随机给出一句中英对照的回答。',
@@ -33,11 +34,11 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'wallpaper',
     name: '随机壁纸',
     en: 'Wallpaper',
-    path: '/api/v1/wallpaper',
+    path: API.publicApi.wallpaper,
     cat: '图片',
     method: 'GET',
-    desc: '按类型（pc / mobile / bing）随机返回一张壁纸的原图与缩略图直链。',
-    kw: '图片 背景 图床 高清 必应 wallpaper image bg bing pc mobile',
+    desc: '按类型（pc / mobile / bing / nasa）随机返回一张壁纸的原图与缩略图直链。',
+    kw: '图片 背景 图床 高清 必应 天文 NASA 壁纸 每日一图 wallpaper image bg bing pc mobile nasa apod',
     hint: '点击换一张 ↻',
     demo: 'wallpaper',
   },
@@ -45,11 +46,11 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'hotsearch',
     name: '热搜榜',
     en: 'Hot Search',
-    path: '/api/v1/hotsearch',
+    path: API.publicApi.hotsearch,
     cat: '内容',
     method: 'GET',
-    desc: '实时抓取微博 / 抖音 / 百度 / 知乎的官方热榜，返回排名、标题、热度与链接。',
-    kw: '热点 榜单 微博 抖音 百度 知乎 新闻 hot search trend weibo douyin baidu zhihu',
+    desc: '实时抓取微博 / 抖音 / 百度 / 知乎 / B 站 / 今日头条的官方热榜，返回排名、标题、热度与链接。',
+    kw: '热点 榜单 微博 抖音 百度 知乎 B站 头条 新闻 hot search trend weibo douyin baidu zhihu bilibili toutiao',
     hint: '点击换下一个平台 ↻',
     demo: 'hot',
   },
@@ -57,7 +58,7 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'hotmusic',
     name: '热歌榜',
     en: 'Hot Music',
-    path: '/api/v1/hotmusic',
+    path: API.publicApi.hotmusic,
     cat: '内容',
     method: 'GET',
     desc: '实时抓取 QQ 音乐 / 网易云 / 酷狗的热歌榜，返回歌名、歌手、专辑、时长与站内链接。',
@@ -69,7 +70,7 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'hotplay',
     name: '热播榜',
     en: 'Hot Play',
-    path: '/api/v1/hotplay',
+    path: API.publicApi.hotplay,
     cat: '内容',
     method: 'GET',
     desc: '电视剧 / 电影 / 综艺的大屏实时播出榜，返回排名、标题、播放指数、评分与播出平台。',
@@ -81,7 +82,7 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'hotchart',
     name: '热映榜',
     en: 'Hot Chart',
-    path: '/api/v1/hotchart',
+    path: API.publicApi.hotchart,
     cat: '数据',
     method: 'GET',
     desc: '猫眼专业版的实时票房榜，返回影片名、当日票房与占比、累计票房、场次与上座率。',
@@ -93,7 +94,7 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'emoji',
     name: '表情包',
     en: 'Emoji',
-    path: '/api/v1/emoji',
+    path: API.publicApi.emoji,
     cat: '图片',
     method: 'GET',
     desc: '返回表情包目录里的贴图清单与访问地址，目前只有 menhera 一类。',
@@ -105,7 +106,7 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'avatar',
     name: '头像',
     en: 'Avatar',
-    path: '/api/v1/avatar',
+    path: API.publicApi.avatar,
     cat: '图片',
     method: 'GET',
     desc: '返回头像资源清单与访问地址，按 boy / girl / anime 三类分目录存放。',
@@ -117,7 +118,7 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     id: 'images',
     name: '图片',
     en: 'Images',
-    path: '/api/v1/images',
+    path: API.publicApi.images,
     cat: '图片',
     method: 'GET',
     desc: '返回图库资源清单与访问地址，按 beauty / pretty 两类分目录存放。',
@@ -125,17 +126,145 @@ export const API_CATALOG: readonly ApiCatalogItem[] = [
     hint: '点击换一张 ↻',
     demo: 'image',
   },
+  {
+    id: 'poetry',
+    name: '古诗词',
+    en: 'Poetry',
+    path: API.publicApi.poetry,
+    cat: '内容',
+    method: 'GET',
+    desc: '唐诗宋词 300 首，随机返回一首的全文、译文与填字小题目，可按朝代筛。',
+    kw: '古诗 诗词 唐诗 宋词 名句 填空 诗 dushan gushi ci poem poetry tang song',
+    hint: '点击换一首 ↻',
+    demo: 'poetry',
+  },
+  {
+    id: 'idioms',
+    name: '成语大全',
+    en: 'Idioms',
+    path: API.publicApi.idioms,
+    cat: '内容',
+    method: 'GET',
+    desc: '收录 50,373 条成语，每次随机给若干条，可按 4–8 字的字数筛。',
+    kw: '成语 大全 随机 四字 词语 接龙 chengyu yuyu idiom idioms chengyu-daquan',
+    hint: '点击换一批 ↻',
+    demo: 'idioms',
+  },
+  {
+    id: 'soulsoup',
+    name: '毒鸡汤',
+    en: 'Soul Soup',
+    path: API.publicApi.soulsoup,
+    cat: '内容',
+    method: 'GET',
+    desc: '2,020 条反鸡汤短句，随机返回一句，语气丧但不上价值。',
+    kw: '毒鸡汤 反鸡汤 丧 文案 段子 短句 dujitang duji tang soul soulsoup joke',
+    hint: '点击再要一句 ↻',
+    demo: 'soulsoup',
+  },
+  {
+    id: 'kfc',
+    name: '疯狂星期四文案',
+    en: 'KFC Thursday',
+    path: API.publicApi.kfc,
+    cat: '内容',
+    method: 'GET',
+    desc: '424 条疯狂星期四整活文案，随机返回一条完整段子，哪天要钱都算周四。',
+    kw: '疯狂 星期四 kfc 肯德基 文案 段子 整活 梗 fenxiang xingqisi cuizhousi',
+    hint: '点击换一条 ↻',
+    demo: 'kfc',
+  },
+  {
+    id: 'netease',
+    name: '网易云热评',
+    en: 'NetEase Hot Comment',
+    path: API.publicApi.netease,
+    cat: '内容',
+    method: 'GET',
+    desc: '从歌单里随机抽一首歌，再返回它热评里随机的一条，带歌曲、歌手、封面与点赞数。',
+    kw: '网易云 热评 音乐 评论 歌曲 云村 wangyi yun re ping comment music',
+    hint: '点击换一条 ↻',
+    demo: 'netease',
+  },
+  {
+    id: 'typhoon',
+    name: '台风路径',
+    en: 'Typhoon Track',
+    path: API.publicApi.typhoon,
+    cat: '数据',
+    method: 'GET',
+    desc: '中央气象台台风网的编号列表与每 3 小时一个时次的路径：中心位置、气压、风速、移动方向与强度档位。',
+    kw: '台风 路径 台风季 气象 预警 西北太平洋 typhoon feng niu tai',
+    hint: '点击看路径 ↻',
+    demo: 'typhoon',
+  },
+  {
+    id: 'exchange',
+    name: '汇率中间价',
+    en: 'CNY Reference Rates',
+    path: API.publicApi.exchange,
+    cat: '数据',
+    method: 'GET',
+    desc: '中国外汇交易中心每个交易日 9:15 发布的人民币中间价，25 个币对带方向与变动点数。',
+    kw: '汇率 人民币 中间价 美元 外汇 hu lv dui huan exchange rate cny',
+    hint: '点击刷新 ↻',
+    demo: 'exchange',
+  },
+  {
+    id: 'weather',
+    name: '城市实况天气',
+    en: 'City Weather Now',
+    path: API.publicApi.weather,
+    cat: '数据',
+    method: 'GET',
+    desc: '中国天气网的城区实况：温度、天气现象、风向风力、湿度、气压、能见度与当日空气质量。',
+    kw: '天气 实况 气温 空气质量 雾霾 城市 tian qi weather temp beijing',
+    hint: '点击换城市 ↻',
+    demo: 'weather',
+  },
+  {
+    id: 'gold',
+    name: '金价行情',
+    en: 'SGE Gold Quote',
+    path: API.publicApi.gold,
+    cat: '数据',
+    method: 'GET',
+    desc: '上海黄金交易所的当日行情：最新价、开盘、最高最低与分时点数，六个合约可选。',
+    kw: '黄金 金价 行情 白银 上金所 现货 au ag gold hj jing',
+    hint: '点击刷新 ↻',
+    demo: 'gold',
+  },
+  {
+    id: 'stock',
+    name: '股票行情',
+    en: 'Stock Quote',
+    path: API.publicApi.stock,
+    cat: '数据',
+    method: 'GET',
+    desc: '腾讯行情的多代码快照：沪深北个股与指数、港股、美股，一次最多 20 个代码，给最新价、开高低、涨跌与量额。',
+    kw: '股票 行情 报价 沪深 指数 A股 港股 美股 自选股 茅台 gupiao hangqing baojia stock quote price',
+    hint: '点击刷新 ↻',
+    demo: 'stock',
+  },
+  {
+    id: 'warning',
+    name: '气象预警',
+    en: 'Weather Warnings',
+    path: API.publicApi.warning,
+    cat: '数据',
+    method: 'GET',
+    desc: '中央气象台此刻在架的预警信号：类型、等级、发布单位与签发时刻，可按类型、等级、省份筛。',
+    kw: '预警 信号 气象 暴雨 台风 高温 大雾 寒潮 红色 yujing warning alarm signal',
+    hint: '点击刷新 ↻',
+    demo: 'warning',
+  },
 ];
 
-/** 数组顺序即 chip 渲染顺序 */
-export const API_CATEGORIES = ['内容', '图片', '数据'] as const;
-
 /**
- * 仓库里带了服务端实现的那批接口 id。
- * 刻意不叫「全部接口」：后台可以新建接口，那些 id 只有运行时才知道，
- * 所以 ApiCatalogItem.id 保持 string，这里只覆盖编译期能确定的一批。
+ * 已有 `app/api/v1/<id>/route.ts` 的接口 id：文档状态与服务端状态都以此为准，避免后台、广场、文档三处口径不一。
+ * ApiCatalogItem.id 保持 string（后台可以新建），所以这份字面量只覆盖编译期能确定的十四个，同时充当类型来源。
  */
-export const SEALED_API_IDS = [
+export const IMPLEMENTED_API_IDS = [
   'hitokoto',
   'answerbook',
   'wallpaper',
@@ -146,23 +275,27 @@ export const SEALED_API_IDS = [
   'emoji',
   'avatar',
   'images',
+  'poetry',
+  'idioms',
+  'soulsoup',
+  'kfc',
+  'netease',
+  'typhoon',
+  'exchange',
+  'weather',
+  'gold',
+  'stock',
+  'warning',
 ] as const;
-export type SealedApiId = (typeof SEALED_API_IDS)[number];
-
-/** 已有 app/api/v1/<id>/route.ts 的接口 id；文档状态与服务端状态都以此为准，避免后台、广场、文档三处口径不一 */
-export const IMPLEMENTED_API_IDS: readonly SealedApiId[] = [...SEALED_API_IDS];
+export type ImplementedApiId = (typeof IMPLEMENTED_API_IDS)[number];
 
 /**
- * 判断一个运行时 id 在不在编译期那批里。
+ * 判断一个运行时 id 有没有对应的服务端路由。
  * 直接写 IMPLEMENTED_API_IDS.includes(row.id) 会被拒：数组元素是字面量联合，
  * 而后台可编辑的目录里 id 只能是 string。收在这里放行一次，调用点就不用各写断言。
  */
-export function isSealedApiId(value: string): value is SealedApiId {
-  return (SEALED_API_IDS as readonly string[]).includes(value);
-}
-
 export function isImplementedApiId(value: string): boolean {
-  return isSealedApiId(value) && (IMPLEMENTED_API_IDS as readonly string[]).includes(value);
+  return (IMPLEMENTED_API_IDS as readonly string[]).includes(value);
 }
 
 /** 传入后台可编辑的目录即可复用到非种子数据 */

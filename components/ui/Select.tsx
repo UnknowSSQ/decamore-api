@@ -18,13 +18,13 @@ import { controlVariants } from './Input';
 const ARROW =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23737a73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='m6.5 9.5 5.5 5.5 5.5-5.5'/></svg>\")";
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
 }
 
-export interface SelectProps
+interface SelectProps
   extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'>,
     VariantProps<typeof controlVariants> {
   /** 不传时用 children，分组 <optgroup> 场景走这条 */
@@ -74,25 +74,22 @@ export function SettingRow({
   description,
   children,
   className,
-  htmlFor,
 }: {
   title: ReactNode;
   description?: ReactNode;
   children: ReactNode;
   className?: string;
-  htmlFor?: string;
 }) {
-  /* 没传 htmlFor 时生成 id 注入子控件（Switch / Select / Input 会把 id 转发到真实控件），否则读屏念不出设置项名；
+  /* 生成 id 注入子控件（Switch / Select / Input 会把 id 转发到真实控件），否则读屏念不出设置项名；
      子节点是原生容器（滑块 + 数值、一组 Checkbox）时 label 绑不了 <div>，改走 role=group + aria-labelledby */
-  const autoId = useId();
-  const controlId = htmlFor ?? autoId;
+  const controlId = useId();
   // 组件子节点（forwardRef / 函数组件）的 type 不是字符串标签名
   const isComponentChild = isValidElement<{ id?: string }>(children) && typeof children.type !== 'string';
 
   const child = useMemo(() => {
-    if (htmlFor || !isValidElement<{ id?: string }>(children) || !isComponentChild) return children;
+    if (!isValidElement<{ id?: string }>(children) || !isComponentChild) return children;
     return cloneElement(children, { id: children.props.id ?? controlId });
-  }, [children, htmlFor, controlId, isComponentChild]);
+  }, [children, controlId, isComponentChild]);
 
   return (
     <div
@@ -102,7 +99,7 @@ export function SettingRow({
       )}
     >
       <div className="min-w-[220px] flex-1">
-        {isComponentChild || htmlFor ? (
+        {isComponentChild ? (
           <label htmlFor={controlId} className="block text-[13px] font-semibold text-ink">
             {title}
           </label>
@@ -115,7 +112,7 @@ export function SettingRow({
       </div>
       <div
         className="flex shrink-0 items-center gap-3"
-        {...(isComponentChild || htmlFor ? {} : { role: 'group', 'aria-labelledby': `${controlId}-group` })}
+        {...(isComponentChild ? {} : { role: 'group', 'aria-labelledby': `${controlId}-group` })}
       >
         {child}
       </div>

@@ -7,11 +7,13 @@ import type {
   AnswerBookEntry,
   AvatarListResult,
   AvatarType,
-  CallLog,
+  CallLogPage,
   DashboardStats,
   EmojiListResult,
   EmojiType,
+  ExchangeRateResult,
   ExportReportResult,
+  GoldQuote,
   HotChartResult,
   HotMusicPlatform,
   HotMusicResult,
@@ -20,15 +22,27 @@ import type {
   HotSearchPlatform,
   HotSearchResult,
   HitokotoLine,
+  IdiomList,
   ImageListResult,
   ImageType,
+  KfcCopy,
   ManagedApi,
-  NotificationItem,
+  NeteaseComment,
   Paged,
+  Poem,
+  PoemDynastyParam,
   SecuritySettings,
   SiteSettings,
+  SoulLine,
+  StockBoard,
+  TyphoonResult,
+  TyphoonTrack,
   WallpaperItem,
   WallpaperType,
+  WarningBoard,
+  WarningLevel,
+  WarningSignalType,
+  WeatherNow,
 } from '@/types';
 import type { z } from 'zod';
 import type {
@@ -45,8 +59,8 @@ import type {
 } from '@/lib/zod/admin.schema';
 import type { RangeValue } from '@/lib/zod/common';
 
-export function fetchDashboard(range: RangeValue = '24h', live = false) {
-  return http.get<DashboardStats>(API.console.dashboard, { query: { range, live: live ? '1' : undefined } });
+export function fetchDashboard(range: RangeValue = '24h') {
+  return http.get<DashboardStats>(API.console.dashboard, { query: { range } });
 }
 
 /** 返回体形状由 ExportReportResult 单点定义，服务端与这里共用，不再各写一份泛型实参 */
@@ -83,7 +97,7 @@ export function deleteRule(id: string) {
 }
 
 export function fetchLogs(query: Partial<z.infer<typeof logListQuerySchema>> = {}) {
-  return http.get<Paged<CallLog>>(API.console.logs, { query });
+  return http.get<CallLogPage>(API.console.logs, { query });
 }
 
 export function fetchSecurity() {
@@ -123,21 +137,6 @@ export function patchSiteSettings(body: z.infer<typeof siteSettingsPatchSchema>)
   return http.patch<SiteSettings>(API.console.settings, body);
 }
 
-export function fetchNotifications(unreadOnly = false) {
-  return http.get<Paged<NotificationItem>>(API.console.notifications, {
-    query: { unreadOnly: unreadOnly ? '1' : undefined },
-  });
-}
-
-export function markNotificationRead(id: string) {
-  return http.post<{ id: string; read: true }>(`${API.console.notifications}/${encodeURIComponent(id)}/read`, {});
-}
-
-/** 返回本次真正翻成已读的条数 */
-export function markAllNotificationsRead() {
-  return http.post<{ changed: number }>(API.console.notificationsReadAll, {});
-}
-
 /** 公开接口三件套：单层信封、不带鉴权头、无会话可续期。plaza 走后台信封，不在这里 */
 function publicGet<T>(path: string, query?: RequestOptions['query']) {
   return http.get<T>(path, { query, envelope: 'public', anonymous: true, skipAuthRefresh: true });
@@ -159,7 +158,7 @@ export function fetchHitokoto() {
   return publicGet<HitokotoLine>(API.publicApi.hitokoto);
 }
 
-/** type 省略时服务端在 pc / mobile / bing 三类里等概率随机 */
+/** type 省略时服务端在四类等概率随机（WALLPAPER_TYPES 那一行是取值域） */
 export function fetchWallpaper(type?: WallpaperType) {
   return publicGet<WallpaperItem>(API.publicApi.wallpaper, { type });
 }
@@ -197,4 +196,64 @@ export function fetchAvatars(type?: AvatarType, limit?: number) {
 /** type 省略时为 beauty */
 export function fetchImages(type?: ImageType, limit?: number) {
   return publicGet<ImageListResult>(API.publicApi.images, { type, limit });
+}
+
+/** dynasty 省略时服务端在唐 / 宋间等概率随机 */
+export function fetchPoetry(dynasty?: PoemDynastyParam) {
+  return publicGet<Poem>(API.publicApi.poetry, { dynasty });
+}
+
+/** limit 默认 1、上限 100；total 始终是全量条数，不是本次返回数 */
+export function fetchIdioms(limit?: number) {
+  return publicGet<IdiomList>(API.publicApi.idioms, { limit });
+}
+
+export function fetchSoulsoup() {
+  return publicGet<SoulLine>(API.publicApi.soulsoup);
+}
+
+export function fetchKfc() {
+  return publicGet<KfcCopy>(API.publicApi.kfc);
+}
+
+/** playlistId 省略时由服务端在内置歌单池里随机挑 */
+export function fetchNeteaseComment(playlistId?: number) {
+  return publicGet<NeteaseComment>(API.publicApi.netease, { id: playlistId });
+}
+
+/** 编号列表与路径是两个返回形状，拆成两个函数比联合类型好写调用方 */
+export function fetchTyphoonList() {
+  return publicGet<TyphoonResult>(API.publicApi.typhoon);
+}
+
+export function fetchTyphoonTrack(id: number) {
+  return publicGet<TyphoonTrack>(API.publicApi.typhoon, { id });
+}
+
+export function fetchExchangeRates() {
+  return publicGet<ExchangeRateResult>(API.publicApi.exchange);
+}
+
+/** city 是内置城市表的拼音键，省略即北京 */
+export function fetchWeatherNow(city?: string) {
+  return publicGet<WeatherNow>(API.publicApi.weather, { city });
+}
+
+export function fetchGoldQuote(contract?: string) {
+  return publicGet<GoldQuote>(API.publicApi.gold, { contract });
+}
+
+/** codes 手工拼成逗号串：数组实参会被 http.ts 展开成重复键，而上游要的是一个逗号分隔值 */
+export function fetchStockQuotes(codes: readonly string[]) {
+  return publicGet<StockBoard>(API.publicApi.stock, { codes: codes.join(',') });
+}
+
+/** 三个筛选项都可省，省略即全部在架预警 */
+export function fetchWeatherWarnings(filter?: {
+  type?: WarningSignalType;
+  level?: WarningLevel;
+  region?: string;
+  limit?: number;
+}) {
+  return publicGet<WarningBoard>(API.publicApi.warning, filter);
 }

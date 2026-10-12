@@ -74,6 +74,17 @@ export class RateLimitError extends ApiError {
   }
 }
 
+/**
+ * 上游抓不到时的统一 503：message 固定「<来源>暂时取不到」，具体原因进 description。
+ * 十个数据源原来各写一份同构工厂，措辞全靠人对齐——文档里的错误码表抄的就是这句 message。
+ */
+export class UpstreamUnavailableError extends ApiError {
+  constructor(source: string, reason: string) {
+    super(503, ERROR_CODE.SERVICE_UNAVAILABLE, `${source}暂时取不到`, { description: reason });
+    this.name = 'UpstreamUnavailableError';
+  }
+}
+
 /** withApiHandler 对非 ApiError 异常的兜底 */
 export class InternalError extends ApiError {
   constructor(message = '服务器内部错误', description?: string) {

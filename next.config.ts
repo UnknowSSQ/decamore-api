@@ -9,14 +9,6 @@ const nextConfig: NextConfig = {
   // href 与 router.push 的目标由 Next 生成的路由类型校验，写错路径在 tsc 阶段就报
   typedRoutes: true,
 
-  // 允许通过环境变量配置的图片域名（占位：后续接入真实 CDN 时启用）
-  images: {
-    remotePatterns: (() => {
-      const host = process.env.NEXT_PUBLIC_ALLOWED_IMAGE_HOST;
-      return host ? [{ protocol: 'https' as const, hostname: host }] : [];
-    })(),
-  },
-
   /**
    * public/ 默认按 max-age=0 出网，23MB 素材每次浏览都要回源验证一遍。
    * 素材文件名不随内容改动（bing 镜像只追加新文件），所以图片可以给 immutable；

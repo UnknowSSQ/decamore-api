@@ -5,6 +5,7 @@ import { EMOJI_TYPES, emojiQuerySchema } from '@/lib/zod/public.schema';
 export const GET = defineRoute(
   {
     auth: false,
+    envelope: 'public',
     query: emojiQuerySchema,
     route: '/api/v1/emoji',
   },

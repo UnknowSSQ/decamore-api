@@ -14,12 +14,10 @@ const TONE_CLASS: Record<BadgeTone, string> = {
 export function Badge({
   tone = 'neutral',
   children,
-  className,
   mono,
 }: {
   tone?: BadgeTone;
   children: ReactNode;
-  className?: string;
   mono?: boolean;
 }) {
   return (
@@ -28,7 +26,6 @@ export function Badge({
         'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-[11px] font-semibold leading-none',
         TONE_CLASS[tone],
         mono && 'font-mono tracking-tight',
-        className,
       )}
     >
       {children}
@@ -45,13 +42,12 @@ const METHOD_TONE_CLASS: Record<string, string> = {
   DELETE: 'bg-danger-soft text-danger border-danger/25',
 };
 
-export function MethodBadge({ method, className }: { method: string; className?: string }) {
+export function MethodBadge({ method }: { method: string }) {
   return (
     <span
       className={cn(
         'inline-flex items-center rounded-md border px-2 py-[3px] font-mono text-[10.5px] font-bold uppercase tracking-[0.08em]',
         METHOD_TONE_CLASS[method] ?? METHOD_TONE_CLASS.GET,
-        className,
       )}
     >
       {method}

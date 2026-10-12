@@ -4,7 +4,8 @@
  * 未撰写文档的接口由车单推导骨架页，保证每个接口都有稳定 URL。
  * 新接口：写 apis/<slug>.ts → 以 ['<slug>', doc] 加进 API_DOCS → 同步 authored-slugs.ts →（服务端实现后）补进 IMPLEMENTED_API_IDS。
  */
-import { API_CATEGORIES, isImplementedApiId, type SealedApiId } from '@/constants/api-catalog';
+import { isImplementedApiId, type ImplementedApiId } from '@/constants/api-catalog';
+import { API_CATEGORIES } from '@/types';
 import { docApiHref } from '@/constants/app';
 import type { ApiCatalogItem } from '@/types';
 
@@ -18,12 +19,23 @@ import { hotchartDoc } from './apis/hotchart';
 import { hotmusicDoc } from './apis/hotmusic';
 import { hotplayDoc } from './apis/hotplay';
 import { hotsearchDoc } from './apis/hotsearch';
+import { idiomsDoc } from './apis/idioms';
 import { imagesDoc } from './apis/images';
+import { kfcDoc } from './apis/kfc';
+import { neteaseDoc } from './apis/netease';
+import { poetryDoc } from './apis/poetry';
+import { soulsoupDoc } from './apis/soulsoup';
+import { exchangeDoc } from './apis/exchange';
+import { goldDoc } from './apis/gold';
+import { stockDoc } from './apis/stock';
+import { warningDoc } from './apis/warning';
+import { typhoonDoc } from './apis/typhoon';
+import { weatherDoc } from './apis/weather';
 import { wallpaperDoc } from './apis/wallpaper';
 import type { ApiDoc, AuthoredApiDoc, CodePaneData, DocSection, MetaRow, SiblingApi, TocItem } from './types';
 
-/** 键 = 车单 id = /docs/<slug>；文档模块本身不再声明身份。键收成 SealedApiId，写错即编译错误 */
-const API_DOCS = new Map<SealedApiId, AuthoredApiDoc>([
+/** 键 = 车单 id = /docs/<slug>；文档模块本身不再声明身份。键收成 ImplementedApiId，写错即编译错误 */
+const API_DOCS = new Map<ImplementedApiId, AuthoredApiDoc>([
   ['hitokoto', hitokotoDoc],
   ['answerbook', answerbookDoc],
   ['wallpaper', wallpaperDoc],
@@ -34,6 +46,17 @@ const API_DOCS = new Map<SealedApiId, AuthoredApiDoc>([
   ['emoji', emojiDoc],
   ['avatar', avatarDoc],
   ['images', imagesDoc],
+  ['poetry', poetryDoc],
+  ['idioms', idiomsDoc],
+  ['soulsoup', soulsoupDoc],
+  ['kfc', kfcDoc],
+  ['netease', neteaseDoc],
+  ['typhoon', typhoonDoc],
+  ['exchange', exchangeDoc],
+  ['weather', weatherDoc],
+  ['gold', goldDoc],
+  ['stock', stockDoc],
+  ['warning', warningDoc],
 ]);
 
 /** authored-slugs.ts 是给客户端用的瘦身副本，两份清单不一致时后台徽标会骗人，所以 dev 下直接炸 */
@@ -155,7 +178,7 @@ const SKELETON_PANES: CodePaneData[] = [
 
 function toDoc(item: ApiCatalogItem): ApiDoc {
   // 后台可新建接口，那些 id 不在编译期联合里；查不到就是没写过文档
-  const authored = API_DOCS.get(item.id as SealedApiId);
+  const authored = API_DOCS.get(item.id as ImplementedApiId);
   const implemented = isImplementedApiId(item.id);
 
   const identity = {
@@ -194,7 +217,7 @@ function toDoc(item: ApiCatalogItem): ApiDoc {
   };
 }
 
-export function buildDocs(catalog: readonly ApiCatalogItem[]): ApiDoc[] {
+function buildDocs(catalog: readonly ApiCatalogItem[]): ApiDoc[] {
   return catalog.map(toDoc);
 }
 

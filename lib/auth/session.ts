@@ -51,11 +51,9 @@ export async function writeSessionCookies(params: {
 
 export async function clearSessionCookies(): Promise<void> {
   const store = await cookies();
-  const env = getServerEnv();
   store.set(COOKIES.access, '', baseOptions(0, '/'));
   store.set(COOKIES.refresh, '', baseOptions(0, '/api/v1/auth'));
   store.set(COOKIES.csrf, '', { ...baseOptions(0, '/'), httpOnly: false });
-  void env;
 }
 
 /** Authorization 头优先（跨域 / 移动端），否则回落 httpOnly Cookie */
@@ -99,7 +97,7 @@ export async function resolveSession(): Promise<ResolvedSession | null> {
 }
 
 /** 字段全部由 claims 推导，不查库 */
-export function buildUser(claims: { sub: string; name: string; role: Role; iat: number }): AuthUser {
+function buildUser(claims: { sub: string; name: string; role: Role; iat: number }): AuthUser {
   const permissions: Permission[] = permissionsOf(claims.role);
   return {
     id: claims.sub,

@@ -1,25 +1,19 @@
 'use client';
 /** 整页聚合提交：字段间有联动（开维护模式得配说明语），跨字段校验只能一次做完 */
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { Button, Callout, Field, Input, Panel, PageHeader, PanelTitle, SettingRow, Skeleton, EmptyState } from '@/components/ui';
+import { ROUTES } from '@/constants/app';
 import { Select } from '@/components/ui/Select';
-import { Switch, Textarea } from '@/components/ui/Input';
+import { Switch } from '@/components/ui/Input';
 import { useRequest } from '@/hooks/useRequest';
 import { useCan } from '@/hooks/usePermission';
 import { useToast } from '@/hooks/useToast';
-import { fetchPlazaCatalog, fetchSiteSettings, patchSiteSettings } from '@/lib/api';
+import { fetchSiteSettings, patchSiteSettings } from '@/lib/api';
 import { siteSettingsPatchSchema, type SiteSettingsPatchInput } from '@/lib/zod/admin.schema';
-import {
-  CARD_COLS_RANGE,
-  CARD_GRID_COLS,
-  CARD_ROWS_RANGE,
-  PLAZA_CARD_DEFAULT_SPAN,
-  cardName,
-  cardSpan,
-} from '@/constants/card-layout';
-import { cn } from '@/utils/cn';
-import type { CardSpan, SiteSettings } from '@/types';
+import { API_CATALOG } from '@/constants/api-catalog';
+import type { SiteSettings } from '@/types';
 
 const TIMEZONE_OPTIONS = [
   { value: 'Asia/Shanghai', label: '中国标准时间 (UTC+8)' },
@@ -47,26 +41,11 @@ const AUTO_REFRESH_OPTIONS = [
   { value: '30', label: '30 秒' },
 ];
 
-/** 选项由 CARD_*_RANGE 派生，边界和 Zod 校验同源 */
-function spanOptions(range: { min: number; max: number }, unit: string) {
-  return Array.from({ length: range.max - range.min + 1 }, (_, index) => {
-    const value = range.min + index;
-    return { value: String(value), label: `${value} ${unit}` };
-  });
-}
-
-const CARD_COL_OPTIONS = spanOptions(CARD_COLS_RANGE, '列');
-const CARD_ROW_OPTIONS = spanOptions(CARD_ROWS_RANGE, '行');
-
 export function SettingsView() {
   const canWrite = useCan('settings:write');
   const toast = useToast();
 
   const { data, loading, error, refetch } = useRequest(fetchSiteSettings, { immediate: true });
-
-  // 接口车单：首页卡片的候选成员与名称标签都读它（后台改名后这里同步）
-  const { data: catalogData } = useRequest(fetchPlazaCatalog, { immediate: true });
-  const [pickSlug, setPickSlug] = useState('');
 
   const [form, setForm] = useState<SiteSettings | null>(null);
   const [dirty, setDirty] = useState<Set<keyof SiteSettings>>(new Set());
@@ -89,35 +68,7 @@ export function SettingsView() {
     setFieldErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
-  // 单张卡片的跨度更新：整组作为脏字段提交（后端按数组整体覆盖）
-  const updateCardSpan = (
-    field: 'liveCardLayout' | 'plazaCardLayout',
-    id: string,
-    key: 'cols' | 'rows',
-    value: number,
-  ) => {
-    if (!form) return;
-    updateField(
-      field,
-      form[field].map((span) => (span.id === id ? { ...span, [key]: value } : span)),
-    );
-  };
-
-  /** 卡片显示名：车单优先，车单还没回来时回落静态目录 */
-  const nameOf = (id: string) =>
-    catalogData?.items.find((item) => item.id === id)?.name ?? cardName(id);
-
-  // 首页卡片成员增删：liveCardLayout 的数组顺序就是首页排列顺序，新卡片默认 4 列 1 行
-  const addLiveCard = (id: string) => {
-    if (!form || !id || form.liveCardLayout.some((span) => span.id === id)) return;
-    updateField('liveCardLayout', [...form.liveCardLayout, { id, cols: 4, rows: 1 }]);
-    setPickSlug('');
-  };
-
-  const removeLiveCard = (id: string) => {
-    if (!form) return;
-    updateField('liveCardLayout', form.liveCardLayout.filter((span) => span.id !== id));
-  };
+  // 单张卡片的跨度与顺序在「卡片布局」页编辑，这里只管其余站点级设置
 
   const handleReset = () => {
     if (!data) return;
@@ -185,30 +136,20 @@ export function SettingsView() {
     );
   }
 
-  // 广场布局行：以车单为准（后台新增接口会自动进入编辑列表），车单未到位时回落已保存跨度
-  const plazaIds = catalogData?.items.length
-    ? catalogData.items.map((item) => item.id)
-    : form.plazaCardLayout.map((span) => span.id);
-  const plazaRows = plazaIds.map((id) => ({ id, span: cardSpan(form.plazaCardLayout, id, PLAZA_CARD_DEFAULT_SPAN) }));
-
-  const setPlazaSpan = (id: string, key: 'cols' | 'rows', value: number) => {
-    updateField(
-      'plazaCardLayout',
-      plazaRows.map((row) => (row.id === id ? { ...row.span, [key]: value } : row.span)),
-    );
-  };
-
-  const unselectedLive = (catalogData?.items ?? []).filter(
-    (item) => !form.liveCardLayout.some((span) => span.id === item.id),
-  );
-
   return (
+
     <div className="flex flex-col gap-6">
       <PageHeader
         title="网站设置"
-        description="前台展示、公告、维护计划与缓存策略 · 保存后 30 秒内全节点生效"
+        description="页脚信息、维护模式与时间显示口径 · 卡片布局已单独成页"
         actions={
           <div className="flex items-center gap-2">
+            <Link
+              href={ROUTES.adminCards}
+              className="text-[12.5px] font-medium text-primary hover:underline"
+            >
+              去卡片布局
+            </Link>
             <Button variant="outline" size="sm" onClick={handleReset} disabled={dirty.size === 0}>
               重置
             </Button>
@@ -227,29 +168,8 @@ export function SettingsView() {
 
       <div className="grid grid-cols-2 gap-6">
         <Panel>
-          <PanelTitle title="站点信息" />
+          <PanelTitle title="站点信息" description="页脚展示的联系方式与备案号" />
           <div className="mt-4 flex flex-col gap-4">
-            <Field label="站点名称" hint="将展示在前台导航" error={fieldErrors.siteName}>
-              <Input
-                value={form.siteName}
-                onChange={(e) => updateField('siteName', e.target.value)}
-                disabled={!canWrite}
-                invalid={!!fieldErrors.siteName}
-                maxLength={40}
-              />
-            </Field>
-
-            <Field label="站点描述" hint="用于 SEO 与分享卡片" error={fieldErrors.siteDescription}>
-              <Textarea
-                value={form.siteDescription}
-                onChange={(e) => updateField('siteDescription', e.target.value)}
-                disabled={!canWrite}
-                invalid={!!fieldErrors.siteDescription}
-                maxLength={120}
-                rows={3}
-              />
-            </Field>
-
             <div className="grid grid-cols-2 gap-3">
               <Field label="联系邮箱" error={fieldErrors.contactEmail}>
                 <Input
@@ -261,7 +181,7 @@ export function SettingsView() {
                 />
               </Field>
 
-              <Field label="版权署名" error={fieldErrors.icp}>
+              <Field label="备案号" error={fieldErrors.icp}>
                 <Input
                   value={form.icp}
                   onChange={(e) => updateField('icp', e.target.value)}
@@ -271,19 +191,6 @@ export function SettingsView() {
                 />
               </Field>
             </div>
-          </div>
-        </Panel>
-
-        <Panel>
-          <PanelTitle title="功能开关" />
-          <div className="mt-4 flex flex-col gap-4">
-            <SettingRow title="评论功能" description="启用接口评论与讨论区。">
-              <Switch
-                checked={form.enableComments}
-                onChange={(v) => updateField('enableComments', v)}
-                disabled={!canWrite}
-              />
-            </SettingRow>
           </div>
         </Panel>
 
@@ -299,25 +206,16 @@ export function SettingsView() {
             }
           />
           <div className="mt-4 flex flex-col gap-4">
-            <Field label="维护说明" hint="展示在 503 维护页" error={fieldErrors.maintenanceMessage}>
-              <Textarea
-                value={form.maintenanceMessage}
-                onChange={(e) => updateField('maintenanceMessage', e.target.value)}
-                disabled={!canWrite}
-                invalid={!!fieldErrors.maintenanceMessage}
-                maxLength={200}
-                rows={3}
-              />
-            </Field>
-
             <Callout tone="warn" mark="※" size="sm">
-              <strong>影响范围：</strong>开启后所有接口调用统一返回 503，控制台与文档不受影响。
+              <strong>影响范围：</strong>开启后 {API_CATALOG.length} 个公开接口统一返回 503，控制台与文档页不受影响；
+              控制台顶部同时挂出维护横幅。
             </Callout>
           </div>
         </Panel>
 
         <Panel>
           <PanelTitle title="时间与显示" />
+
           <div className="mt-4 flex flex-col gap-4">
             <SettingRow title="时区" description="控制台时钟、日志与仪表盘时间的基准时区。">
               <Select
@@ -364,171 +262,11 @@ export function SettingsView() {
           </div>
         </Panel>
 
-        <Panel className="col-span-2">
-          <PanelTitle
-            title="首页 Live 卡片布局"
-            description={`首页「实时接口广场」展示哪些接口、每张卡占几列几行都在这里配置，按 ${CARD_GRID_COLS} 列网格排布；列表顺序即首页顺序，保存后首页即时生效。`}
-          />
-          <div className="mt-4 grid grid-cols-2 gap-6 max-xl:grid-cols-1">
-            <div className="flex flex-col">
-              {form.liveCardLayout.map((span) => (
-                <SettingRow
-                  key={span.id}
-                  title={nameOf(span.id)}
-                  description={`${span.id} · 当前占 ${span.cols} 列 × ${span.rows} 行`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Select
-                      aria-label={`${nameOf(span.id)} 占用列数`}
-                      options={CARD_COL_OPTIONS}
-                      value={String(span.cols)}
-                      onChange={(e) => updateCardSpan('liveCardLayout', span.id, 'cols', Number(e.target.value))}
-                      disabled={!canWrite}
-                      className="w-24"
-                    />
-                    <Select
-                      aria-label={`${nameOf(span.id)} 占用行数`}
-                      options={CARD_ROW_OPTIONS}
-                      value={String(span.rows)}
-                      onChange={(e) => updateCardSpan('liveCardLayout', span.id, 'rows', Number(e.target.value))}
-                      disabled={!canWrite}
-                      className="w-24"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeLiveCard(span.id)}
-                      disabled={!canWrite}
-                      aria-label={`把 ${nameOf(span.id)} 从首页移除`}
-                    >
-                      移除
-                    </Button>
-                  </div>
-                </SettingRow>
-              ))}
-
-              {/* 加入首页：候选来自接口车单，选了要先「保存变更」才写入 */}
-              <div className="flex items-center gap-2 pt-4">
-                <Select
-                  aria-label="选择要加入首页的接口"
-                  placeholder={unselectedLive.length > 0 ? '选择接口…' : '全部接口都已在首页展示'}
-                  options={unselectedLive.map((item) => ({ value: item.id, label: `${item.name} ${item.path}` }))}
-                  value={pickSlug}
-                  onChange={(e) => setPickSlug(e.target.value)}
-                  disabled={!canWrite || unselectedLive.length === 0}
-                  className="min-w-[220px] flex-1"
-                />
-                <Button variant="outline" size="sm" onClick={() => addLiveCard(pickSlug)} disabled={!canWrite || !pickSlug}>
-                  加入首页
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <p className="mb-0 text-[11.5px] leading-relaxed text-muted">
-                布局预览 · 只示意行列占位与排列顺序，不渲染卡片内容。
-              </p>
-              <CardLayoutPreview layout={form.liveCardLayout} nameOf={nameOf} />
-              {fieldErrors.liveCardLayout && (
-                <p role="alert" className="mb-0 text-[11.5px] leading-snug text-danger">
-                  {fieldErrors.liveCardLayout}
-                </p>
-              )}
-            </div>
-          </div>
-        </Panel>
-
-        <Panel className="col-span-2">
-          <PanelTitle
-            title="接口广场卡片布局"
-            description={`接口广场同样按 ${CARD_GRID_COLS} 列网格排布，可为每个接口单独设置占位；搜索与分类筛选命中时仍按接口 id 保持各自跨度。`}
-          />
-          <div className="mt-4 grid grid-cols-2 gap-x-6 max-xl:grid-cols-1">
-            {plazaRows.map((row) => (
-              <div
-                key={row.id}
-                className="flex items-center justify-between gap-3 border-b border-dashed border-line py-2.5"
-              >
-                <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink">{nameOf(row.id)}</span>
-                <span className="flex shrink-0 items-center gap-1.5">
-                  <Select
-                    aria-label={`${nameOf(row.id)} 占用列数`}
-                    options={CARD_COL_OPTIONS}
-                    value={String(row.span.cols)}
-                    onChange={(e) => setPlazaSpan(row.id, 'cols', Number(e.target.value))}
-                    disabled={!canWrite}
-                    className="h-8 w-[70px] text-[12px]"
-                  />
-                  <span aria-hidden className="text-[11px] text-muted">
-                    ×
-                  </span>
-                  <Select
-                    aria-label={`${nameOf(row.id)} 占用行数`}
-                    options={CARD_ROW_OPTIONS}
-                    value={String(row.span.rows)}
-                    onChange={(e) => setPlazaSpan(row.id, 'rows', Number(e.target.value))}
-                    disabled={!canWrite}
-                    className="h-8 w-[70px] text-[12px]"
-                  />
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3">
-            <p className="mb-0 text-[11.5px] leading-relaxed text-muted">
-              布局预览 · 展示当前 {plazaRows.length} 张卡片的行列占位，不含卡片内容。
-            </p>
-            <CardLayoutPreview layout={plazaRows.map((row) => row.span)} nameOf={nameOf} cellClassName="min-h-[38px]" />
-            {fieldErrors.plazaCardLayout && (
-              <p role="alert" className="mb-0 text-[11.5px] leading-snug text-danger">
-                {fieldErrors.plazaCardLayout}
-              </p>
-            )}
-          </div>
-        </Panel>
       </div>
 
       <div className="text-center text-[11px] text-muted">
         配置变更后约 30 秒内全节点生效 · 维护模式与公告变更会即时推送至前台
       </div>
-    </div>
-  );
-}
-
-/** 恒按 12 列铺开，不像前台那样塌缩，小屏里也能看清行列 */
-function CardLayoutPreview({
-  layout,
-  cellClassName,
-  nameOf,
-}: {
-  layout: readonly CardSpan[];
-  cellClassName?: string;
-  /** 由调用方传入解析函数，后台改名才会同步到预览 */
-  nameOf?: (id: string) => string;
-}) {
-  return (
-    <div className="grid grid-cols-12 gap-1.5 rounded-lg border border-dashed border-line bg-bg-soft p-2">
-      {layout.map((span) => (
-        <div
-          key={span.id}
-          className={cn(
-            'flex min-h-[46px] flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md border border-line bg-surface px-1.5 text-center',
-            cellClassName,
-          )}
-          style={{
-            gridColumn: `span ${span.cols} / span ${span.cols}`,
-            gridRow: `span ${span.rows} / span ${span.rows}`,
-          }}
-        >
-          <span className="w-full truncate text-[11.5px] font-medium text-ink">
-            {(nameOf ?? cardName)(span.id)}
-          </span>
-          <span className="font-mono text-[10px] text-muted">
-            {span.cols}×{span.rows}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }

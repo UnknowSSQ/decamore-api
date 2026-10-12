@@ -6,13 +6,13 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { ROUTES } from '@/constants/app';
 import { cn } from '@/utils/cn';
 
-export interface NavItem {
+interface NavItem {
   label: string;
   href: Route;
   icon: IconName;
 }
 
-export interface NavGroup {
+interface NavGroup {
   group: string;
   items: NavItem[];
 }
@@ -37,12 +37,13 @@ export const CONSOLE_NAV: NavGroup[] = [
     group: '系统配置',
     items: [
       { label: '安全配置', href: ROUTES.adminSecurity, icon: 'shield' },
+      { label: '卡片布局', href: ROUTES.adminCards, icon: 'layout' },
       { label: '网站设置', href: ROUTES.adminSettings, icon: 'sliders' },
     ],
   },
 ];
 
-export interface ConsoleSidebarProps {
+interface ConsoleSidebarProps {
   pathname: string;
 }
 

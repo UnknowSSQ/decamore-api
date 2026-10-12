@@ -3,13 +3,13 @@ import 'server-only';
 
 import { asArray, asRecord, getUpstreamJson, num, str } from './upstream';
 import { createBoardCache } from './board-cache';
-import { ERROR_CODE, type HotMusicItem, type HotMusicPlatform, type HotMusicResult } from '@/types';
-import { ApiError } from './errors';
+import { type HotMusicItem, type HotMusicPlatform, type HotMusicResult } from '@/types';
+import { UpstreamUnavailableError } from './errors';
 
 export const HOT_MUSIC_CACHE_TTL_MS = 60_000;
 export const DEFAULT_HOT_MUSIC_PLATFORM: HotMusicPlatform = 'qq';
 /** 上游一次给 300 / 200 首，对外只留前 30 */
-export const HOT_MUSIC_LIMIT = 30;
+const HOT_MUSIC_LIMIT = 30;
 
 const PLATFORM_LABEL: Record<HotMusicPlatform, string> = {
   qq: 'QQ音乐',
@@ -21,12 +21,6 @@ interface UpstreamChart {
   chartName: string;
   items: HotMusicItem[];
   updatedAtMs: number;
-}
-
-function unavailable(platform: HotMusicPlatform, reason: string): ApiError {
-  return new ApiError(503, ERROR_CODE.SERVICE_UNAVAILABLE, `${PLATFORM_LABEL[platform]}热歌榜暂时取不到`, {
-    description: reason,
-  });
 }
 
 /** 只到日期的串按东八区零点算，QQ 榜单只给到日 */
@@ -169,9 +163,9 @@ const resolveHotMusic = createBoardCache<HotMusicPlatform, UpstreamChart, HotMus
     try {
       chart = await FETCHERS[platform]();
     } catch (error) {
-      throw unavailable(platform, error instanceof Error ? error.message : String(error));
+      throw new UpstreamUnavailableError(`${PLATFORM_LABEL[platform]}热歌榜`, error instanceof Error ? error.message : String(error));
     }
-    if (chart.items.length === 0) throw unavailable(platform, '上游返回的结构里没有可用曲目');
+    if (chart.items.length === 0) throw new UpstreamUnavailableError(`${PLATFORM_LABEL[platform]}热歌榜`, '上游返回的结构里没有可用曲目');
     return chart;
   },
   toResult,

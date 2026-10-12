@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { cn } from '@/utils/cn';
 
-export interface TooltipProps {
+interface TooltipProps {
   content: ReactNode;
   children: ReactNode;
 }

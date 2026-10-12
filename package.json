@@ -8,9 +8,10 @@
     "dev:webpack": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --import ./tests/register.mjs --import tsx --test \"tests/*.test.ts\"",
+    "verify": "npm run typecheck && npm run lint && npm test",
     "thumbs": "node scripts/make-thumbs.mjs",
     "env:check": "tsx scripts/check-env.ts"
   },

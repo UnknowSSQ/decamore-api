@@ -31,24 +31,27 @@ export function SecurityView() {
     if (data) setLocalData(data);
   }, [data]);
 
-  /** 乐观提交的唯一入口：先落本地，失败退回提交前的快照 */
-  const commit = async (next: SecuritySettings, patch: Partial<SecuritySettings>) => {
-    if (!localData || !canWrite) return;
-
+  /** 乐观提交的唯一入口：先落本地，失败退回提交前的快照。列表增删也走这里，别各写一份回滚 */
+  const commit = async (next: SecuritySettings, write: () => Promise<unknown>, messages: { ok: string; fail: string }) => {
     const prev = localData;
+    if (!prev || !canWrite) return;
+
     setLocalData(next);
     try {
-      await patchSecurity(patch);
-      toast.success('已保存');
+      await write();
+      toast.success(messages.ok);
     } catch {
       setLocalData(prev);
-      toast.error('保存失败');
+      toast.error(messages.fail);
     }
   };
 
   const updateField = <K extends keyof SecuritySettings>(key: K, value: SecuritySettings[K]) => {
     if (!localData) return;
-    return commit({ ...localData, [key]: value }, { [key]: value });
+    return commit({ ...localData, [key]: value }, () => patchSecurity({ [key]: value }), {
+      ok: '已保存',
+      fail: '保存失败',
+    });
   };
 
   if (loading) return <SecuritySkeleton />;
@@ -140,16 +143,16 @@ export function SecurityView() {
 
         <IpListEditor
           title="IP 白名单"
-          description="控制台仅允许以下来源访问，留空表示不限制。"
+          description="命中的来源豁免频控与访问规则；不影响鉴权，也不豁免黑名单。留空表示不豁免任何来源。"
           items={localData.ipWhitelist}
           onAdd={(ip) => handleAddIp('whitelist', ip)}
           onRemove={(ip) => handleRemoveIp('whitelist', ip)}
-          placeholder="例如 203.0.113.0/24"
+          placeholder="例如 203.0.113.24/32"
           addButtonLabel="添加"
           canWrite={canWrite}
           callout={
             <Callout tone="warn" mark="※" size="sm">
-              <strong>注意：</strong>办公网出口变更频繁，建议以网段形式授权并定期复核。
+              <strong>按精确 IP 加。</strong>整段 10.0.0.0/8 会把限流和规则一起关掉，而转发头缺失时所有请求都算同一个来源，宽网段等于全线免检。
             </Callout>
           }
         />
@@ -215,35 +218,23 @@ export function SecurityView() {
       return;
     }
 
-    const prev = localData;
-    const newList = type === 'whitelist' ? [...localData.ipWhitelist, ip] : [...localData.ipBlacklist, ip];
-    setLocalData(type === 'whitelist' ? { ...localData, ipWhitelist: newList } : { ...localData, ipBlacklist: newList });
-
-    try {
-      if (type === 'whitelist') await saveIpWhitelist(newList);
-      else await saveIpBlacklist(newList);
-      toast.success('已添加');
-    } catch {
-      setLocalData(prev);
-      toast.error('添加失败');
-    }
+    const key = type === 'whitelist' ? 'ipWhitelist' : 'ipBlacklist';
+    const newList = [...localData[key], ip];
+    await commit({ ...localData, [key]: newList }, () => (type === 'whitelist' ? saveIpWhitelist(newList) : saveIpBlacklist(newList)), {
+      ok: '已添加',
+      fail: '添加失败',
+    });
   }
 
   async function handleRemoveIp(type: 'whitelist' | 'blacklist', ip: string) {
     if (!localData || !canWrite) return;
 
-    const prev = localData;
-    const newList = type === 'whitelist' ? localData.ipWhitelist.filter((i) => i !== ip) : localData.ipBlacklist.filter((i) => i !== ip);
-    setLocalData(type === 'whitelist' ? { ...localData, ipWhitelist: newList } : { ...localData, ipBlacklist: newList });
-
-    try {
-      if (type === 'whitelist') await removeIpWhitelist(ip);
-      else await removeIpBlacklist(ip);
-      toast.success('已移除');
-    } catch {
-      setLocalData(prev);
-      toast.error('移除失败');
-    }
+    const key = type === 'whitelist' ? 'ipWhitelist' : 'ipBlacklist';
+    const newList = localData[key].filter((i) => i !== ip);
+    await commit({ ...localData, [key]: newList }, () => (type === 'whitelist' ? removeIpWhitelist(ip) : removeIpBlacklist(ip)), {
+      ok: '已移除',
+      fail: '移除失败',
+    });
   }
 
   async function handleAddCors(origin: string) {
@@ -254,33 +245,21 @@ export function SecurityView() {
       return;
     }
 
-    const prev = localData;
     const newList = [...localData.corsOrigins, origin];
-    setLocalData({ ...localData, corsOrigins: newList });
-
-    try {
-      await saveCorsOrigins(newList);
-      toast.success('已添加');
-    } catch {
-      setLocalData(prev);
-      toast.error('添加失败');
-    }
+    await commit({ ...localData, corsOrigins: newList }, () => saveCorsOrigins(newList), {
+      ok: '已添加',
+      fail: '添加失败',
+    });
   }
 
   async function handleRemoveCors(origin: string) {
     if (!localData || !canWrite) return;
 
-    const prev = localData;
     const newList = localData.corsOrigins.filter((o) => o !== origin);
-    setLocalData({ ...localData, corsOrigins: newList });
-
-    try {
-      await saveCorsOrigins(newList);
-      toast.success('已移除');
-    } catch {
-      setLocalData(prev);
-      toast.error('移除失败');
-    }
+    await commit({ ...localData, corsOrigins: newList }, () => saveCorsOrigins(newList), {
+      ok: '已移除',
+      fail: '移除失败',
+    });
   }
 }
 

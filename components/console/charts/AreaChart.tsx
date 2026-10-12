@@ -7,15 +7,15 @@ export interface AreaChartPoint {
   value: number;
 }
 
-export interface AreaChartProps {
+interface AreaChartProps {
   data: AreaChartPoint[];
   height?: number;
-  color?: string;
 }
 
 const PADDING = { top: 16, right: 12, bottom: 28, left: 48 };
+const COLOR = '#365b49';
 
-export function AreaChart({ data, height = 258, color = '#365b49' }: AreaChartProps) {
+export function AreaChart({ data, height = 258 }: AreaChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{ index: number; x: number; y: number } | null>(null);
   const [width, setWidth] = useState(600);
@@ -109,7 +109,7 @@ export function AreaChart({ data, height = 258, color = '#365b49' }: AreaChartPr
   const handleMouseLeave = () => setHover(null);
 
   // 点数密集时抽稀标签，否则会互相压叠
-  const xLabelInterval = data.length > 40 ? 8 : data.length > 20 ? 8 : 5;
+  const xLabelInterval = data.length > 20 ? 8 : 5;
 
   return (
     <div ref={measureRef} className="relative w-full">
@@ -123,8 +123,8 @@ export function AreaChart({ data, height = 258, color = '#365b49' }: AreaChartPr
       >
         <defs>
           <linearGradient id="area-gradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.26} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
+            <stop offset="0%" stopColor={COLOR} stopOpacity={0.26} />
+            <stop offset="100%" stopColor={COLOR} stopOpacity={0} />
           </linearGradient>
         </defs>
 
@@ -147,7 +147,7 @@ export function AreaChart({ data, height = 258, color = '#365b49' }: AreaChartPr
 
         {areaPath && <path d={areaPath} fill="url(#area-gradient)" />}
 
-        {path && <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />}
+        {path && <path d={path} fill="none" stroke={COLOR} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />}
 
         {points.map((pt, i) =>
           i % xLabelInterval === 0 ? (
@@ -164,12 +164,12 @@ export function AreaChart({ data, height = 258, color = '#365b49' }: AreaChartPr
               y1={PADDING.top}
               x2={hover.x}
               y2={PADDING.top + chartH}
-              stroke={color}
+              stroke={COLOR}
               strokeDasharray="3 3"
               strokeWidth={1}
               opacity={0.5}
             />
-            <circle cx={hover.x} cy={hover.y} r={4} fill={color} stroke="#fffefa" strokeWidth={2} />
+            <circle cx={hover.x} cy={hover.y} r={4} fill={COLOR} stroke="#fffefa" strokeWidth={2} />
           </>
         )}
       </svg>

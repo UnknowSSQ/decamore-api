@@ -5,6 +5,7 @@ import { AVATAR_TYPES, avatarQuerySchema } from '@/lib/zod/public.schema';
 export const GET = defineRoute(
   {
     auth: false,
+    envelope: 'public',
     query: avatarQuerySchema,
     route: '/api/v1/avatar',
   },

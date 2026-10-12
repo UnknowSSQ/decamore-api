@@ -4,9 +4,9 @@
  */
 import type { ErrorCode, FieldIssue } from '@/types';
 
-export type RequestErrorCode = ErrorCode | number | 'NETWORK' | 'UNPARSEABLE' | 'SERVER' | 'ABORTED';
+type RequestErrorCode = ErrorCode | number | 'NETWORK' | 'UNPARSEABLE' | 'SERVER';
 
-export interface RequestErrorInit {
+interface RequestErrorInit {
   /** 网络失败时为 0 */
   status: number;
   code: RequestErrorCode;
@@ -44,28 +44,5 @@ export class RequestError extends Error {
 
   get isUnauthorized(): boolean {
     return this.status === 401 || this.code === 401;
-  }
-  get isForbidden(): boolean {
-    return this.status === 403 || this.code === 403;
-  }
-  /** 还要求带了 issues，纯 422 不算 */
-  get isValidation(): boolean {
-    return this.code === 422 && Boolean(this.issues?.length);
-  }
-  get isNetwork(): boolean {
-    return this.code === 'NETWORK' || this.status === 0;
-  }
-  get isServerError(): boolean {
-    return this.status >= 500;
-  }
-
-  /** 表单顶部提示用 */
-  firstIssue(): FieldIssue | undefined {
-    return this.issues?.[0];
-  }
-
-  /** description 比 message 更具体，优先它 */
-  get displayMessage(): string {
-    return this.description && this.description.length > 0 ? this.description : this.message;
   }
 }

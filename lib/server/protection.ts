@@ -3,7 +3,7 @@ import 'server-only';
 
 import { NextResponse } from 'next/server';
 
-import { createWindowStore, type WindowStore } from '@/utils/rate-window';
+import { createKvWindowStore, type WindowStore } from '@/utils/rate-window';
 import { ipInList, originAllowed } from '@/utils/net';
 import { getServerEnv } from '@/env';
 import { getSecuritySettings } from './store/security';
@@ -12,12 +12,13 @@ import { ApiError, ForbiddenError, RateLimitError } from './errors';
 import { logger } from './logger';
 import { applySecurityHeaders } from './security-headers';
 import { resolveClientIp } from './trace';
+import { getKvStore } from './store/kv';
 
-/** 计数桶挂 globalThis：handler 被每个 route chunk 各编一份，模块级的桶会让限额按 chunk 数量翻倍 */
-const globalStore = globalThis as typeof globalThis & {
-  __decamoreWindows?: Map<string, { count: number; resetAt: number }>;
-};
-const windows: WindowStore = createWindowStore(5000, (globalStore.__decamoreWindows ??= new Map()));
+/**
+ * 限流桶走 KvStore：默认 memory 后端挂在 globalThis，单实例下与旧实现一致；
+ * 切到 redis 后端后计数跨实例共享，限额不再被实例数放大。
+ */
+const windows: WindowStore = createKvWindowStore(getKvStore());
 
 /** 每次判定都现读后台：这里只把单位换算和取值归一，不做缓存，改完配置下一个请求就生效 */
 function policy() {
@@ -61,7 +62,7 @@ export function corsHeadersFor(origin: string | null): Record<string, string> {
 }
 
 /** 预检响应：公开接口免鉴权，只声明方法与允许的自定义头 */
-export const PREFLIGHT_HEADERS: Record<string, string> = {
+const PREFLIGHT_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Max-Age': '600',
@@ -76,14 +77,14 @@ export const PREFLIGHT_HEADERS: Record<string, string> = {
  * 这里只补 IP 黑名单与限额——预检没有会话，鉴权 / CSRF / 参数校验本来就不适用。
  * 抛错就地转状态码：OPTIONS 不经 withApiHandler，没有别人兜错误信封。
  */
-export function preflight(routePattern = '*') {
-  return (request: Request): NextResponse => {
+export function preflight() {
+  return async (request: Request): Promise<NextResponse> => {
     const ip = resolveClientIp(request.headers);
     try {
       const { exempt } = enforceIpLists(ip);
       if (!exempt) {
-        enforceDefaultLimit(
-          { ip, method: 'OPTIONS', pathname: new URL(request.url).pathname, routePattern },
+        await enforceDefaultLimit(
+          { ip, method: 'OPTIONS', pathname: new URL(request.url).pathname, routePattern: '*' },
           getServerEnv().RATE_LIMIT_PER_MIN,
         );
       }
@@ -109,11 +110,11 @@ export function maxBodyBytes(): number {
 }
 
 /** 后台的全局限额与默认限额并行：前者按配置周期累计，后者按分钟按路由计 */
-export function enforceDefaultLimit(input: GuardInput, limitPerMin: number): void {
+export async function enforceDefaultLimit(input: GuardInput, limitPerMin: number): Promise<void> {
   const now = Date.now();
   const { globalRateLimit } = policy();
 
-  const globalDecision = windows.tryConsume(
+  const globalDecision = await windows.tryConsume(
     `global|${input.ip}`,
     globalRateLimit.limit,
     globalRateLimit.periodSec * 1000,
@@ -123,7 +124,7 @@ export function enforceDefaultLimit(input: GuardInput, limitPerMin: number): voi
     throw new RateLimitError(globalDecision.retryAfterSec, '命中全局流量上限');
   }
 
-  const decision = windows.tryConsume(
+  const decision = await windows.tryConsume(
     `default|${input.ip}|${input.method}|${input.routePattern}`,
     limitPerMin,
     60_000,
@@ -136,12 +137,12 @@ export function enforceDefaultLimit(input: GuardInput, limitPerMin: number): voi
  * 取作用域最具体的一条启用规则生效（与 WAF 的首条命中一致），而不是把所有命中规则叠加热量：
  * 叠加会让 global 规则把精确规则挤成摆设。
  */
-export function enforceAccessRules(input: GuardInput): void {
+export async function enforceAccessRules(input: GuardInput): Promise<void> {
   const rule = rulesForPath(input.pathname)[0];
   if (!rule) return;
 
   const now = Date.now();
-  const decision = windows.tryConsume(`rule|${rule.id}|${input.ip}`, rule.limit, rule.periodSec * 1000, now);
+  const decision = await windows.tryConsume(`rule|${rule.id}|${input.ip}`, rule.limit, rule.periodSec * 1000, now);
   if (decision.allowed) return;
 
   recordRuleHit(rule.id);
@@ -155,6 +156,5 @@ export function enforceAccessRules(input: GuardInput): void {
   if (rule.action === 'reject') {
     throw new ForbiddenError('请求被拒绝', `命中访问规则「${rule.name}」`);
   }
-  // captcha 还没有对应的校验流程，按限流处置，并在说明里讲清楚
   throw new RateLimitError(decision.retryAfterSec, `命中访问规则「${rule.name}」`);
 }

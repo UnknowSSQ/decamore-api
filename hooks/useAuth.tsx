@@ -20,28 +20,14 @@ import { fetchMe, login as apiLogin, logout as apiLogout, refreshSession } from 
 import { RequestError } from '@/lib/api/error';
 import { hasPermission as checkPermission } from '@/lib/auth/permissions';
 import { isBrowser, subscribeTokenChanges, tokenStorage } from '@/lib/auth/token-store';
-import type { Route } from 'next';
-import type { AuthStatus, AuthUser, LoginResult, Permission } from '@/types';
+import type { AuthUser, LoginResult, Permission } from '@/types';
 import type { LoginInput } from '@/lib/zod/auth.schema';
 
-/** 服务端 resolveSession 构造，省掉首屏再请求一次 /auth/me */
-export interface BootstrapSession {
-  user: AuthUser;
-  expiresAt: number;
-}
-
+/** 只有这三样有人消费：user/status 等留在 Provider 内部，需要对外暴露时再加，别先摊开一排没人读的字段 */
 interface AuthContextValue {
-  user: AuthUser | null;
-  status: AuthStatus;
-  expiresAt: number;
-  /** 区分「还没判断出来」与「确实未登录」 */
-  hydrated: boolean;
-  reload: () => Promise<void>;
-  signIn: (input: LoginInput) => Promise<LoginResult>;
-  signOut: (options?: { allDevices?: boolean; redirectTo?: Route }) => Promise<void>;
-  refresh: () => Promise<boolean>;
   can: (permission: Permission) => boolean;
-  patchUser: (next: AuthUser) => void;
+  signIn: (input: LoginInput) => Promise<LoginResult>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -49,65 +35,46 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // lib/api/http 在 401 续期失败时广播这个事件
 const AUTH_EXPIRED_EVENT = 'decamore:auth-expired';
 
-export function AuthProvider({
-  bootstrap,
-  children,
-}: {
-  bootstrap: BootstrapSession | null;
-  children: ReactNode;
-}) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
-  const [user, setUser] = useState<AuthUser | null>(bootstrap?.user ?? tokenStorage.getCachedUser());
-  const [expiresAt, setExpiresAt] = useState<number>(bootstrap?.expiresAt ?? tokenStorage.getExpiresAt());
-  const [status, setStatus] = useState<AuthStatus>(bootstrap ? 'authenticated' : 'idle');
-  const [hydrated, setHydrated] = useState(Boolean(bootstrap));
+  // 会话由客户端自查：首屏用 localStorage 缓存的用户，随后 reload() 拿 /auth/me 校准
+  const [user, setUser] = useState<AuthUser | null>(tokenStorage.getCachedUser());
+  const [expiresAt, setExpiresAt] = useState<number>(tokenStorage.getExpiresAt());
 
   // 定时器与「正在续期」标记放 ref，避免闭包读到旧值
   const refreshingRef = useRef(false);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // reload 用 ref 读 user 而不是把 user 写进依赖：/auth/me 每次返回新对象，
-  // user 一进依赖，reload 的身份就随每次成功响应变化，下面那个首屏 effect 会被自己的成功响应反复触发
-  const userRef = useRef(user);
-  userRef.current = user;
   /** 首屏兜底校验只做一次（StrictMode 下 effect 会被重复执行） */
   const bootCheckedRef = useRef(false);
 
   const reload = useCallback(async () => {
     if (!isBrowser()) return;
-    setStatus((prev) => (prev === 'authenticated' ? 'authenticated' : 'checking'));
     try {
       const me = await fetchMe();
       setUser(me.user);
       setExpiresAt(me.expiresAt);
       tokenStorage.setCachedUser(me.user);
-      setStatus('authenticated');
     } catch (error: unknown) {
-      // 401 已由 http 封装处理续期/广播，这里只区分「未登录」与「网络异常」
+      // 401 已由 http 封装处理续期与广播；其它异常保留现有 user，不把网络故障谎报成未登录
       if (error instanceof RequestError && error.isUnauthorized) {
         setUser(null);
         setExpiresAt(0);
-        setStatus('unauthenticated');
-      } else {
-        setStatus(userRef.current ? 'authenticated' : 'unauthenticated');
       }
-    } finally {
-      setHydrated(true);
     }
   }, []);
 
   useEffect(() => {
-    if (bootstrap || bootCheckedRef.current) return;
+    if (bootCheckedRef.current) return;
     // cookie 模式下读不到 token，但可能已有会话 → 静默校验一次
     bootCheckedRef.current = true;
     void reload();
-  }, [bootstrap, reload]);
+  }, [reload]);
 
   useEffect(() => {
     const onExpired = () => {
       setUser(null);
       setExpiresAt(0);
-      setStatus('unauthenticated');
       tokenStorage.clear();
       tokenStorage.setCachedUser(null);
       // 只在受保护区域强制跳转，广场/文档保持可浏览
@@ -126,7 +93,6 @@ export function AuthProvider({
       const cached = tokenStorage.getCachedUser();
       if (!cached) {
         setUser(null);
-        setStatus('unauthenticated');
       } else {
         setUser(cached);
         void reload();
@@ -142,7 +108,6 @@ export function AuthProvider({
       const result = await refreshSession();
       tokenStorage.setTokens({ accessToken: result.accessToken, expiresIn: result.expiresIn });
       setExpiresAt(Date.now() + result.expiresIn * 1000);
-      setStatus('authenticated');
       return true;
     } catch {
       return false;
@@ -180,7 +145,6 @@ export function AuthProvider({
 
   const signIn = useCallback(async (input: LoginInput): Promise<LoginResult> => {
     const result = await apiLogin(input);
-    setStatus('checking');
 
     // cookie 模式浏览器已收到 Set-Cookie；local 模式还要落 token 供请求拦截器注入
     tokenStorage.setTokens({
@@ -194,47 +158,32 @@ export function AuthProvider({
 
     setUser(result.user);
     setExpiresAt(Date.now() + result.expiresIn * 1000);
-    setStatus('authenticated');
-    setHydrated(true);
     return result;
   }, []);
 
-  const signOut = useCallback(
-    async (options?: { allDevices?: boolean; redirectTo?: Route }) => {
-      try {
-        await apiLogout(options?.allDevices ?? false);
-      } catch {
-        // 服务端登出失败也要清本地，否则会卡在「已登录但无效」状态
-      } finally {
-        tokenStorage.clear();
-        tokenStorage.setCachedUser(null);
-        setUser(null);
-        setExpiresAt(0);
-        setStatus('unauthenticated');
-        router.replace(options?.redirectTo ?? ROUTES.login);
-        router.refresh();
-      }
-    },
-    [router],
+  const signOut = useCallback(async () => {
+    try {
+      await apiLogout();
+    } catch {
+      // 服务端登出失败也要清本地，否则会卡在「已登录但无效」状态
+    } finally {
+      tokenStorage.clear();
+      tokenStorage.setCachedUser(null);
+      setUser(null);
+      setExpiresAt(0);
+      router.replace(ROUTES.login);
+      router.refresh();
+    }
+  }, [router]);
+
+  const can = useCallback(
+    (permission: Permission) => Boolean(user && checkPermission(user.permissions, permission)),
+    [user],
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      status,
-      expiresAt,
-      hydrated,
-      reload,
-      signIn,
-      signOut,
-      refresh: doRefresh,
-      can: (permission: Permission) => Boolean(user && checkPermission(user.permissions, permission)),
-      patchUser: (next: AuthUser) => {
-        setUser(next);
-        tokenStorage.setCachedUser(next);
-      },
-    }),
-    [user, status, expiresAt, hydrated, reload, signIn, signOut, doRefresh],
+    () => ({ can, signIn, signOut }),
+    [can, signIn, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -246,5 +195,3 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth 必须在 AuthProvider 内使用（见 components/providers/AppProviders.tsx）');
   return ctx;
 }
-
-export { AuthContext };

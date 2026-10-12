@@ -1,35 +1,16 @@
 'use client';
 /** 卡片是横版窄格，所以固定取 type=pc。
  *  只渲染 thumb（约 15KB 的 webp），原图直链留给调用方，卡片不下载几百 KB 的 jpg */
-import { useEffect, useState } from 'react';
-
 import { LazyImage } from '@/components/shared/LazyImage';
 import { fetchWallpaper } from '@/lib/api';
-import type { WallpaperItem } from '@/types';
 import type { DemoProps } from './types';
+import { useDemoFetch } from './types';
+
+/** 首帧要渲染服务端也算得出的确定值（React #418） */
+const PLACEHOLDER = '正在取壁纸…';
 
 export function WallpaperDemo({ seed }: DemoProps) {
-  const [shot, setShot] = useState<WallpaperItem | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    // 快速连点时丢弃过期响应，避免后到的旧图覆盖新图
-    let ignore = false;
-    void (async () => {
-      try {
-        const next = await fetchWallpaper('pc');
-        if (!ignore) {
-          setShot(next);
-          setFailed(false);
-        }
-      } catch {
-        if (!ignore) setFailed(true);
-      }
-    })();
-    return () => {
-      ignore = true;
-    };
-  }, [seed]);
+  const { data: shot, failed } = useDemoFetch(seed, () => fetchWallpaper('pc'));
 
   return (
     <div className="plaza-demo-photo">
@@ -39,7 +20,7 @@ export function WallpaperDemo({ seed }: DemoProps) {
           ? '壁纸取不到，点击卡片重试'
           : shot
             ? `PC${shot.width && shot.height ? ` · ${shot.width} × ${shot.height}` : ''}`
-            : '正在取壁纸…'}
+            : PLACEHOLDER}
       </span>
     </div>
   );

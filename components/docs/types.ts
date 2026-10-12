@@ -16,7 +16,7 @@ export type RequiredState = 'yes' | 'no' | 'na';
  * 以前七个 variant 共用一个「全部字段可选」的行形状，代价是给响应头表填 required
  * 之类的字段编译器一声不响，而错误表行里写的 name 会因为渲染层不认它而凭空消失。
  */
-export interface RequestRow {
+interface RequestRow {
   item: string;
   value: string;
   description: InlineFragment[];
@@ -39,7 +39,7 @@ export interface ResponseRow {
   description: InlineFragment[];
 }
 
-export interface HeaderRow {
+interface HeaderRow {
   name: string;
   example: string;
   description: InlineFragment[];

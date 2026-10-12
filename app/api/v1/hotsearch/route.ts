@@ -5,6 +5,7 @@ import { hotsearchQuerySchema } from '@/lib/zod/public.schema';
 export const GET = defineRoute(
   {
     auth: false,
+    envelope: 'public',
     query: hotsearchQuerySchema,
     route: '/api/v1/hotsearch',
   },

@@ -1,14 +1,11 @@
 /** 后端所有 API Route 返回 ApiResponse<T>，前端请求封装据此判断成败并映射可读文案 */
 
-/** HTTP 语义之外的业务状态码，与前端文案表一一对应 */
+/** HTTP 语义之外的业务状态码，与前端文案表一一对应；只登记代码里真的会发出的码 */
 export const ERROR_CODE = {
   OK: 200,
-  BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
-  METHOD_NOT_ALLOWED: 405,
-  CONFLICT: 409,
   VALIDATION_FAILED: 422,
   TOO_MANY_REQUESTS: 429,
   INTERNAL_ERROR: 500,
@@ -56,10 +53,6 @@ export interface ApiFailure {
 }
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
-
-export function isFailure<T>(res: ApiResponse<T>): res is ApiFailure {
-  return res.success === false;
-}
 
 export function isSuccess<T>(res: ApiResponse<T>): res is ApiSuccess<T> {
   return res.success === true;

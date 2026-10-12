@@ -39,7 +39,5 @@ export interface MeResult {
   shouldRefresh: boolean;
 }
 
-export type AuthStatus = 'idle' | 'checking' | 'authenticated' | 'unauthenticated';
-
 /** 默认 cookie，local 是跨域部署兜底 */
 export type TokenStorageMode = 'cookie' | 'local';

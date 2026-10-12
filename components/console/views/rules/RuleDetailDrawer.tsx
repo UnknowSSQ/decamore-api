@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 
-import { Badge, Button, CodeWindow, Drawer, Switch } from '@/components/ui';
+import { Badge, Button, Drawer, Switch } from '@/components/ui';
 import { useToast } from '@/hooks/useToast';
 import { updateRule } from '@/lib/api';
 import type { AccessRule } from '@/types';
-import { formatNumber } from '@/utils/format';
+import { formatDate, formatNumber } from '@/utils/format';
 
 export interface RuleDetailDrawerProps {
   rule: AccessRule | null;
@@ -14,48 +14,16 @@ export interface RuleDetailDrawerProps {
   onRefresh: () => void;
 }
 
-const RULE_TYPE_META: Record<string, { label: string; tone: 'ok' | 'brand' | 'warn' | 'danger' | 'neutral'; action: string }> = {
-  rate: { label: '限流', tone: 'warn', action: '超过阈值返回 429，提示文案可在「安全配置」中修改' },
-  cache: { label: '缓存', tone: 'brand', action: '命中缓存直接由边缘节点返回，不回源' },
-  block: { label: '拦截', tone: 'danger', action: '命中即拒绝，不进入业务逻辑' },
+const ACTION_META: Record<AccessRule['action'], { label: string; tone: 'warn' | 'danger' | 'neutral'; effect: string }> = {
+  '429': { label: '限流', tone: 'warn', effect: '超出阈值返回 429，并带 Retry-After' },
+  reject: { label: '拦截', tone: 'danger', effect: '命中即返回 403，不进入业务逻辑' },
+  log: { label: '记录', tone: 'neutral', effect: '只记日志与命中数，不改变响应' },
 };
 
-/** 按动作给一组示意指标：数值是写死的，接口没返回命中率这类字段 */
-function getEffectMetrics(rule: AccessRule): { label: string; value: string }[] {
-  if (rule.action === '429' || rule.action === 'log') {
-    return [
-      { label: '限流返回码', value: '429' },
-      { label: '正常放行', value: '96.2%' },
-    ];
-  }
-  if (rule.action === 'reject') {
-    return [
-      { label: '拦截返回码', value: '403' },
-      { label: '边缘直接拒绝', value: '0ms' },
-    ];
-  }
-  // 其余动作共用这一组
-  return [
-    { label: '当前命中率', value: '91%' },
-    { label: '回源流量', value: '-82%' },
-  ];
-}
-
-/** 拼一段边缘节点伪代码给人看，不代表网关真实实现 */
-function buildRuleCode(rule: AccessRule): string {
-  const lines: string[] = [];
-  lines.push('# 边缘节点伪代码');
-  // scope 形如「匹配串 + 描述后缀」，取第一段当匹配串
-  const pattern = rule.scope.split(' ')[0] ?? rule.scope;
-  const actionFn = rule.action === '429' || rule.action === 'log'
-    ? 'throttle'
-    : rule.action === 'reject'
-      ? 'reject'
-      : 'serveCached';
-  lines.push(`if (match("${pattern}")) {`);
-  lines.push(`  ${actionFn}("${rule.scope}");`);
-  lines.push(`} // prio ${rule.action} · ${rule.enabled ? 'enabled' : 'disabled'}`);
-  return lines.join('\n');
+/** 作用域可能带 /api/v1/* 这类通配，日志接口只认精确 path 或子串，所以按前缀走 keyword 检索 */
+function scopeToLogQuery(scope: string): string {
+  const first = scope.split(',')[0]?.trim() ?? scope;
+  return first.replace(/\/?\*+$/, '').replace(/,$/, '');
 }
 
 export function RuleDetailDrawer({ rule, open, onClose, onRefresh }: RuleDetailDrawerProps) {
@@ -67,7 +35,7 @@ export function RuleDetailDrawer({ rule, open, onClose, onRefresh }: RuleDetailD
     setPending(true);
     try {
       await updateRule(rule.id, { enabled: next });
-      toast.success(`规则「${rule.name}」已${next ? '启用 · 约 30 秒内全网生效' : '停用'}`);
+      toast.success(`规则「${rule.name}」已${next ? '启用' : '停用'}`);
       onRefresh();
     } catch {
       toast.error('状态更新失败');
@@ -79,16 +47,12 @@ export function RuleDetailDrawer({ rule, open, onClose, onRefresh }: RuleDetailD
   const handleViewLogs = () => {
     if (!rule) return;
     onClose();
-    const pattern = rule.scope.split(' ')[0] ?? rule.scope;
-    window.location.href = `/admin/logs?path=${encodeURIComponent(pattern)}`;
+    window.location.href = `/admin/logs?keyword=${encodeURIComponent(scopeToLogQuery(rule.scope))}`;
   };
 
   if (!rule) return null;
 
-  // captcha 没有独立展示档，跟限流/缓存共用
-  const typeKey = rule.action === 'captcha' ? 'cache' : rule.action === '429' || rule.action === 'log' ? 'rate' : 'block';
-  const meta = RULE_TYPE_META[typeKey] ?? RULE_TYPE_META.rate!;
-  const effects = getEffectMetrics(rule);
+  const meta = ACTION_META[rule.action];
 
   return (
     <Drawer
@@ -100,7 +64,7 @@ export function RuleDetailDrawer({ rule, open, onClose, onRefresh }: RuleDetailD
           <Badge tone={meta.tone}>{meta.label}</Badge>
         </span>
       }
-      description={`治理规则 · 优先级 ${rule.action} · 免密钥治理层`}
+      description={`访问规则 ${rule.id}`}
       width="w-[min(460px,94vw)]"
       footer={
         <div className="flex flex-wrap items-center gap-3">
@@ -108,23 +72,23 @@ export function RuleDetailDrawer({ rule, open, onClose, onRefresh }: RuleDetailD
             checked={rule.enabled}
             onChange={(v) => void handleToggle(v)}
             disabled={pending}
-            label={rule.enabled ? '规则生效中 · 边缘节点已同步' : '规则已停用 · 未参与匹配'}
+            label={rule.enabled ? '已启用 · 参与请求判定' : '已停用 · 不参与匹配'}
           />
-          <span className="ml-auto inline-flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleViewLogs}>
-              查看相关日志
-            </Button>
-            <Button variant="primary" size="sm" trailing="↗" onClick={() => window.open('/admin/security', '_blank')}>
-              审计记录
-            </Button>
-          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            onClick={handleViewLogs}
+          >
+            查看相关日志
+          </Button>
         </div>
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div className="flex flex-col gap-1 rounded-lg border border-line bg-bg-soft/40 p-3">
-            <span className="text-[10.5px] uppercase tracking-wider text-muted">命中 · 24h</span>
+            <span className="text-[10.5px] uppercase tracking-wider text-muted">今日命中</span>
             <span className="font-mono text-[18px] font-semibold text-ink">
               {formatNumber(rule.hitsToday)}
             </span>
@@ -135,12 +99,12 @@ export function RuleDetailDrawer({ rule, open, onClose, onRefresh }: RuleDetailD
               {rule.enabled ? '生效中' : '已停用'}
             </span>
           </div>
-          {effects.map((e) => (
-            <div key={e.label} className="flex flex-col gap-1 rounded-lg border border-line bg-bg-soft/40 p-3">
-              <span className="text-[10.5px] uppercase tracking-wider text-muted">{e.label}</span>
-              <span className="font-mono text-[18px] font-semibold text-ink">{e.value}</span>
-            </div>
-          ))}
+          <div className="flex flex-col gap-1 rounded-lg border border-line bg-bg-soft/40 p-3">
+            <span className="text-[10.5px] uppercase tracking-wider text-muted">限额</span>
+            <span className="font-mono text-[18px] font-semibold text-ink">
+              {rule.limit} / {rule.periodSec}s
+            </span>
+          </div>
         </div>
 
         <div className="rounded-lg border border-line bg-surface p-4">
@@ -152,30 +116,20 @@ export function RuleDetailDrawer({ rule, open, onClose, onRefresh }: RuleDetailD
                 <td className="py-2 font-mono text-[11px] text-ink">{rule.scope}</td>
               </tr>
               <tr>
-                <td className="py-2 pr-4 font-medium text-muted">动作</td>
-                <td className="py-2 text-ink">{meta.label} · {meta.action}</td>
+                <td className="py-2 pr-4 font-medium text-muted">处置</td>
+                <td className="py-2 text-ink">{meta.effect}</td>
               </tr>
               <tr>
-                <td className="py-2 pr-4 font-medium text-muted">生效配置</td>
-                <td className="py-2 text-ink">{rule.limit} 次 / {rule.periodSec}s</td>
+                <td className="py-2 pr-4 font-medium text-muted">作用域优先级</td>
+                <td className="py-2 text-ink">精确路径 &gt; 前缀 &gt; 多路径列表 &gt; global，同一路径只生效最具体的一条</td>
               </tr>
               <tr>
-                <td className="py-2 pr-4 font-medium text-muted">优先级</td>
-                <td className="py-2 text-ink">
-                  <Badge tone={rule.action === '429' ? 'warn' : 'neutral'}>{rule.action}</Badge>
-                  <span className="ml-2 text-[11.5px] text-muted">数字越小越先匹配</span>
-                </td>
+                <td className="py-2 pr-4 font-medium text-muted">最近更新</td>
+                <td className="py-2 text-ink">{formatDate(rule.updatedAt)}</td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <CodeWindow
-          code={buildRuleCode(rule)}
-          lang="js"
-          title="edge rule — decamore gateway"
-          lineNumbers
-        />
       </div>
     </Drawer>
   );

@@ -1,5 +1,5 @@
 /** 与 components/ui/Toast 的 tone 对应 */
-export type ToastTone = 'success' | 'error' | 'warning' | 'info';
+export type ToastTone = 'success' | 'error';
 
 /** 与 components/ui/StatusBadge 对应 */
 export type BadgeTone = 'ok' | 'warn' | 'danger' | 'neutral' | 'brand';

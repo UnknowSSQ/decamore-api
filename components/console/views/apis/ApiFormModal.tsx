@@ -1,14 +1,13 @@
 'use client';
-import { Button, Field, Input, Modal, Select, Switch } from '@/components/ui';
+import { Button, Field, Input, Modal, Select } from '@/components/ui';
 import { useModalForm } from '@/hooks/useModalForm';
-import { createManagedApi, updateManagedApi } from '@/lib/api';
+import { createManagedApi } from '@/lib/api';
 import { createApiSchema, type CreateApiInput } from '@/lib/zod/admin.schema';
-import type { ApiCategory, HttpMethod, ManagedApi } from '@/types';
+import { API_CATEGORIES, type ApiCategory, type HttpMethod } from '@/types';
 
 export interface ApiFormModalProps {
   open: boolean;
   onClose: () => void;
-  editingApi: ManagedApi | null;
   onSuccess: () => void;
 }
 
@@ -17,11 +16,8 @@ const METHOD_OPTIONS = [
   { value: 'POST', label: 'POST' },
 ];
 
-const CATEGORY_OPTIONS = [
-  { value: '内容', label: '内容' },
-  { value: '数据', label: '数据' },
-  { value: '图片', label: '图片' },
-];
+/** 分类就是领域里那三个，不再手写一遍带 label 的清单 */
+const CATEGORY_OPTIONS = API_CATEGORIES.map((category) => ({ value: category, label: category }));
 
 interface ApiFormValues {
   name: string;
@@ -29,8 +25,6 @@ interface ApiFormValues {
   path: string;
   category: ApiCategory;
   description: string;
-  authRequired: boolean;
-  rateLimited: boolean;
 }
 
 const BLANK: ApiFormValues = {
@@ -39,34 +33,18 @@ const BLANK: ApiFormValues = {
   path: '',
   category: '内容',
   description: '',
-  authRequired: false,
-  rateLimited: true,
 };
 
-const initialValues = (editing: ManagedApi | null): ApiFormValues =>
-  editing
-    ? {
-        name: editing.name,
-        method: editing.method,
-        path: editing.path,
-        category: editing.category,
-        description: editing.description,
-        authRequired: editing.authRequired,
-        rateLimited: editing.rateLimited,
-      }
-    : BLANK;
-
-export function ApiFormModal({ open, onClose, editingApi, onSuccess }: ApiFormModalProps) {
+export function ApiFormModal({ open, onClose, onSuccess }: ApiFormModalProps) {
   const { values, setValue, errors, pending, handleSubmit } = useModalForm<ApiFormValues, CreateApiInput>({
     open,
-    editing: editingApi,
-    initial: () => initialValues(editingApi),
+    initial: () => BLANK,
     schema: createApiSchema,
     // 前导斜杠可以省，但校验和提交必须看到同一个值，所以放在 prepare 里
     prepare: (v) => ({ ...v, path: v.path.startsWith('/') ? v.path : `/${v.path}` }),
-    submit: (value) => (editingApi ? updateManagedApi(editingApi.id, value) : createManagedApi(value)),
-    successMessage: (isEdit) => (isEdit ? '接口已更新' : '接口已创建'),
-    failureMessage: (isEdit) => (isEdit ? '更新失败' : '创建失败'),
+    submit: (value) => createManagedApi(value),
+    successMessage: '接口已创建',
+    failureMessage: '创建失败',
     onSaved: () => {
       onSuccess();
       onClose();
@@ -77,8 +55,8 @@ export function ApiFormModal({ open, onClose, editingApi, onSuccess }: ApiFormMo
     <Modal
       open={open}
       onClose={onClose}
-      title={editingApi ? '编辑接口' : '注册新接口'}
-      description={editingApi ? `正在编辑 ${editingApi.name}` : '填写接口基本信息'}
+      title="注册新接口"
+      description="填写接口基本信息"
       width="max-w-[520px]"
       footer={
         <div className="flex gap-2">
@@ -86,7 +64,7 @@ export function ApiFormModal({ open, onClose, editingApi, onSuccess }: ApiFormMo
             取消
           </Button>
           <Button variant="primary" onClick={() => void handleSubmit()} loading={pending}>
-            {editingApi ? '保存' : '创建'}
+            创建
           </Button>
         </div>
       }
@@ -135,11 +113,6 @@ export function ApiFormModal({ open, onClose, editingApi, onSuccess }: ApiFormMo
             invalid={!!errors.description}
           />
         </Field>
-
-        <div className="flex flex-col gap-3 rounded-lg border border-line bg-bg-soft/40 p-3">
-          <Switch checked={values.authRequired} onChange={(v) => setValue('authRequired', v)} label="需要鉴权" />
-          <Switch checked={values.rateLimited} onChange={(v) => setValue('rateLimited', v)} label="启用限流" />
-        </div>
       </div>
     </Modal>
   );

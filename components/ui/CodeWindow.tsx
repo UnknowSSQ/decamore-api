@@ -7,14 +7,14 @@ import { useCopyToClipboard } from '@/hooks/useUi';
 import { cn } from '@/utils/cn';
 import { Icon } from './Icon';
 
-export interface CodePane {
+interface CodePane {
   value: string;
   label: string;
   code: string;
   lang?: HighlightLang;
 }
 
-export interface CodeWindowProps {
+interface CodeWindowProps {
   /** 与 panes 二选一 */
   code?: string;
   lang?: HighlightLang;

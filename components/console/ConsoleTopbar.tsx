@@ -4,14 +4,13 @@ import { usePathname } from 'next/navigation';
 
 import { Icon } from '@/components/ui/Icon';
 import { ConsoleClock } from './ConsoleClock';
-import { NotificationPopover } from './NotificationPopover';
 import { UserPopover } from './UserPopover';
 import { GlobalSearch } from './GlobalSearch';
 import { useHotkey } from '@/hooks/useUi';
 import { CONSOLE_NAV } from './ConsoleSidebar';
 import type { AuthUser } from '@/types';
 
-export interface ConsoleTopbarProps {
+interface ConsoleTopbarProps {
   user: AuthUser;
   /** 抽屉开合归 ConsoleShell，按钮要如实报出它的状态 */
   navOpen: boolean;
@@ -33,7 +32,6 @@ export function ConsoleTopbar({ user, navOpen, onOpenNav }: ConsoleTopbarProps) 
   const viewLabel = getViewLabel(pathname);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const [bellOpen, setBellOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
   // 与 GlobalSearch 右侧的 Kbd 提示对应
@@ -41,12 +39,11 @@ export function ConsoleTopbar({ user, navOpen, onOpenNav }: ConsoleTopbarProps) 
     searchRef.current?.focus();
   });
 
-  const closeBell = useCallback(() => setBellOpen(false), []);
   const closeUser = useCallback(() => setUserOpen(false), []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-[14px]">
-      <div className="flex h-[64px] items-center gap-4 px-6 max-lg:px-4">
+      <div className="flex h-topbar items-center gap-4 px-6 max-lg:px-4">
         <button
           type="button"
           onClick={onOpenNav}
@@ -73,28 +70,7 @@ export function ConsoleTopbar({ user, navOpen, onOpenNav }: ConsoleTopbarProps) 
           <div className="relative">
             <button
               type="button"
-              onClick={() => {
-                // 两个弹层互斥，否则会同时挂在屏幕上
-                setBellOpen((v) => !v);
-                setUserOpen(false);
-              }}
-              className="grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-muted transition-colors hover:border-primary hover:text-primary"
-              aria-label="通知"
-              aria-expanded={bellOpen}
-            >
-              <Icon name="bell" size={16} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />
-            </button>
-            {bellOpen && <NotificationPopover onClose={closeBell} />}
-          </div>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setUserOpen((v) => !v);
-                setBellOpen(false);
-              }}
+              onClick={() => setUserOpen((v) => !v)}
               className="flex items-center gap-2 rounded-full border border-line bg-surface px-2 py-1 transition-colors hover:border-primary"
               aria-label="用户菜单"
               aria-expanded={userOpen}

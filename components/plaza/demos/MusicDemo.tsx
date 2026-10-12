@@ -1,12 +1,9 @@
 'use client';
 /** 平台由 seed 取模得出，首帧 seed=0 恒为 QQ 音乐，SSR 与水合才算得出同一个值 */
-import { useEffect, useState } from 'react';
-
 import { fetchHotMusic } from '@/lib/api';
-import type { HotMusicPlatform, HotMusicResult } from '@/types';
+import type { HotMusicPlatform } from '@/types';
 import type { DemoProps } from './types';
-
-const SHOW_ROWS = 6;
+import { DEMO_ROWS, clock, useDemoFetch } from './types';
 
 const PLATFORM_ORDER: readonly HotMusicPlatform[] = ['qq', 'netease', 'kugou'];
 const PLATFORM_NAME: Record<HotMusicPlatform, string> = {
@@ -23,13 +20,6 @@ function mmss(sec: number | null): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function clock(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime())
-    ? ''
-    : date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
-
 /** QQ 的上游只给到日期，换算后本地恒为 00:00 —— 这种情况只显示日期，不假装知道时刻 */
 function updatedStamp(iso: string): string {
   const date = new Date(iso);
@@ -41,28 +31,8 @@ function updatedStamp(iso: string): string {
 }
 
 export function MusicDemo({ seed }: DemoProps) {
-  const [chart, setChart] = useState<HotMusicResult | null>(null);
-  const [failed, setFailed] = useState(false);
   const platform = PLATFORM_ORDER[seed % PLATFORM_ORDER.length] as HotMusicPlatform;
-
-  useEffect(() => {
-    // 快速连点时丢弃过期响应，避免后到的旧榜单覆盖新榜单
-    let ignore = false;
-    void (async () => {
-      try {
-        const next = await fetchHotMusic(platform, SHOW_ROWS);
-        if (!ignore) {
-          setChart(next);
-          setFailed(false);
-        }
-      } catch {
-        if (!ignore) setFailed(true);
-      }
-    })();
-    return () => {
-      ignore = true;
-    };
-  }, [platform, seed]);
+  const { data: chart, failed } = useDemoFetch(seed, () => fetchHotMusic(platform, DEMO_ROWS));
 
   return (
     <div className="plaza-demo-ranklist">
@@ -75,7 +45,7 @@ export function MusicDemo({ seed }: DemoProps) {
       </div>
 
       {chart &&
-        chart.items.slice(0, SHOW_ROWS).map((item, index) => (
+        chart.items.slice(0, DEMO_ROWS).map((item, index) => (
           <div key={`${item.rank}-${item.title}`} className="plaza-demo-ranklist-row">
             <span className={`plaza-demo-ranklist-rank${index < 2 ? ' plaza-demo-ranklist-rank-top' : ''}`}>
               {item.rank}

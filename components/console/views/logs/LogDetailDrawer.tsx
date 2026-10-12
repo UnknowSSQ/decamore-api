@@ -43,10 +43,7 @@ export function LogDetailDrawer({ log, onClose }: { log: CallLog | null; onClose
 
         <div className="border-t border-line pt-4">
           <div className="text-[11px] text-muted">来源</div>
-          <div className="mt-1 flex items-center gap-3">
-            <span className="font-mono text-[12.5px] text-ink">{log.ip}</span>
-            <span className="text-[11.5px] text-muted">{log.region}</span>
-          </div>
+          <div className="mt-1 font-mono text-[12.5px] text-ink">{log.ip}</div>
         </div>
 
         <div className="border-t border-line pt-4">
@@ -59,9 +56,13 @@ export function LogDetailDrawer({ log, onClose }: { log: CallLog | null; onClose
         <div className="border-t border-line pt-4">
           <div className="text-[11px] text-muted">缓存命中</div>
           <div className="mt-1">
-            <Badge tone={log.cacheHit ? 'ok' : 'neutral'} mono>
-              {log.cacheHit ? 'HIT' : 'MISS'}
-            </Badge>
+            {log.cacheHit === undefined ? (
+              <span className="text-[12.5px] text-muted">该接口没有缓存语义</span>
+            ) : (
+              <Badge tone={log.cacheHit ? 'ok' : 'neutral'} mono>
+                {log.cacheHit ? 'HIT' : 'MISS'}
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -71,8 +72,9 @@ export function LogDetailDrawer({ log, onClose }: { log: CallLog | null; onClose
         </div>
 
         <div className="border-t border-line pt-4">
-          <div className="text-[11px] text-muted">链路追踪</div>
-          <div className="mt-1 text-[11.5px] text-muted">【待开发】链路追踪详情</div>
+          <div className="text-[11px] text-muted">traceId</div>
+          <div className="mt-1 break-all font-mono text-[11.5px] text-ink">{log.id}</div>
+          <p className="mt-1 text-[11px] text-muted">与服务端日志、响应头 x-trace-id 同值，报障时给出它即可定位这一次调用。</p>
         </div>
       </div>
     </Drawer>

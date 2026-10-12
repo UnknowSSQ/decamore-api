@@ -1,53 +1,46 @@
 'use client';
-/** 迷你折线只是 KPI 卡的装饰趋势，数据由固定种子伪随机生成，SSR/CSR 才能同形 */
-import { useMemo } from 'react';
+/** KPI 卡的迷你折线：序列由服务端聚合结果给出，缺省或全零时不画 */
+import type { ReactNode } from 'react';
+
+const WIDTH = 86;
+const HEIGHT = 30;
+/** 与主色同值：KPI 卡的迷你折线只有这一种颜色，没有调用点需要换 */
+const STROKE = '#365b49';
 
 export interface SparklineProps {
-  points?: number;
-  seed?: number;
-  color?: string;
-  width?: number;
-  height?: number;
+  values: number[];
 }
 
-function mulberry32(seed: number): () => number {
-  return () => {
-    let t = (seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+export function Sparkline({ values }: SparklineProps) {
+  if (values.length < 2) return null;
 
-export function Sparkline({
-  points = 14,
-  seed = 42,
-  color = '#365b49',
-  width = 86,
-  height = 30,
-}: SparklineProps) {
-  const data = useMemo(() => {
-    const rand = mulberry32(seed);
-    return Array.from({ length: points }, () => rand());
-  }, [points, seed]);
-
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
   const range = max - min || 1;
 
-  const coords = data.map((v, i) => {
-    const x = (i / (points - 1)) * width;
-    const y = height - ((v - min) / range) * height;
-    return `${x},${y}`;
+  const coords = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * WIDTH;
+    const y = HEIGHT - ((v - min) / range) * HEIGHT;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
 
-  const polyline = coords.join(' ');
-  const lastPoint = coords[points - 1];
+  const last = coords[coords.length - 1]?.split(',') ?? [];
+  const dot: ReactNode =
+    last[0] !== undefined && last[1] !== undefined ? (
+      <circle cx={last[0]} cy={last[1]} r={2} fill={STROKE} />
+    ) : null;
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-      <polyline points={polyline} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-      {lastPoint && <circle cx={lastPoint.split(',')[0]} cy={lastPoint.split(',')[1]} r={2} fill={color} />}
+    <svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="overflow-visible" aria-hidden>
+      <polyline
+        points={coords.join(' ')}
+        fill="none"
+        stroke={STROKE}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {dot}
     </svg>
   );
 }

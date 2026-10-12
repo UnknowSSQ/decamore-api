@@ -1,4 +1,3 @@
-import './setup';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
@@ -24,6 +23,18 @@ describe('接口清单的几处登记必须互相对得上', () => {
 
   it('车单里每条 path 都由 id 拼成，不出现 id 与 path 各改一半', () => {
     for (const item of API_CATALOG) assert.equal(item.path, `/api/v1/${item.id}`, `${item.id} 的 path 与 id 不一致`);
+  });
+
+  it('车单 id 与编译期那批字面量互相对应，少一个或多一个都在这里露出来', () => {
+    for (const item of API_CATALOG) {
+      assert.ok(
+        IMPLEMENTED_API_IDS.includes(item.id as (typeof IMPLEMENTED_API_IDS)[number]),
+        `${item.id} 在车单里但不在 IMPLEMENTED_API_IDS`,
+      );
+    }
+    for (const id of IMPLEMENTED_API_IDS) {
+      assert.ok(API_CATALOG.some((item) => item.id === id), `${id} 登记为实现但车单没有它`);
+    }
   });
 
   it('每个用 publicOk 的路由都登记进了 IMPLEMENTED_API_IDS 与车单', () => {

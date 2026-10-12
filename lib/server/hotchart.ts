@@ -3,16 +3,12 @@ import 'server-only';
 
 import { asArray, asRecord, getUpstreamJson, num, str } from './upstream';
 import { createBoardCache } from './board-cache';
-import { ERROR_CODE, type HotChartItem, type HotChartResult } from '@/types';
-import { ApiError } from './errors';
+import { type HotChartItem, type HotChartResult } from '@/types';
+import { UpstreamUnavailableError } from './errors';
 
 export const HOT_CHART_CACHE_TTL_MS = 60 * 60_000;
 
 const MOVIE_RANK_URL = 'https://piaofang.maoyan.com/dashboard-ajax/movie';
-
-function unavailable(reason: string): ApiError {
-  return new ApiError(503, ERROR_CODE.SERVICE_UNAVAILABLE, '热映榜暂时取不到', { description: reason });
-}
 
 /** 「1510.39」+「万」→ 「1510.39万」；两段缺任意一段就返回 null */
 function joinUnit(value: unknown): string | null {
@@ -77,11 +73,11 @@ const resolveHotChart = createBoardCache<'chart', Board, HotChartResult>({
         'x-requested-with': 'XMLHttpRequest',
       });
     } catch (error) {
-      throw unavailable(error instanceof Error ? error.message : String(error));
+      throw new UpstreamUnavailableError('热映榜', error instanceof Error ? error.message : String(error));
     }
 
     const items = toItems(json);
-    if (items.length === 0) throw unavailable('上游返回的结构里没有可用影片');
+    if (items.length === 0) throw new UpstreamUnavailableError('热映榜', '上游返回的结构里没有可用影片');
 
     // 上游偶尔缺 updateInfo，退回抓取时刻
     const timestamp = num(asRecord(asRecord(json.movieList)?.updateInfo)?.updateTimestamp);

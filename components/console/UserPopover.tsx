@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/app';
 import type { AuthUser } from '@/types';
 
-export interface UserPopoverProps {
+interface UserPopoverProps {
   user: AuthUser;
   onClose: () => void;
 }

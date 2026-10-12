@@ -8,7 +8,7 @@ import { Reveal } from '@/components/shared/Reveal';
 import { PlazaCard } from '@/components/plaza/PlazaCard';
 import type { ApiCatalogItem, CardSpan } from '@/types';
 
-export interface LiveCardEntry {
+interface LiveCardEntry {
   item: ApiCatalogItem;
   span: CardSpan;
 }

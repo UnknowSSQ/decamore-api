@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 
 import Link from 'next/link';
 
-import { ROUTES } from '@/constants/app';
+import { APP_NAME, COPYRIGHT_YEAR, ROUTES } from '@/constants/app';
 import { Brand } from '@/components/ui/Brand';
 import { Skeleton } from '@/components/ui';
 import { LoginForm } from '@/components/auth/LoginForm';
@@ -74,7 +74,7 @@ export default function LoginPage() {
       </main>
 
       <footer className="relative z-10 flex flex-wrap items-center justify-center gap-[18px] text-[11px] text-ink-4">
-        <p>© 2026 Decamore API</p>
+        <p>© {COPYRIGHT_YEAR} {APP_NAME}</p>
         <nav className="flex gap-[18px]">
           <Link href={ROUTES.home} className="transition-colors hover:text-primary">
             概览

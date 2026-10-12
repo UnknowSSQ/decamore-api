@@ -1,4 +1,3 @@
-import './setup';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { describe, it } from 'node:test';

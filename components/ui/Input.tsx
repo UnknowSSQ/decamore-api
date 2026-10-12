@@ -8,7 +8,6 @@ import {
   useState,
   type InputHTMLAttributes,
   type ReactNode,
-  type TextareaHTMLAttributes,
 } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
@@ -31,9 +30,8 @@ const controlVariants = cva(
   },
 );
 
-export interface FieldProps {
+interface FieldProps {
   label?: ReactNode;
-  htmlFor?: string;
   error?: string;
   hint?: ReactNode;
   required?: boolean;
@@ -42,22 +40,20 @@ export interface FieldProps {
   children: ReactNode;
 }
 
-export function Field({ label, htmlFor, error, hint, required, extra, className, children }: FieldProps) {
-  // 没传 htmlFor 就生成 id 注入子控件：靠调用方传时漏得多，label 绑不上控件、读屏念不出字段名
-  // 显式传了 htmlFor 就原样输出（Checkbox 这类自带 id 的子控件）
-  const autoId = useId();
-  const controlId = htmlFor ?? autoId;
+export function Field({ label, error, hint, required, extra, className, children }: FieldProps) {
+  // 生成 id 注入子控件：靠调用方传时漏得多，label 绑不上控件、读屏念不出字段名
+  const controlId = useId();
   const describedBy = [error ? `${controlId}-error` : null, hint ? `${controlId}-hint` : null]
     .filter(Boolean)
     .join(' ');
 
   const child = useMemo(() => {
-    if (htmlFor || !isValidElement<{ id?: string; 'aria-describedby'?: string }>(children)) return children;
+    if (!isValidElement<{ id?: string; 'aria-describedby'?: string }>(children)) return children;
     return cloneElement(children, {
       id: children.props.id ?? controlId,
       'aria-describedby': children.props['aria-describedby'] ?? (describedBy || undefined),
     });
-  }, [children, htmlFor, controlId, describedBy]);
+  }, [children, controlId, describedBy]);
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
@@ -88,7 +84,7 @@ export function Field({ label, htmlFor, error, hint, required, extra, className,
 }
 
 /** 原生 input/textarea 的 size 是字符宽度，与这里的尺寸刻度语义冲突，统一 Omit 后交给 controlVariants */
-export interface InputProps
+interface InputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>,
     VariantProps<typeof controlVariants> {
   icon?: ReactNode;
@@ -115,27 +111,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       />
       {suffix && <span className="absolute right-2.5 top-1/2 -translate-y-1/2">{suffix}</span>}
     </div>
-  );
-});
-
-export interface TextareaProps
-  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'>,
-    VariantProps<typeof controlVariants> {
-  invalid?: boolean;
-}
-
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { className, invalid, tone, rows = 3, ...rest },
-  ref,
-) {
-  return (
-    <textarea
-      ref={ref}
-      rows={rows}
-      aria-invalid={invalid || undefined}
-      className={cn(controlVariants({ tone: invalid ? 'error' : tone, size: 'md' }), 'py-2.5 leading-relaxed', className)}
-      {...rest}
-    />
   );
 });
 

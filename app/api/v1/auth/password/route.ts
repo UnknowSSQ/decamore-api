@@ -1,20 +1,24 @@
-import { defineRoute, ok } from '@/lib/server';
+import { defineRoute, ok, UnauthorizedError } from '@/lib/server';
 import { changePasswordSchema } from '@/lib/zod/auth.schema';
+import { API } from '@/lib/api/endpoints';
+import { findUserByAccount, updatePassword, verifyPassword } from '@/lib/server/store/users';
 
 export const PATCH = defineRoute(
   {
     auth: true,
     body: changePasswordSchema,
-    route: '/api/v1/auth/password',
+    route: API.auth.changePassword,
   },
   async (_req, { body, session }) => {
     const { currentPassword, newPassword } = body!;
+    const account = session!.user.account;
 
-    // 无数据源：入参不参与任何判定，接口恒返回成功，密码并未变更
-    void currentPassword;
-    void newPassword;
+    const user = findUserByAccount(account);
+    if (!user || !verifyPassword(user.passwordHash, currentPassword)) {
+      throw new UnauthorizedError('当前密码错误', '请确认后重试');
+    }
 
-    void session;
+    updatePassword(account, newPassword);
 
     return ok({ success: true }, { message: '密码已更新' });
   },

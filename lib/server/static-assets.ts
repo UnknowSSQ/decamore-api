@@ -6,11 +6,13 @@ import path from 'node:path';
 
 import { siteUrl } from '@/env';
 import type { StaticAssetItem, StaticAssetList } from '@/types';
+import { sampleUnique } from '@/utils/random';
 import { InternalError } from './errors';
+import { markCacheHit } from './trace';
 
 export type AssetCategory = 'emoji' | 'avatar' | 'images';
 
-export const ASSET_CACHE_TTL_MS = 10 * 60_000;
+const ASSET_CACHE_TTL_MS = 10 * 60_000;
 
 const CATEGORY_DIR: Record<AssetCategory, string> = { emoji: 'emoji', avatar: 'avatar', images: 'images' };
 /** 只进错误文案 */
@@ -91,6 +93,7 @@ async function resolveAssets<TType extends string>(
   const key = `${CATEGORY_DIR[category]}/${type}`;
   const hit = cache[key];
   if (hit && Date.now() - hit.at < ASSET_CACHE_TTL_MS) {
+    markCacheHit();
     return { type, total: hit.items.length, cached: true, items: hit.items };
   }
 
@@ -127,10 +130,5 @@ export async function listAssets<TType extends string>(
 ): Promise<StaticAssetList<TType>> {
   const result = await resolveAssets(category, type, allowedTypes);
   if (!limit) return result;
-  const picked = [...result.items];
-  for (let i = picked.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [picked[i], picked[j]] = [picked[j]!, picked[i]!];
-  }
-  return { ...result, items: picked.slice(0, limit) };
+  return { ...result, items: sampleUnique(result.items, limit) };
 }

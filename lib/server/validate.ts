@@ -8,8 +8,6 @@ import { ValidationError } from './errors';
 /** 兜底上限：正常路径由 withApiHandler 传入实时配置，这里只在没人传时挡住大 body */
 const MAX_BODY_BYTES = DEFAULT_MAX_BODY_SIZE_KB * 1024;
 
-export { toFieldIssues, validateSoft } from '@/lib/zod/validate-shared';
-
 /** message 只取第一个 issue，明细留在 issues 数组 */
 function throwInvalid(error: Parameters<typeof toFieldIssues>[0]): never {
   const issues = toFieldIssues(error);

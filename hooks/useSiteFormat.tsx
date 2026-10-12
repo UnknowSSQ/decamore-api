@@ -5,9 +5,9 @@
  */
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
-import { formatClock, formatDate, formatDateTime, formatLongDate, type DisplayPrefs } from '@/utils/format';
+import { formatClock, formatDateTime, formatLongDate, type DisplayPrefs } from '@/utils/format';
 
-export interface SiteDisplay extends DisplayPrefs {
+interface SiteDisplay extends DisplayPrefs {
   maintenanceMode: boolean;
   itemsPerPage: number;
 }
@@ -35,8 +35,6 @@ export function useSiteFormat() {
   const formatters = useMemo(() => {
     const prefs: DisplayPrefs = { timeZone, dateFormat };
     return {
-      prefs,
-      fmtDate: (input: string | number | Date) => formatDate(input, prefs),
       fmtDateTime: (input: string | number | Date) => formatDateTime(input, prefs),
       fmtClock: (date: Date) => formatClock(date, timeZone),
       fmtLongDate: (date: Date) => formatLongDate(date, timeZone),

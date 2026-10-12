@@ -1,5 +1,5 @@
 /** CSRF 判定：双提交 Cookie 的完整规则，纯函数便于把「何时必须带」这条讲清楚 */
-export interface CsrfDecisionInput {
+interface CsrfDecisionInput {
   /** 这次请求是否要求 CSRF 校验：调用方按「route 显式指定，否则写方法默认开启」算好再传进来 */
   required: boolean;
   /** 令牌是从 Authorization 头来的还是从 Cookie 来的 */
@@ -10,7 +10,7 @@ export interface CsrfDecisionInput {
   cookie: string | null;
 }
 
-export type CsrfDecision = { verdict: 'skip' | 'pass' | 'fail'; reason?: string };
+type CsrfDecision = { verdict: 'skip' | 'pass' | 'fail'; reason?: string };
 
 /**
  * Bearer 头发起的请求不具备「浏览器自动带上凭据」这个属性，跨站脚本伪造不出该头，

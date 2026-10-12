@@ -21,8 +21,8 @@ export interface RequestContext {
   role?: string;
   status?: number;
   errorCode?: number;
-  /** 来自 content-length，可能取不到 */
-  requestBytes?: number;
+  /** 本次响应是否出自服务端缓存，由缓存实现自己回填；无缓存语义的接口保持 undefined */
+  cacheHit?: boolean;
   /** 关掉本次请求的统计 */
   skipStats?: boolean;
 }
@@ -46,6 +46,12 @@ export function getRequestContext(): RequestContext | undefined {
 
 export function getTraceId(): string | undefined {
   return store.getStore()?.traceId;
+}
+
+/** 缓存实现命中时调用，控制台的日志与仪表盘据此显示 HIT / MISS */
+export function markCacheHit(): void {
+  const ctx = store.getStore();
+  if (ctx) ctx.cacheHit = true;
 }
 
 /** 毫秒、两位小数；无上下文时返回 0 */

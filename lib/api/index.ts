@@ -4,17 +4,8 @@
  */
 export { API } from './endpoints';
 export { RequestError } from './error';
-export type { RequestErrorCode, RequestErrorInit } from './error';
 export { http } from './http';
-export type { RequestOptions } from './http';
-export {
-  changePassword,
-  fetchMe,
-  fetchUsers,
-  login,
-  logout,
-  refreshSession,
-} from './auth-api';
+export { fetchMe, login, logout, refreshSession } from './auth-api';
 export {
   createManagedApi,
   createRule,
@@ -30,16 +21,25 @@ export {
   fetchEmoji,
   fetchAvatars,
   fetchImages,
+  fetchIdioms,
+  fetchSoulsoup,
+  fetchKfc,
+  fetchNeteaseComment,
+  fetchPoetry,
+  fetchTyphoonList,
+  fetchTyphoonTrack,
+  fetchExchangeRates,
+  fetchWeatherNow,
+  fetchWeatherWarnings,
+  fetchGoldQuote,
+  fetchStockQuotes,
   fetchLogs,
   fetchManagedApis,
-  fetchNotifications,
   fetchPlazaCatalog,
   fetchRules,
   fetchSecurity,
   fetchSiteSettings,
   fetchWallpaper,
-  markAllNotificationsRead,
-  markNotificationRead,
   patchSecurity,
   patchSiteSettings,
   removeIpBlacklist,

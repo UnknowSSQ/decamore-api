@@ -1,5 +1,5 @@
 import { defineRoute, ok, UnauthorizedError } from '@/lib/server';
-import { refreshSchema } from '@/lib/zod/auth.schema';
+import { API } from '@/lib/api/endpoints';
 import { readTokenFromRequest, writeSessionCookies } from '@/lib/auth/session';
 import { generateCsrfToken, issueToken, verifyToken } from '@/lib/auth/jwt';
 import { TOKEN_TYPE } from '@/constants/auth';
@@ -9,8 +9,7 @@ import type { RefreshResult } from '@/types';
 export const POST = defineRoute(
   {
     auth: false,
-    body: refreshSchema,
-    route: '/api/v1/auth/refresh',
+    route: API.auth.refresh,
   },
   async () => {
     const refreshToken = await readTokenFromRequest('refresh');

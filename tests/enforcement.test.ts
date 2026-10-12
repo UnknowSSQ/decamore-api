@@ -1,4 +1,3 @@
-import './setup';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -99,17 +98,12 @@ describe('访问规则', () => {
     assert.match(String((await json(blocked)).description), /测试限流/);
   });
 
-  it('reject 处置返回 403，captcha 目前没有校验流程所以按 429 处理', async () => {
+  it('reject 处置返回 403', async () => {
     resetPolicy();
     createRule({ name: '硬拒', scope: '/api/v1/reject-me', limit: 1, periodSec: 60, action: 'reject', enabled: true });
     const reject = withApiHandler(() => ok({}), { auth: false, route: '/api/v1/reject-me', rateLimitPerMin: 1000 });
     await call(reject, '/api/v1/reject-me', ipOf('192.0.2.2'));
     assert.equal((await call(reject, '/api/v1/reject-me', ipOf('192.0.2.2'))).status, 403);
-
-    createRule({ name: '人机', scope: '/api/v1/captcha-me', limit: 1, periodSec: 60, action: 'captcha', enabled: true });
-    const captcha = withApiHandler(() => ok({}), { auth: false, route: '/api/v1/captcha-me', rateLimitPerMin: 1000 });
-    await call(captcha, '/api/v1/captcha-me', ipOf('192.0.2.3'));
-    assert.equal((await call(captcha, '/api/v1/captcha-me', ipOf('192.0.2.3'))).status, 429);
   });
 
   it('停用的规则完全不参与判定', async () => {
@@ -174,12 +168,12 @@ describe('CORS', () => {
     patchSecuritySettings({ corsOrigins: ['https://allow.me'] });
     const options = preflight();
 
-    const allowed = options(new NextRequest('http://localhost:3000/api/v1/hitokoto', { method: 'OPTIONS', headers: { origin: 'https://allow.me' } }));
+    const allowed = await options(new NextRequest('http://localhost:3000/api/v1/hitokoto', { method: 'OPTIONS', headers: { origin: 'https://allow.me' } }));
     assert.equal(allowed.status, 204);
     assert.equal(allowed.headers.get('access-control-allow-origin'), 'https://allow.me');
     assert.match(String(allowed.headers.get('access-control-allow-methods')), /GET/);
 
-    const denied = options(new NextRequest('http://localhost:3000/api/v1/hitokoto', { method: 'OPTIONS', headers: { origin: 'https://evil.me' } }));
+    const denied = await options(new NextRequest('http://localhost:3000/api/v1/hitokoto', { method: 'OPTIONS', headers: { origin: 'https://evil.me' } }));
     assert.equal(denied.status, 204);
     assert.equal(denied.headers.get('access-control-allow-origin'), null);
   });

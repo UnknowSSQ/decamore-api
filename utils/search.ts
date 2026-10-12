@@ -13,7 +13,7 @@ const FIELD_WEIGHTS: readonly (readonly [key: keyof ApiCatalogItem, weight: numb
   ['desc', 2],
 ] as const;
 
-export function tokenize(value: string): string[] {
+function tokenize(value: string): string[] {
   return value
     .normalize('NFKC')
     .toLowerCase()
@@ -22,7 +22,7 @@ export function tokenize(value: string): string[] {
 }
 
 /** needle 是否为 hay 的子序列，用于跳字匹配缩写，如 "hkt" → "hitokoto" */
-export function isSubsequence(hay: string, needle: string): boolean {
+function isSubsequence(hay: string, needle: string): boolean {
   if (!needle) return false;
   let i = 0;
   for (const ch of hay) {
@@ -33,7 +33,7 @@ export function isSubsequence(hay: string, needle: string): boolean {
 }
 
 /** 单条目的搜索得分；0 表示不匹配 */
-export function scoreApi(api: ApiCatalogItem, tokens: readonly string[]): number {
+function scoreApi(api: ApiCatalogItem, tokens: readonly string[]): number {
   if (tokens.length === 0) return 1; // 无关键词时全部命中，保持原序
 
   let total = 0;
@@ -54,7 +54,7 @@ export function scoreApi(api: ApiCatalogItem, tokens: readonly string[]): number
   return total;
 }
 
-export interface RankedApi {
+interface RankedApi {
   item: ApiCatalogItem;
   score: number;
 }

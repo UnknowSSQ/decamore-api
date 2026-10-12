@@ -2,6 +2,10 @@ import 'server-only';
 import type { AccessRule } from '@/types';
 import type { CreateRuleInput } from '@/lib/zod/admin.schema';
 import { scopeMatches, scopeSpecificity } from '@/utils/net';
+import { createKvBackedConfig, replaceInPlace } from './config';
+
+/** 种子内容或计数口径变更时 bump，进程内的编辑结果会被覆盖 */
+const RULES_SEED_VERSION = '2026-10-10.captcha-removed';
 
 /**
  * hitsToday 一律从 0 起：由 recordRuleHit 真实累加，种子再放演示数字就分不出真假。
@@ -10,33 +14,38 @@ import { scopeMatches, scopeSpecificity } from '@/utils/net';
 const seedRules = (): AccessRule[] => [
   { id: 'rule_001', name: '热点接口频控', scope: 'global', limit: 100, periodSec: 60, action: '429', enabled: false, hitsToday: 0, updatedAt: '2026-10-07T01:00:00.000Z' },
   { id: 'rule_002', name: '恶意 IP 拦截', scope: 'global', limit: 500, periodSec: 300, action: 'reject', enabled: false, hitsToday: 0, updatedAt: '2026-10-06T22:30:00.000Z' },
-  { id: 'rule_003', name: '异常流量验证码', scope: '/api/v1/*', limit: 200, periodSec: 120, action: 'captcha', enabled: false, hitsToday: 0, updatedAt: '2026-10-06T18:00:00.000Z' },
   { id: 'rule_004', name: '日志记录（调试）', scope: '/api/v1/admin/*', limit: 1000, periodSec: 60, action: 'log', enabled: false, hitsToday: 0, updatedAt: '2026-10-05T14:20:00.000Z' },
   { id: 'rule_005', name: '登录接口保护', scope: '/api/v1/auth/login', limit: 10, periodSec: 60, action: '429', enabled: true, hitsToday: 0, updatedAt: '2026-10-07T00:45:00.000Z' },
   { id: 'rule_006', name: '图片接口限流', scope: '/api/v1/wallpaper', limit: 60, periodSec: 60, action: '429', enabled: false, hitsToday: 0, updatedAt: '2026-10-06T20:15:00.000Z' },
-  { id: 'rule_007', name: '榜单类接口保护', scope: '/api/v1/hotsearch,/api/v1/hotmusic,/api/v1/hotplay,/api/v1/hotchart', limit: 30, periodSec: 60, action: 'captcha', enabled: false, hitsToday: 0, updatedAt: '2026-10-06T16:30:00.000Z' },
+  { id: 'rule_007', name: '榜单类接口保护', scope: '/api/v1/hotsearch,/api/v1/hotmusic,/api/v1/hotplay,/api/v1/hotchart', limit: 30, periodSec: 60, action: '429', enabled: false, hitsToday: 0, updatedAt: '2026-10-06T16:30:00.000Z' },
   { id: 'rule_008', name: '全局兜底策略', scope: 'global', limit: 5000, periodSec: 3600, action: '429', enabled: false, hitsToday: 0, updatedAt: '2026-10-01T10:00:00.000Z' },
 ];
 
-/** 挂 globalThis：规则读在守卫所在的每个 chunk、写在 /rules 那条 chunk，模块级数组存不住编辑结果 */
-const globalStore = globalThis as typeof globalThis & {
-  __decamoreRules?: AccessRule[];
-  __decamoreRulesSeed?: string;
-  /** 规则 id -> 记账日，用来把 hitsToday 变成真计数 */
-  __decamoreRuleHitDays?: Map<string, string>;
-};
+/** 规则 id -> 记账日，用来把 hitsToday 变成真计数；和规则集一样要跨 chunk */
+const hitDayStore = globalThis as typeof globalThis & { __decamoreRuleHitDays?: Map<string, string> };
+const hitDays = (hitDayStore.__decamoreRuleHitDays ??= new Map<string, string>());
 
-/** 种子内容或计数口径变更时 bump，进程内的编辑结果会被覆盖 */
-const RULES_SEED_VERSION = '2026-10-09.enforced-by-guard-seed-disabled';
+const looksLikeRules = (value: unknown): value is AccessRule[] => Array.isArray(value);
 
-if (globalStore.__decamoreRulesSeed !== RULES_SEED_VERSION) {
-  globalStore.__decamoreRulesSeed = RULES_SEED_VERSION;
-  globalStore.__decamoreRules = seedRules();
-  globalStore.__decamoreRuleHitDays = new Map();
-}
+const store = createKvBackedConfig<AccessRule[]>({
+  slot: 'Rules',
+  key: 'decamore:rules',
+  seedVersion: RULES_SEED_VERSION,
+  seed: seedRules,
+  accepts: looksLikeRules,
+  /**
+   * 外部规则集进内存时把 hitsToday 归零并清记账：镜像过去的是配置（limit/scope/action），
+   * 计数各实例自己累计，照抄别机的数字就成了「看起来是真实统计」。
+   */
+  apply: (target, next) => {
+    for (const rule of next) rule.hitsToday = 0;
+    replaceInPlace(target, next);
+    hitDays.clear();
+  },
+  onReseed: () => hitDays.clear(),
+});
 
-const RULES: AccessRule[] = globalStore.__decamoreRules!;
-const hitDays = (globalStore.__decamoreRuleHitDays ??= new Map<string, string>());
+const RULES = store.value;
 
 const nowIso = () => new Date().toISOString();
 
@@ -75,6 +84,7 @@ export function createRule(input: CreateRuleInput): AccessRule {
     updatedAt: nowIso(),
   };
   RULES.push(rule);
+  store.mirror();
   return { ...rule };
 }
 
@@ -82,6 +92,7 @@ export function updateRule(id: string, patch: Partial<Omit<AccessRule, 'id' | 'h
   const rule = RULES.find((r) => r.id === id);
   if (!rule) return undefined;
   Object.assign(rule, patch, { updatedAt: nowIso() });
+  store.mirror();
   return { ...rule };
 }
 
@@ -90,6 +101,7 @@ export function deleteRule(id: string): boolean {
   if (index < 0) return false;
   RULES.splice(index, 1);
   hitDays.delete(id);
+  store.mirror();
   return true;
 }
 

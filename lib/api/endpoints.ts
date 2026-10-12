@@ -9,7 +9,6 @@ export const API = {
     logout: `${V1}/auth/logout`,
     me: `${V1}/auth/me`,
     changePassword: `${V1}/auth/password`,
-    users: `${V1}/auth/users`,
   },
   /** 无需登录 */
   publicApi: {
@@ -23,6 +22,17 @@ export const API = {
     emoji: `${V1}/emoji`,
     avatar: `${V1}/avatar`,
     images: `${V1}/images`,
+    poetry: `${V1}/poetry`,
+    idioms: `${V1}/idioms`,
+    soulsoup: `${V1}/soulsoup`,
+    kfc: `${V1}/kfc`,
+    netease: `${V1}/netease`,
+    typhoon: `${V1}/typhoon`,
+    exchange: `${V1}/exchange`,
+    weather: `${V1}/weather`,
+    gold: `${V1}/gold`,
+    stock: `${V1}/stock`,
+    warning: `${V1}/warning`,
     plaza: `${V1}/plaza`,
   },
   console: {
@@ -38,7 +48,5 @@ export const API = {
     ipBlacklist: `${V1}/security/ip-blacklist`,
     cors: `${V1}/security/cors`,
     settings: `${V1}/settings`,
-    notifications: `${V1}/notifications`,
-    notificationsReadAll: `${V1}/notifications/read-all`,
   },
 } as const;

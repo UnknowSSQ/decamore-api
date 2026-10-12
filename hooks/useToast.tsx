@@ -9,7 +9,7 @@ import type { ToastTone } from '@/types';
 const DEFAULT_DURATION_MS = 3200;
 const MAX_TOASTS = 4;
 
-export interface ToastItem {
+interface ToastItem {
   id: string;
   tone: ToastTone;
   title: string;
@@ -17,25 +17,21 @@ export interface ToastItem {
   /** 自动关闭延时；0 表示常驻 */
   duration: number;
   count: number;
-  createdAt: number;
 }
 
-export interface ToastInput {
-  tone?: ToastTone;
+interface ToastInput {
+  tone: ToastTone;
   title: string;
   description?: string;
   duration?: number;
 }
 
+/** 界面只用成功与失败两档；warning / info 曾在这里各占一行，没有任何调用点 */
 export interface ToastApi {
   toasts: ToastItem[];
-  show: (input: ToastInput) => string;
   success: (title: string, description?: string) => string;
   error: (title: string, description?: string) => string;
-  warning: (title: string, description?: string) => string;
-  info: (title: string, description?: string) => string;
   dismiss: (id: string) => void;
-  clear: () => void;
 }
 
 const ToastContext = createContext<ToastApi | null>(null);
@@ -80,7 +76,7 @@ export function useToastState(): ToastApi {
     return () => map.forEach((t) => clearTimeout(t));
   }, []);
 
-  const show = useCallback(({ tone = 'info', title, description, duration = DEFAULT_DURATION_MS }: ToastInput) => {
+  const show = useCallback(({ tone, title, description, duration = DEFAULT_DURATION_MS }: ToastInput) => {
     const id = `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
     setToasts((prev) => {
@@ -91,7 +87,7 @@ export function useToastState(): ToastApi {
           t.id === dup.id ? { ...t, count: t.count + 1, description: description ?? t.description, duration } : t,
         );
       }
-      const item: ToastItem = { id, tone, title, description, duration, count: 1, createdAt: Date.now() };
+      const item: ToastItem = { id, tone, title, description, duration, count: 1 };
       return [item, ...prev].slice(0, MAX_TOASTS);
     });
 
@@ -101,13 +97,9 @@ export function useToastState(): ToastApi {
   return useMemo<ToastApi>(
     () => ({
       toasts,
-      show,
       success: (title, description) => show({ tone: 'success', title, description }),
       error: (title, description) => show({ tone: 'error', title, description, duration: 4600 }),
-      warning: (title, description) => show({ tone: 'warning', title, description }),
-      info: (title, description) => show({ tone: 'info', title, description }),
       dismiss,
-      clear: () => setToasts([]),
     }),
     [toasts, show, dismiss],
   );

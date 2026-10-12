@@ -19,9 +19,6 @@ export const DEFAULT_LIVE_CARD_LAYOUT: readonly CardSpan[] = [
   { id: 'hotmusic', cols: 4, rows: 1 },
   { id: 'hotplay', cols: 6, rows: 1 },
   { id: 'hotchart', cols: 6, rows: 1 },
-  { id: 'emoji', cols: 4, rows: 1 },
-  { id: 'avatar', cols: 4, rows: 1 },
-  { id: 'images', cols: 4, rows: 1 },
 ];
 
 /** 12 ÷ 4 = 每行 3 张 */
@@ -41,7 +38,18 @@ export function cardName(id: string): string {
 export function cardSpan(
   layout: readonly CardSpan[],
   id: string,
-  fallback: { cols: number; rows: number } = { cols: 1, rows: 1 },
+  fallback: { cols: number; rows: number },
 ): CardSpan {
   return layout.find((item) => item.id === id) ?? { id, cols: fallback.cols, rows: fallback.rows };
+}
+
+/**
+ * 按布局的数组顺序重排卡片 id：布局里还没有的（后台新增的接口）按传入顺序接在后面，
+ * 布局里已失效的 id（接口被删）直接丢掉——两边都对不上时宁可少几张，不显示空卡。
+ */
+export function layoutOrder(layout: readonly CardSpan[], ids: readonly string[]): string[] {
+  const alive = new Set(ids);
+  const listed = layout.map((span) => span.id).filter((id) => alive.has(id));
+  const inLayout = new Set(listed);
+  return [...listed, ...ids.filter((id) => !inLayout.has(id))];
 }

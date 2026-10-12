@@ -50,5 +50,6 @@ Thumbs.db
 /public/sw.js
 /public/workbox-*.js
 
-# bing 壁纸镜像：运行时由 lib/server/wallpaper.ts 回源落盘，不入库（每天约 400KB）
+# 上游壁纸镜像：运行时由 lib/server/wallpaper.ts 回源落盘，不入库（bing 每天约 400KB、nasa 约 210KB）
 public/assets/wallpaper/bing/
+public/assets/wallpaper/nasa/

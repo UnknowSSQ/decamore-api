@@ -16,17 +16,18 @@ import {
 } from '@/components/ui';
 import { useCan } from '@/hooks/usePermission';
 import { useListQuery } from '@/hooks/useListQuery';
+import { useOptimisticToggle } from '@/hooks/useOptimisticToggle';
 import { useSiteFormat } from '@/hooks/useSiteFormat';
-import { useToast } from '@/hooks/useToast';
 import { fetchManagedApis, updateManagedApi } from '@/lib/api';
 import type { ApiListQuery } from '@/lib/zod/admin.schema';
 import { hasAuthoredDoc } from '@/components/docs/authored-slugs';
 import { isImplementedApiId } from '@/constants/api-catalog';
 import { docApiHref } from '@/constants/app';
 import { formatCompactCn, formatPercent } from '@/utils/format';
-import type { ManagedApi, Paged, TableColumn } from '@/types';
+import { API_CATEGORIES, type ManagedApi, type Paged, type TableColumn } from '@/types';
 
-const CATEGORY_FILTERS = ['全部', '内容', '数据', '图片'] as const;
+/** 分类取值来自 types/domain 的那一份字面量，顺序与新建表单一致，不再在这里手写第四遍 */
+const CATEGORY_FILTERS = ['全部', ...API_CATEGORIES] as const;
 
 /**
  * 抽屉与表单按需加载：两者各自拖着 zod 写校验与代码窗（含 highlight 着色），列表首屏用不到。
@@ -40,7 +41,6 @@ const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
   { value: 'online', label: '在线' },
   { value: 'degraded', label: '降级' },
-  { value: 'offline', label: '停用' },
 ] as const;
 
 /** 200ms 记满格，下限 2px 让极快的接口也留得下痕迹 */
@@ -51,7 +51,6 @@ function latBarWidth(ms: number): number {
 export function ApisView() {
   const { itemsPerPage } = useSiteFormat();
   const canWrite = useCan('api:write');
-  const toast = useToast();
 
   // 列 key 与后端 sort 值不同名，这里改名；空筛选传 undefined 而非空串
   const {
@@ -80,7 +79,7 @@ export function ApisView() {
     build: ({ keyword, filters, sort, page, pageSize }) => ({
       keyword: keyword || undefined,
       category: filters.category !== '全部' ? filters.category : undefined,
-      status: (filters.status || undefined) as 'online' | 'degraded' | 'offline' | undefined,
+      status: (filters.status || undefined) as 'online' | 'degraded' | undefined,
       sort: sort.key === 'calls24h' ? 'calls' : sort.key === 'avgLatencyMs' ? 'latency' : sort.key === 'errorRate' ? 'errorRate' : 'updated',
       order: sort.order,
       page,
@@ -88,60 +87,31 @@ export function ApisView() {
     }),
   });
 
-  const [drawerApi, setDrawerApi] = useState<ManagedApi | null>(null);
+  const [drawerId, setDrawerId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSeen, setDrawerSeen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSeen, setModalSeen] = useState(false);
-  const [editingApi, setEditingApi] = useState<ManagedApi | null>(null);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
-  const handleStatusToggle = useCallback(
-    async (api: ManagedApi, next: boolean) => {
-      setTogglingId(api.id);
-      const prev = api.status;
-      // 先落本地，Switch 不等 RTT
-      setData((d) => {
-        if (!d) return d;
-        return {
-          ...d,
-          items: d.items.map((item) =>
-            item.id === api.id ? { ...item, status: next ? 'online' : 'degraded' } : item,
-          ),
-        };
-      });
-      try {
-        await updateManagedApi(api.id, {
-          status: next ? 'online' : 'degraded',
-        });
-        toast.success(`「${api.name}」已${next ? '上线' : '转入维护'}`);
-      } catch {
-        setData((d) => {
-          if (!d) return d;
-          return {
-            ...d,
-            items: d.items.map((item) =>
-              item.id === api.id ? { ...item, status: prev } : item,
-            ),
-          };
-        });
-        toast.error('状态更新失败');
-      } finally {
-        setTogglingId(null);
-      }
-    },
-    [setData, toast],
+  const { togglingId, toggle: handleStatusToggle } = useOptimisticToggle<ManagedApi>({
+    setData,
+    toPatch: (next) => ({ status: next ? 'online' : 'degraded' }),
+    persist: (id, patch) => updateManagedApi(id, patch),
+    successMessage: (api, next) => `「${api.name}」已${next ? '上线' : '转入维护'}`,
+  });
+
+  // 抽屉那一行从 data 里取而不是存副本：存副本会在列表刷新或行内开关切换后停在打开那一刻的形状上
+  const drawerApi = useMemo(
+    () => data?.items.find((item) => item.id === drawerId) ?? null,
+    [data, drawerId],
   );
 
-
-
   const openDetail = useCallback((api: ManagedApi) => {
-    setDrawerApi(api);
+    setDrawerId(api.id);
     setDrawerSeen(true);
     setDrawerOpen(true);
   }, []);
 
   const handleCreate = () => {
-    setEditingApi(null);
     setModalSeen(true);
     setModalOpen(true);
   };
@@ -289,7 +259,7 @@ export function ApisView() {
               className="icon-mini grid h-[30px] w-[30px] place-items-center rounded-[9px] border border-line text-muted transition-colors hover:border-primary hover:bg-wash hover:text-primary"
               aria-label="查看调用日志"
               onClick={() => {
-                window.location.href = `/admin/logs?path=${encodeURIComponent(row.path)}`;
+                window.location.href = `/admin/logs?keyword=${encodeURIComponent(row.path)}`;
               }}
             >
               <Icon name="list" size={14} />
@@ -368,6 +338,7 @@ export function ApisView() {
         </div>
 
         <select
+          aria-label="按接口状态筛选"
           value={filters.status}
           onChange={(e) => setFilter('status', e.target.value)}
           className="h-[36px] rounded-full border border-line bg-surface px-3 text-[12px] text-ink"
@@ -438,7 +409,6 @@ export function ApisView() {
         <ApiFormModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
-          editingApi={editingApi}
           onSuccess={handleFormSuccess}
         />
       )}

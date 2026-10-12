@@ -5,6 +5,7 @@ import { hotchartQuerySchema } from '@/lib/zod/public.schema';
 export const GET = defineRoute(
   {
     auth: false,
+    envelope: 'public',
     query: hotchartQuerySchema,
     route: '/api/v1/hotchart',
   },

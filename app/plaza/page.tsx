@@ -3,14 +3,12 @@ import type { Metadata } from 'next';
 import { Reveal } from '@/components/shared/Reveal';
 import { SiteFooter } from '@/components/shared/SiteFooter';
 import { SiteHeader } from '@/components/shared/SiteHeader';
-import { ContactCta } from '@/components/shared/ContactCta';
+import { CtaPanel } from '@/components/shared/CtaPanel';
 import { BackToTop } from '@/components/shared/BackToTop';
 import { PlazaBoard } from '@/components/plaza/PlazaBoard';
 import { API_CATALOG } from '@/constants/api-catalog';
-import { buttonVariants } from '@/components/ui/button-variants';
 import { getSiteSettings } from '@/lib/server/store/settings';
 import { listCatalogItems } from '@/lib/server/catalog';
-import { cn } from '@/utils/cn';
 
 export const metadata: Metadata = {
   title: '接口广场 — Decamore API',
@@ -28,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export default function PlazaPage() {
-  const { plazaCardLayout } = getSiteSettings();
+  const { plazaCardLayout, contactEmail } = getSiteSettings();
   const catalog = listCatalogItems();
 
   return (
@@ -61,43 +59,19 @@ export default function PlazaPage() {
           }
         />
 
-        {/* 按钮样式在 Server Component 里用 buttonVariants() 算成字符串再传给客户端岛：
-            class 字符串能跨 Server/Client 边界，函数不能。 */}
-        <section className="bg-bg py-dsp-7" id="request">
+        {/* 与首页 CTA 同一张卡片，只差外层间距：文案改动只需要动 CtaPanel 的调用点 */}
+        <section className="bg-bg py-dsp-7">
           <div className="wrap">
-            <Reveal>
-              <div
-                className="relative flex flex-col items-start justify-between gap-8 overflow-hidden rounded-lg px-[46px] py-[42px] text-white md:flex-row md:items-center"
-                style={{
-                  background:
-                    'radial-gradient(620px 260px at 88% 8%, rgba(255,255,255,0.12), transparent 60%), rgb(var(--c-primary))',
-                }}
-              >
-                <div>
-                  <p className="kicker kicker--line mb-3.5 text-[11px] text-hair">
-                    Missing something?
-                  </p>
-                  <h2 className="mb-0 max-w-[570px] text-[clamp(28px,3.2vw,38px)] font-medium leading-[1.25] tracking-[-0.045em]">
-                    没找到想要的接口？
-                  </h2>
-                  <p className="mt-3 mb-0 text-[13px] text-[rgba(255,255,255,0.72)]">
-                    告诉我们你的场景，接口清单按需求持续扩充，全部免费开放、无需鉴权。
-                  </p>
-                </div>
-                <ContactCta
-                  title="提交接口需求"
-                  description="描述你的场景和想要的数据源，我会评估并排进扩充清单。"
-                  subject="Decamore API 接口需求"
-                  className={cn(
-                    buttonVariants({ variant: 'light', size: 'md' }),
-                    'h-12 gap-3 px-[21px] text-[13px] text-primary-dark hover:bg-wash-2',
-                  )}
-                  trailing={<span aria-hidden className="text-[17px] leading-none">↗</span>}
-                >
-                  提交接口需求
-                </ContactCta>
-              </div>
-            </Reveal>
+            <CtaPanel
+              kicker="Missing something?"
+              heading="没找到想要的接口？"
+              body="告诉我们你的场景，接口清单按需求持续扩充，全部免费开放、无需鉴权。"
+              email={contactEmail}
+              dialogTitle="提交接口需求"
+              dialogDescription="描述你的场景和想要的数据源，我会评估并排进扩充清单。"
+              subject="Decamore API 接口需求"
+              actionLabel="提交接口需求"
+            />
           </div>
         </section>
       </main>

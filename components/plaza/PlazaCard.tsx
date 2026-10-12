@@ -26,7 +26,7 @@ interface PlazaCardProps {
 export function PlazaCard({ item, seed, onRefresh, index, keyword, span, flashing = false }: PlazaCardProps) {
   const DemoComponent = getDemoComponent(item.demo);
   const mediaDemo = item.demo !== null && MEDIA_DEMOS.includes(item.demo);
-  // 卡片快进视口才挂载 demo：十张卡同时发请求，会把依赖上游的等待全部摊到首屏上
+  // 卡片快进视口才挂载 demo：十四张卡同时发请求，会把依赖上游的等待全部摊到首屏上
   const { ref: demoRef, visible: demoArmed } = useReveal<HTMLDivElement>({ threshold: 0, rootMargin: '160px' });
 
   const handleClick = (e: React.MouseEvent) => {
@@ -57,7 +57,6 @@ export function PlazaCard({ item, seed, onRefresh, index, keyword, span, flashin
       )}
       style={{ ['--card-cols']: span.cols, ['--card-rows']: span.rows } as CSSProperties}
       delay={Math.min(index, 7) * 0.05}
-      threshold={0.12}
     >
       <div
         tabIndex={0}

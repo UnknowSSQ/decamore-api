@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { RequestError } from '@/lib/api/error';
 import { useToast } from './useToast';
 
-export interface UseRequestOptions {
+interface UseRequestOptions {
   immediate?: boolean;
 }
 
@@ -40,6 +40,10 @@ export function useRequest<TArgs extends unknown[], TData>(
   const lastArgs = useRef<TArgs | null>(null);
   // 有没有拿到过数据：决定这次算「骨架屏加载」还是「静默刷新」
   const hasDataRef = useRef(false);
+  // toast api 每次 toasts 变化都是新对象，直接进 run 的依赖会让 run 换身份，
+  // 从而触发调用方 [query, run] 的 effect 重发请求；收进 ref 让 run 保持稳定。
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   useEffect(() => {
     mounted.current = true;
@@ -68,7 +72,11 @@ export function useRequest<TArgs extends unknown[], TData>(
         const requestError =
           err instanceof RequestError ? err : new RequestError({ status: 0, code: 'SERVER', message: '请求失败' });
         setError(requestError);
-        toast.error(requestError.message, requestError.description);
+        // 附带 traceId：用户截图或口头报障时，它是唯一能对上服务端日志的编号
+        const detail = [requestError.description, requestError.traceId && `编号 ${requestError.traceId}`]
+          .filter((part): part is string => Boolean(part))
+          .join(' · ');
+        toastRef.current.error(requestError.message, detail || undefined);
         return undefined;
       } finally {
         if (mounted.current && ticket === seq.current) {
@@ -77,7 +85,7 @@ export function useRequest<TArgs extends unknown[], TData>(
         }
       }
     },
-    [fetcher, toast],
+    [fetcher],
   );
 
   const refetch = useCallback(() => {

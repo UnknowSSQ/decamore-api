@@ -5,6 +5,7 @@ import { IMAGE_TYPES, imageQuerySchema } from '@/lib/zod/public.schema';
 export const GET = defineRoute(
   {
     auth: false,
+    envelope: 'public',
     query: imageQuerySchema,
     route: '/api/v1/images',
   },

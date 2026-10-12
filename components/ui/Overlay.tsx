@@ -27,6 +27,10 @@ interface BaseLayerProps {
 
 function useLayerBehavior({ open, onClose, dismissOnOverlay = true }: Pick<BaseLayerProps, 'open' | 'onClose' | 'dismissOnOverlay'>) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // 调用方每次渲染都传新的 onClose 箭头函数：它进依赖会让整个「锁定 + 焦点管理」effect
+  // 在父组件每次重渲染时重跑一遍，表现为焦点被抢回触发按钮、body.overflow 反复改写
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   const restoreRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -40,7 +44,7 @@ function useLayerBehavior({ open, onClose, dismissOnOverlay = true }: Pick<BaseL
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation();
-        onClose();
+        closeRef.current();
         return;
       }
       // 焦点陷阱：Tab 走到末尾再按就回到开头
@@ -73,7 +77,7 @@ function useLayerBehavior({ open, onClose, dismissOnOverlay = true }: Pick<BaseL
       document.body.style.overflow = prevOverflow;
       restoreRef.current?.focus({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const onOverlayClick = useCallback(() => {
     if (dismissOnOverlay) onClose();
@@ -97,7 +101,7 @@ function LayerTitle({ id, title, description, onClose }: { id: string; title?: R
   );
 }
 
-export function CloseButton({ onClose, className }: { onClose: () => void; className?: string }) {
+function CloseButton({ onClose, className }: { onClose: () => void; className?: string }) {
   return (
     <button
       type="button"

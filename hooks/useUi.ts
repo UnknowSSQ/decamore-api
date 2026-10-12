@@ -30,14 +30,13 @@ export function useClickOutside<T extends HTMLElement = HTMLDivElement>(
 export function useHotkey(
   key: string,
   handler: (event: KeyboardEvent) => void,
-  options: { enabled?: boolean; ignoreInputs?: boolean } = {},
+  options: { ignoreInputs?: boolean } = {},
 ) {
-  const { enabled = true, ignoreInputs = true } = options;
+  const { ignoreInputs = true } = options;
   const saved = useRef(handler);
   saved.current = handler;
 
   useEffect(() => {
-    if (!enabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== key || event.metaKey || event.ctrlKey || event.altKey) return;
       if (ignoreInputs) {
@@ -49,7 +48,7 @@ export function useHotkey(
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [key, enabled, ignoreInputs]);
+  }, [key, ignoreInputs]);
 }
 
 export function useDebouncedValue<T>(value: T, delayMs = 180): T {
@@ -61,8 +60,11 @@ export function useDebouncedValue<T>(value: T, delayMs = 180): T {
   return debounced;
 }
 
+/** 复制成功后「已复制」状态停留时长 */
+const COPY_RESET_MS = 1600;
+
 /** 非安全上下文（内网 http）没有 navigator.clipboard，回退 execCommand 才复制得出去 */
-export function useCopyToClipboard(resetMs = 1600): { copied: string | null; copy: (text: string, key?: string) => Promise<boolean> } {
+export function useCopyToClipboard(): { copied: string | null; copy: (text: string, key?: string) => Promise<boolean> } {
   const [copied, setCopied] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -91,11 +93,11 @@ export function useCopyToClipboard(resetMs = 1600): { copied: string | null; cop
       if (ok) {
         setCopied(key ?? text);
         if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(() => setCopied(null), resetMs);
+        timer.current = setTimeout(() => setCopied(null), COPY_RESET_MS);
       }
       return ok;
     },
-    [resetMs],
+    [],
   );
 
   useEffect(() => () => {
@@ -128,8 +130,11 @@ export function useScrolled(threshold = 40): boolean {
   return scrolled;
 }
 
+/** 浮标与页底之间留出的距离 */
+const BOTTOM_GAP_PX = 260;
+
 /** 快到底部时收起：否则浮标压住页底右下角的 CTA 卡片，手机上尤其明显 */
-export function useScrollVisible(threshold = 400, bottomGapPx = 260): boolean {
+export function useScrollVisible(threshold = 400): boolean {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -137,7 +142,7 @@ export function useScrollVisible(threshold = 400, bottomGapPx = 260): boolean {
     const check = () => {
       const { scrollY, innerHeight } = window;
       const distanceToBottom = document.documentElement.scrollHeight - (scrollY + innerHeight);
-      setVisible(scrollY > threshold && distanceToBottom > bottomGapPx);
+      setVisible(scrollY > threshold && distanceToBottom > BOTTOM_GAP_PX);
       raf = 0;
     };
     const onScroll = () => {
@@ -151,14 +156,16 @@ export function useScrollVisible(threshold = 400, bottomGapPx = 260): boolean {
       window.removeEventListener('resize', onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [threshold, bottomGapPx]);
+  }, [threshold]);
 
   return visible;
 }
 
-/** rootMargin 由调用方传：桌面 rail 与移动端粘性目录条的判定区不一样。
- *  取 intersecting entries 里 top 最小的一条（最靠上的可见章节），比 intersectRatio 稳，长表格分节时 ratio 会乱 */
-export function useScrollSpy(ids: readonly string[], rootMargin = '-96px 0px -62% 0px'): string {
+/** 判定区取「顶部往下到 38% 视口」：章节标题进入这一段才算当前章节 */
+const SCROLL_SPY_MARGIN = '-96px 0px -62% 0px';
+
+/** 取 intersecting entries 里 top 最小的一条（最靠上的可见章节），比 intersectRatio 稳：长表格分节时 ratio 会乱 */
+export function useScrollSpy(ids: readonly string[]): string {
   const [activeId, setActiveId] = useState<string>(ids[0] ?? '');
   // ids 写进依赖会随调用方新建数组反复重建 observer，所以走 ref
   const idsRef = useRef(ids);
@@ -179,20 +186,56 @@ export function useScrollSpy(ids: readonly string[], rootMargin = '-96px 0px -62
         const top = visible[0];
         if (top) setActiveId(top.target.id);
       },
-      { rootMargin, threshold: [0, 1] },
+      { rootMargin: SCROLL_SPY_MARGIN, threshold: [0, 1] },
     );
 
     for (const section of sections) observer.observe(section);
     return () => observer.disconnect();
-  }, [rootMargin]);
+  }, []);
 
   return activeId;
 }
 
 /** 命中一次就 unobserve，避免来回滚动反复触发 */
+/**
+ * 观察器按 (threshold, rootMargin) 复用：首页有二十来个 Reveal，各建一个 IntersectionObserver
+ * 就是二十份交集计算；同一档配置共用一个观察器，回调按元素派发。
+ */
+type RevealCallback = (visible: boolean) => void;
+const revealObservers = new Map<string, { observer: IntersectionObserver; targets: Map<Element, RevealCallback> }>();
+
+function acquireObserver(threshold: number, rootMargin: string) {
+  const key = `${threshold}|${rootMargin}`;
+  const existing = revealObservers.get(key);
+  if (existing) return existing;
+
+  const targets = new Map<Element, RevealCallback>();
+  const entry = {
+    targets,
+    observer: new IntersectionObserver(
+      (records) => {
+        for (const record of records) {
+          if (!record.isIntersecting) continue;
+          const callback = targets.get(record.target);
+          if (!callback) continue;
+          targets.delete(record.target);
+          entry.observer.unobserve(record.target);
+          callback(true);
+        }
+      },
+      { threshold, rootMargin },
+    ),
+  };
+  revealObservers.set(key, entry);
+  return entry;
+}
+
 export function useReveal<T extends HTMLElement = HTMLDivElement>(options?: { threshold?: number; rootMargin?: string }) {
   const ref = useRef<T | null>(null);
   const [visible, setVisible] = useState(false);
+
+  const threshold = options?.threshold ?? 0.12;
+  const rootMargin = options?.rootMargin ?? '0px 0px -40px 0px';
 
   useEffect(() => {
     const node = ref.current;
@@ -202,20 +245,14 @@ export function useReveal<T extends HTMLElement = HTMLDivElement>(options?: { th
       setVisible(true);
       return;
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setVisible(true);
-            observer.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: options?.threshold ?? 0.12, rootMargin: options?.rootMargin ?? '0px 0px -40px 0px' },
-    );
+    const { observer, targets } = acquireObserver(threshold, rootMargin);
+    targets.set(node, setVisible);
     observer.observe(node);
-    return () => observer.disconnect();
-  }, [options?.threshold, options?.rootMargin]);
+    return () => {
+      targets.delete(node);
+      observer.unobserve(node);
+    };
+  }, [threshold, rootMargin]);
 
   return { ref, visible };
 }
@@ -255,12 +292,12 @@ export function useCountUp(target: number, durationMs = 900): number {
 }
 
 /** 返回 ready 而不是直接给 Date：SSR 与服务端的 Date 不同，首帧必须渲染占位，否则 hydration mismatch */
-export function useNow(intervalMs = 1000): { now: Date; ready: boolean } {
+export function useNow(): { now: Date; ready: boolean } {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     setTick(1);
-    const timer = setInterval(() => setTick((n) => n + 1), intervalMs);
+    const timer = setInterval(() => setTick((n) => n + 1), 1000);
     return () => clearInterval(timer);
-  }, [intervalMs]);
+  }, []);
   return { now: new Date(), ready: tick > 0 };
 }

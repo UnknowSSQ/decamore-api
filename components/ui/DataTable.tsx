@@ -7,10 +7,10 @@ import type { SortState, TableColumn } from '@/types';
 import { Button } from './Button';
 import { EmptyState, Skeleton } from './Panel';
 
-export interface DataTableProps<T> {
+interface DataTableProps<T> {
   columns: readonly TableColumn<T>[];
   rows: readonly T[];
-  rowKey: (keyof T & string) | ((row: T, index: number) => string);
+  rowKey: keyof T & string;
   sort?: SortState;
   onSortChange?: (next: SortState) => void;
   loading?: boolean;
@@ -23,7 +23,6 @@ export interface DataTableProps<T> {
   errorDescription?: ReactNode;
   onRetry?: () => void;
   onRowClick?: (row: T, index: number) => void;
-  className?: string;
 }
 
 /** T 约束用 object 而不是 Record<string, unknown>：后者要求索引签名，CallLog 这类 interface 不满足，
@@ -43,12 +42,9 @@ export function DataTable<T extends object>({
   errorDescription,
   onRetry,
   onRowClick,
-  className,
 }: DataTableProps<T>) {
   const keyOf = (row: T, index: number): string =>
-    typeof rowKey === 'function'
-      ? rowKey(row, index)
-      : String((row as Partial<Record<typeof rowKey, unknown>>)[rowKey] ?? index);
+    String((row as Partial<Record<typeof rowKey, unknown>>)[rowKey] ?? index);
 
   const toggleSort = (key: string) => {
     if (!onSortChange) return;
@@ -58,7 +54,7 @@ export function DataTable<T extends object>({
 
   if (error && !loading) {
     return (
-      <div className={cn('rounded-lg border border-line bg-surface p-2', className)}>
+      <div className="rounded-lg border border-line bg-surface p-2">
         <EmptyState
           mark="⚠"
           title="加载失败"
@@ -77,22 +73,28 @@ export function DataTable<T extends object>({
 
   if (!loading && rows.length === 0) {
     return (
-      <div className={cn('rounded-lg border border-line bg-surface p-2', className)}>
+      <div className="rounded-lg border border-line bg-surface p-2">
         <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
       </div>
     );
   }
 
   return (
-    <div className={cn('overflow-x-auto rounded-lg border border-line bg-surface', className)}>
+    <div className="overflow-x-auto rounded-lg border border-line bg-surface">
       <table className="data-table">
         <thead>
           <tr>
             {columns.map((col) => {
               const active = sort?.key === col.key;
+              const sortable = Boolean(col.sortable && onSortChange);
               return (
-                <th key={col.key} className={cn(col.widthClass, col.align === 'right' && 'text-right', col.align === 'center' && 'text-center')}>
-                  {col.sortable && onSortChange ? (
+                <th
+                  key={col.key}
+                  scope="col"
+                  aria-sort={sortable ? (active ? (sort.order === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
+                  className={cn(col.widthClass, col.align === 'right' && 'text-right', col.align === 'center' && 'text-center')}
+                >
+                  {sortable ? (
                     <button
                       type="button"
                       onClick={() => toggleSort(col.key)}
@@ -127,6 +129,18 @@ export function DataTable<T extends object>({
                 <tr
                   key={keyOf(row, index)}
                   onClick={onRowClick ? () => onRowClick(row, index) : undefined}
+                  /* 整行可点就得整行可键盘激活；焦点环由 globals.css 的 :focus-visible 统一给，
+                     不往 <tr> 上挂 role，表格语义优先 */
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (event) => {
+                          if (event.key !== 'Enter' && event.key !== ' ') return;
+                          event.preventDefault();
+                          onRowClick(row, index);
+                        }
+                      : undefined
+                  }
                   className={cn(onRowClick && 'cursor-pointer')}
                 >
                   {columns.map((col) => (
@@ -160,14 +174,12 @@ export function Pagination({
   total,
   onPageChange,
   onPageSizeChange,
-  className,
 }: {
   page: number;
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
-  className?: string;
 }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   if (pageCount <= 1 && !onPageSizeChange) return null;
@@ -184,7 +196,7 @@ export function Pagination({
   const pageBtn = 'grid h-7 min-w-7 place-items-center rounded-full border text-[12px] transition-colors';
 
   return (
-    <nav aria-label="分页" className={cn('flex flex-wrap items-center justify-between gap-3 text-[12px] text-muted', className)}>
+    <nav aria-label="分页" className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-muted">
       <span>
         共 {total} 条 · 第 {page}/{pageCount} 页
       </span>
