@@ -53,3 +53,9 @@ Thumbs.db
 # 上游壁纸镜像：运行时由 lib/server/wallpaper.ts 回源落盘，不入库（bing 每天约 400KB、nasa 约 210KB）
 public/assets/wallpaper/bing/
 public/assets/wallpaper/nasa/
+
+# ---------- 本地分析 / 抓取产物 ----------
+# 代码分析报告与截图（含 analysis-report/_shots 下数 MB 图片），仅本地留档
+/analysis-report/
+# doc-fetch 抓取下来的参考 HTML，临时素材不入库
+/doc-fetch-resources/
