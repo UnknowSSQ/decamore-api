@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 三道静态门禁：只读源码，不碰 .next，因此本地对着同一个仓库跑 dev 时也能执行同一条命令
+      - run: npm run verify
+
+      # 构建单独一步：page data 收集阶段会真的 import 路由与 store，所以需要一个仅供构建的占位密钥；
+      # 真实部署的密钥由发布环境注入，不经过这个 workflow
+      - name: Production build
+        env:
+          JWT_SECRET: ci-only-placeholder-secret-not-for-deployment-32chars
+        run: npm run build

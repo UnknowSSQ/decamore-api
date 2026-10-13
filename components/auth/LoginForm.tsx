@@ -153,11 +153,13 @@ export function LoginForm() {
         {submitting ? '正在验证…' : '登录'}
       </Button>
 
-      <Callout tone="info" size="sm" className="mt-4">
-        <p className="text-[11px] leading-[1.7]">
-          <strong>本地登录：</strong>账号与口令取 <code className="font-mono">lib/server/store/users.ts</code> 的种子，改了要重启进程。
-        </p>
-      </Callout>
+      {process.env.NODE_ENV === 'development' && (
+        <Callout tone="info" size="sm" className="mt-4">
+          <p className="text-[11px] leading-[1.7]">
+            <strong>本地登录：</strong>账号与口令取 <code className="font-mono">lib/server/store/users.ts</code> 的种子，改了要重启进程。
+          </p>
+        </Callout>
+      )}
     </form>
   );
 }

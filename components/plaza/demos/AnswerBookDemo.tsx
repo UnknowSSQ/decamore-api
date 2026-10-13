@@ -101,7 +101,11 @@ export function AnswerBookDemo({ seed }: DemoProps) {
           </button>
 
           <p className="plaza-demo-answerbook-tip" role="status" aria-live="polite">
-            {failed ? '答案取不到，再翻一次' : question.trim() ? '当你选择翻页时，心中已经有了一个答案' : ''}
+            {failed
+              ? '答案取不到，再翻一次'
+              : question.trim()
+                ? '当你选择翻页时，心中已经有了一个答案'
+                : '先写下你的疑问，再翻页'}
           </p>
         </>
       )}
